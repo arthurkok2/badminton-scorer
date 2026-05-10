@@ -11,6 +11,19 @@ const OPPONENT: Record<TeamId, TeamId> = {
 };
 
 export function createMatch(options: CreateMatchOptions): MatchState {
+  const score: Score = { teamA: 0, teamB: 0 };
+  const servingSide = servingSideForScore(score[options.initialServingTeamId]);
+  const courtPositions = swapTeamToPutPlayerOnSide(
+    {
+      A1: 'right',
+      A2: 'left',
+      B1: 'right',
+      B2: 'left',
+    },
+    options.initialServingTeamId,
+    options.initialServingPlayerId,
+    servingSide,
+  );
   const base: MatchState = {
     mode: options.mode,
     teams: {
@@ -31,16 +44,11 @@ export function createMatch(options: CreateMatchOptions): MatchState {
         ],
       },
     },
-    score: { teamA: 0, teamB: 0 },
+    score,
     servingTeamId: options.initialServingTeamId,
     serverId: options.initialServingPlayerId,
     receiverId: 'B1',
-    courtPositions: {
-      A1: 'right',
-      A2: 'left',
-      B1: 'right',
-      B2: 'left',
-    },
+    courtPositions,
   };
 
   return deriveServerAndReceiver(base);
@@ -86,19 +94,11 @@ export function awardPointToReceivingTeam(match: MatchState): MatchState {
 
   const newServingTeamId = OPPONENT[match.servingTeamId];
   const score = addPoint(match.score, newServingTeamId);
-  const servingSide = servingSideForScore(score[newServingTeamId]);
-  const courtPositions = swapTeamToPutPlayerOnSide(
-    match.courtPositions,
-    newServingTeamId,
-    match.receiverId,
-    servingSide,
-  );
   const next = deriveServerAndReceiver({
     ...withoutPrevious(match),
     previous: withoutPrevious(match),
     score,
     servingTeamId: newServingTeamId,
-    courtPositions,
   });
 
   return { ...next, winnerTeamId: getWinner(score) };

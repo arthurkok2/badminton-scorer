@@ -19,6 +19,16 @@ describe('match engine', () => {
     expect(match.courtPositions.A1).toBe('right');
   });
 
+  it('places the requested initial server on the starting service side', () => {
+    const match = createMatch({ mode: 'doubles', initialServingTeamId: 'teamB', initialServingPlayerId: 'B2' });
+
+    expect(match.servingTeamId).toBe('teamB');
+    expect(match.serverId).toBe('B2');
+    expect(match.receiverId).toBe('A1');
+    expect(match.courtPositions.B2).toBe('right');
+    expect(match.courtPositions.B1).toBe('left');
+  });
+
   it('keeps service with the serving team and swaps that team sides after winning a rally', () => {
     const match = createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
     const next = awardPointToServingTeam(match);
@@ -37,10 +47,10 @@ describe('match engine', () => {
 
     expect(next.score).toEqual({ teamA: 0, teamB: 1 });
     expect(next.servingTeamId).toBe('teamB');
-    expect(next.serverId).toBe('B1');
+    expect(next.serverId).toBe('B2');
     expect(next.receiverId).toBe('A2');
-    expect(next.courtPositions.B1).toBe('left');
-    expect(next.courtPositions.B2).toBe('right');
+    expect(next.courtPositions.B1).toBe('right');
+    expect(next.courtPositions.B2).toBe('left');
   });
 
   it('detects win by two after 20-all and caps at 30', () => {
