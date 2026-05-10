@@ -1,33 +1,43 @@
-import { render, screen } from '@testing-library/react';
+import { StrictMode } from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
+import { connectBluetoothRemote, getBluetoothSupportStatus } from './input/bluetoothRemote';
+import { speakAnnouncement } from './speech/announcer';
+import type { BluetoothRemoteConnection } from './input/bluetoothRemote';
+
+vi.mock('./speech/announcer', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./speech/announcer')>();
+
+  return {
+    ...actual,
+    getSpeechStatus: vi.fn(() => 'available'),
+    speakAnnouncement: vi.fn(() => true),
+  };
+});
+
+vi.mock('./input/bluetoothRemote', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./input/bluetoothRemote')>();
+
+  return {
+    ...actual,
+    getBluetoothSupportStatus: vi.fn(() => 'unsupported'),
+    connectBluetoothRemote: vi.fn(),
+  };
+});
 
 const STORAGE_KEY = 'badminton-score-preferences';
+const mockedSpeakAnnouncement = vi.mocked(speakAnnouncement);
+const mockedGetBluetoothSupportStatus = vi.mocked(getBluetoothSupportStatus);
+const mockedConnectBluetoothRemote = vi.mocked(connectBluetoothRemote);
 
 describe('App', () => {
-  const speak = vi.fn();
-  const cancel = vi.fn();
-
   beforeEach(() => {
     window.localStorage.clear();
-    speak.mockClear();
-    cancel.mockClear();
-
-    Object.defineProperty(window, 'speechSynthesis', {
-      configurable: true,
-      value: { cancel, speak },
-    });
-    Object.defineProperty(window, 'SpeechSynthesisUtterance', {
-      configurable: true,
-      value: class SpeechSynthesisUtterance {
-        text: string;
-
-        constructor(text: string) {
-          this.text = text;
-        }
-      },
-    });
+    mockedSpeakAnnouncement.mockClear();
+    mockedGetBluetoothSupportStatus.mockReturnValue('unsupported');
+    mockedConnectBluetoothRemote.mockReset();
   });
 
   afterEach(() => {
@@ -82,14 +92,112 @@ describe('App', () => {
     render(<App />);
 
     await user.click(screen.getByRole('button', { name: /point for serving team/i }));
-    expect(speak).not.toHaveBeenCalled();
+    expect(mockedSpeakAnnouncement).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole('switch', { name: /auto announce/i }));
     expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '{}')).toMatchObject({ autoAnnounce: true });
 
     await user.click(screen.getByRole('button', { name: /point for serving team/i }));
 
-    expect(speak).toHaveBeenCalledTimes(1);
-    expect(speak.mock.calls[0][0]).toMatchObject({ text: expect.stringMatching(/Team A serving, Player 1, 2-0/i) });
+    expect(mockedSpeakAnnouncement).toHaveBeenCalledTimes(1);
+    expect(mockedSpeakAnnouncement.mock.calls[0][0].score).toEqual({ teamA: 2, teamB: 0 });
+  });
+
+  it('auto announces once for one scoring action under StrictMode', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ autoAnnounce: true, matchMode: 'doubles' }));
+
+    render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    );
+
+    await user.click(screen.getByRole('button', { name: /point for serving team/i }));
+
+    await waitFor(() => expect(mockedSpeakAnnouncement).toHaveBeenCalledTimes(1));
+    expect(mockedSpeakAnnouncement.mock.calls[0][0].score).toEqual({ teamA: 1, teamB: 0 });
+  });
+
+  it('connects a supported Bluetooth remote and shows connected status', async () => {
+    const user = userEvent.setup();
+    mockedGetBluetoothSupportStatus.mockReturnValue('disconnected');
+    mockedConnectBluetoothRemote.mockImplementation(async ({ onStatusChange }) => {
+      onStatusChange('connecting');
+      onStatusChange('connected');
+      return { disconnect: vi.fn() };
+    });
+
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: /connect bluetooth remote/i }));
+
+    expect(mockedConnectBluetoothRemote).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText(/bluetooth connected/i)).toBeInTheDocument();
+  });
+
+  it('disconnects a late Bluetooth connection when unmounted during pending connect', async () => {
+    const user = userEvent.setup();
+    const connection: BluetoothRemoteConnection = { disconnect: vi.fn() };
+    let resolveConnection: (connection: BluetoothRemoteConnection) => void = () => undefined;
+    mockedGetBluetoothSupportStatus.mockReturnValue('disconnected');
+    mockedConnectBluetoothRemote.mockImplementation(
+      () => new Promise((resolve) => {
+        resolveConnection = resolve;
+      }),
+    );
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    const { unmount } = render(<App />);
+    await user.click(screen.getByRole('button', { name: /connect bluetooth remote/i }));
+    unmount();
+    resolveConnection(connection);
+
+    await waitFor(() => expect(connection.disconnect).toHaveBeenCalledTimes(1));
+    expect(consoleError).not.toHaveBeenCalled();
+  });
+
+  it('disconnects an older late Bluetooth connection when a newer attempt supersedes it', async () => {
+    const user = userEvent.setup();
+    const oldConnection: BluetoothRemoteConnection = { disconnect: vi.fn() };
+    const newConnection: BluetoothRemoteConnection = { disconnect: vi.fn() };
+    const resolvers: Array<(connection: BluetoothRemoteConnection) => void> = [];
+    mockedGetBluetoothSupportStatus.mockReturnValue('disconnected');
+    mockedConnectBluetoothRemote.mockImplementation(
+      () => new Promise((resolve) => {
+        resolvers.push(resolve);
+      }),
+    );
+
+    render(<App />);
+    const connectButton = screen.getByRole('button', { name: /connect bluetooth remote/i });
+
+    await user.click(connectButton);
+    await user.click(connectButton);
+    resolvers[1](newConnection);
+    resolvers[0](oldConnection);
+
+    await waitFor(() => expect(oldConnection.disconnect).toHaveBeenCalledTimes(1));
+    expect(newConnection.disconnect).not.toHaveBeenCalled();
+  });
+
+  it('marks the selected match mode for assistive technology', () => {
+    render(<App />);
+
+    expect(screen.getByRole('button', { name: /doubles/i })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /singles/i })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('disables scoring after a winner while leaving undo available', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    for (let point = 0; point < 21; point += 1) {
+      await user.click(screen.getByRole('button', { name: /point for serving team/i }));
+    }
+
+    expect(screen.getByRole('button', { name: /point for serving team/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /point for receiving team/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /undo last point/i })).toBeEnabled();
   });
 });

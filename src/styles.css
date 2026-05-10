@@ -94,6 +94,12 @@ button {
   opacity: 0.5;
 }
 
+.point-button:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.35);
+  opacity: 0.58;
+}
+
 .scoreboard {
   padding: 16px;
 }

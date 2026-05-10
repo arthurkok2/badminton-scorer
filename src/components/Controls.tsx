@@ -25,16 +25,17 @@ export function Controls({
   onMatchModeChange,
 }: ControlsProps) {
   const receivingTeamId = match.servingTeamId === 'teamA' ? 'teamB' : 'teamA';
+  const scoringDisabled = match.winnerTeamId !== undefined;
 
   return (
     <section className="controls" aria-label="Match controls">
       <div className="point-controls">
-        <button className="point-button primary" type="button" onClick={onPointServing}>
+        <button className="point-button primary" type="button" onClick={onPointServing} disabled={scoringDisabled}>
           <span>+1</span>
           Point for serving team
           <small>{match.teams[match.servingTeamId].name}</small>
         </button>
-        <button className="point-button secondary" type="button" onClick={onPointReceiving}>
+        <button className="point-button secondary" type="button" onClick={onPointReceiving} disabled={scoringDisabled}>
           <span>+1</span>
           Point for receiving team
           <small>{match.teams[receivingTeamId].name}</small>
@@ -65,6 +66,7 @@ export function Controls({
         <button
           type="button"
           className={matchMode === 'doubles' ? 'mode-option is-selected' : 'mode-option'}
+          aria-pressed={matchMode === 'doubles'}
           onClick={() => onMatchModeChange('doubles')}
         >
           Doubles
@@ -72,6 +74,7 @@ export function Controls({
         <button
           type="button"
           className={matchMode === 'singles' ? 'mode-option is-selected' : 'mode-option'}
+          aria-pressed={matchMode === 'singles'}
           onClick={() => onMatchModeChange('singles')}
         >
           Singles
