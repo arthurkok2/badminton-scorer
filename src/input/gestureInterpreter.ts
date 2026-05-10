@@ -14,8 +14,22 @@ export function createGestureInterpreter(dispatch: (command: AppCommand) => void
   let clickCount = 0;
   let lastReleaseAt: number | undefined;
 
+  function dispatchPendingSingleClick(timestamp: number): void {
+    if (clickCount === 1 && lastReleaseAt !== undefined && timestamp - lastReleaseAt >= DOUBLE_CLICK_MS) {
+      clickCount = 0;
+      lastReleaseAt = undefined;
+      dispatch({ type: 'POINT_SERVING' });
+    }
+  }
+
   return {
     handlePress(timestamp) {
+      dispatchPendingSingleClick(timestamp);
+
+      if (pressStartedAt !== undefined) {
+        return;
+      }
+
       pressStartedAt = timestamp;
     },
     handleRelease(timestamp) {
@@ -43,11 +57,7 @@ export function createGestureInterpreter(dispatch: (command: AppCommand) => void
       }
     },
     flush(timestamp) {
-      if (clickCount === 1 && lastReleaseAt !== undefined && timestamp - lastReleaseAt >= DOUBLE_CLICK_MS) {
-        clickCount = 0;
-        lastReleaseAt = undefined;
-        dispatch({ type: 'POINT_SERVING' });
-      }
+      dispatchPendingSingleClick(timestamp);
     },
   };
 }
