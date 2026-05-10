@@ -1,9 +1,11 @@
-import type { MatchState, TeamId } from '../domain/matchTypes';
+import type { MatchState, PlayerId, TeamId } from '../domain/matchTypes';
 
 export type SpeechStatus = 'available' | 'unsupported';
 
 export function getSpeechStatus(): SpeechStatus {
-  return typeof window !== 'undefined' && 'speechSynthesis' in window ? 'available' : 'unsupported';
+  return typeof window !== 'undefined' && window.speechSynthesis && window.SpeechSynthesisUtterance
+    ? 'available'
+    : 'unsupported';
 }
 
 export function buildAnnouncement(match: MatchState): string {
@@ -24,12 +26,16 @@ export function speakAnnouncement(match: MatchState): boolean {
     return false;
   }
 
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(new SpeechSynthesisUtterance(buildAnnouncement(match)));
-  return true;
+  try {
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(new window.SpeechSynthesisUtterance(buildAnnouncement(match)));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-function findPlayerName(match: MatchState, playerId: string): string {
+function findPlayerName(match: MatchState, playerId: PlayerId): string {
   return [...match.teams.teamA.players, ...match.teams.teamB.players].find((player) => player.id === playerId)?.name ?? playerId;
 }
 
