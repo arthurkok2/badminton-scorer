@@ -124,7 +124,7 @@ export function awardPointToReceivingTeam(match: MatchState): MatchState {
     score,
     servingTeamId: newServingTeamId,
     courtPositions:
-      match.mode === 'singles' ? positionSinglesForServingSide(match.courtPositions, servingSide) : match.courtPositions,
+      match.mode === 'singles' ? positionSinglesForServingSide(match.courtPositions, servingSide) : { ...match.courtPositions },
   });
 
   return { ...next, winnerTeamId: getWinner(score) };

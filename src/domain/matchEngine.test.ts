@@ -91,6 +91,14 @@ describe('match engine', () => {
     expect(next.courtPositions.B2).toBe('left');
   });
 
+  it('clones doubles court positions when service turns over', () => {
+    const match = createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
+    const next = awardPointToReceivingTeam(match);
+
+    expect(next.courtPositions).toEqual(match.courtPositions);
+    expect(next.courtPositions).not.toBe(match.courtPositions);
+  });
+
   it('detects win by two after 20-all and caps at 30', () => {
     let match = createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
     match = { ...match, score: { teamA: 20, teamB: 20 }, servingTeamId: 'teamA', serverId: 'A1', receiverId: 'B1' };
