@@ -83,4 +83,18 @@ describe('gesture interpreter', () => {
 
     expect(commands).toEqual(['UNDO']);
   });
+
+  it('does not flush a pending click from a duplicate press during the second click', () => {
+    const commands: string[] = [];
+    const interpreter = createGestureInterpreter((command) => commands.push(command.type));
+
+    interpreter.handlePress(0);
+    interpreter.handleRelease(80);
+    interpreter.handlePress(150);
+    interpreter.handlePress(270);
+    interpreter.handleRelease(330);
+    interpreter.flush(520);
+
+    expect(commands).toEqual(['POINT_RECEIVING']);
+  });
 });

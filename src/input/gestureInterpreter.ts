@@ -24,12 +24,11 @@ export function createGestureInterpreter(dispatch: (command: AppCommand) => void
 
   return {
     handlePress(timestamp) {
-      dispatchPendingSingleClick(timestamp);
-
       if (pressStartedAt !== undefined) {
         return;
       }
 
+      dispatchPendingSingleClick(timestamp);
       pressStartedAt = timestamp;
     },
     handleRelease(timestamp) {
