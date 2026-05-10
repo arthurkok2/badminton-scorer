@@ -1,8 +1,13 @@
-import type { CourtSide, CreateMatchOptions, MatchState, PlayerId, Score, TeamId } from './matchTypes';
+import type { CourtSide, CreateMatchOptions, MatchMode, MatchState, Player, PlayerId, Score, TeamId } from './matchTypes';
 
-const TEAM_PLAYERS: Record<TeamId, PlayerId[]> = {
+const DOUBLES_TEAM_PLAYERS: Record<TeamId, PlayerId[]> = {
   teamA: ['A1', 'A2'],
   teamB: ['B1', 'B2'],
+};
+
+const SINGLES_TEAM_PLAYERS: Record<TeamId, PlayerId[]> = {
+  teamA: ['A1'],
+  teamB: ['B1'],
 };
 
 const OPPONENT: Record<TeamId, TeamId> = {
@@ -11,9 +16,11 @@ const OPPONENT: Record<TeamId, TeamId> = {
 };
 
 export function createMatch(options: CreateMatchOptions): MatchState {
+  validateTeamPlayer(options.mode, options.initialServingTeamId, options.initialServingPlayerId);
+
   const score: Score = { teamA: 0, teamB: 0 };
   const servingSide = servingSideForScore(score[options.initialServingTeamId]);
-  const courtPositions = swapTeamToPutPlayerOnSide(
+  const initialCourtPositions = swapTeamToPutPlayerOnSide(
     {
       A1: 'right',
       A2: 'left',
@@ -24,24 +31,20 @@ export function createMatch(options: CreateMatchOptions): MatchState {
     options.initialServingPlayerId,
     servingSide,
   );
+  const courtPositions =
+    options.mode === 'singles' ? positionSinglesForServingSide(initialCourtPositions, servingSide) : initialCourtPositions;
   const base: MatchState = {
     mode: options.mode,
     teams: {
       teamA: {
         id: 'teamA',
         name: 'Team A',
-        players: [
-          { id: 'A1', name: 'Player 1', teamId: 'teamA' },
-          { id: 'A2', name: 'Player 2', teamId: 'teamA' },
-        ],
+        players: playersForMode(options.mode, 'teamA').map(createPlayer),
       },
       teamB: {
         id: 'teamB',
         name: 'Team B',
-        players: [
-          { id: 'B1', name: 'Player 3', teamId: 'teamB' },
-          { id: 'B2', name: 'Player 4', teamId: 'teamB' },
-        ],
+        players: playersForMode(options.mode, 'teamB').map(createPlayer),
       },
     },
     score,
@@ -59,13 +62,16 @@ export function setInitialServer(match: MatchState, teamId: TeamId, playerId: Pl
     return match;
   }
 
+  validateTeamPlayer(match.mode, teamId, playerId);
+
   const servingSide = servingSideForScore(match.score[teamId]);
+  const courtPositions = swapTeamToPutPlayerOnSide(match.courtPositions, teamId, playerId, servingSide);
 
   return deriveServerAndReceiver({
     ...withoutPrevious(match),
     servingTeamId: teamId,
     serverId: playerId,
-    courtPositions: swapTeamToPutPlayerOnSide(match.courtPositions, teamId, playerId, servingSide),
+    courtPositions: match.mode === 'singles' ? positionSinglesForServingSide(courtPositions, servingSide) : courtPositions,
   });
 }
 
@@ -76,10 +82,17 @@ export function awardPointToServingTeam(match: MatchState): MatchState {
 
   const score = addPoint(match.score, match.servingTeamId);
   const servingSide = servingSideForScore(score[match.servingTeamId]);
-  const courtPositions = swapTeamToPutPlayerOnSide(match.courtPositions, match.servingTeamId, match.serverId, servingSide);
+  const doublesPositions = swapTeamToPutPlayerOnSide(
+    match.courtPositions,
+    match.servingTeamId,
+    match.serverId,
+    servingSide,
+  );
+  const courtPositions =
+    match.mode === 'singles' ? positionSinglesForServingSide(doublesPositions, servingSide) : doublesPositions;
   const next = deriveServerAndReceiver({
     ...withoutPrevious(match),
-    previous: withoutPrevious(match),
+    previous: cloneMatchSnapshot(match),
     score,
     courtPositions,
   });
@@ -94,11 +107,14 @@ export function awardPointToReceivingTeam(match: MatchState): MatchState {
 
   const newServingTeamId = OPPONENT[match.servingTeamId];
   const score = addPoint(match.score, newServingTeamId);
+  const servingSide = servingSideForScore(score[newServingTeamId]);
   const next = deriveServerAndReceiver({
     ...withoutPrevious(match),
-    previous: withoutPrevious(match),
+    previous: cloneMatchSnapshot(match),
     score,
     servingTeamId: newServingTeamId,
+    courtPositions:
+      match.mode === 'singles' ? positionSinglesForServingSide(match.courtPositions, servingSide) : match.courtPositions,
   });
 
   return { ...next, winnerTeamId: getWinner(score) };
@@ -110,9 +126,9 @@ export function undoLastPoint(match: MatchState): MatchState {
 
 function deriveServerAndReceiver(match: MatchState): MatchState {
   const serverSide = servingSideForScore(match.score[match.servingTeamId]);
-  const serverId = playerOnSide(match.courtPositions, match.servingTeamId, serverSide) ?? match.serverId;
+  const serverId = playerOnSide(match, match.servingTeamId, serverSide) ?? match.serverId;
   const receivingTeamId = OPPONENT[match.servingTeamId];
-  const receiverId = playerOnSide(match.courtPositions, receivingTeamId, serverSide) ?? TEAM_PLAYERS[receivingTeamId][0];
+  const receiverId = playerOnSide(match, receivingTeamId, serverSide) ?? playersForMode(match.mode, receivingTeamId)[0];
 
   return { ...match, serverId, receiverId };
 }
@@ -125,8 +141,8 @@ function servingSideForScore(score: number): CourtSide {
   return score % 2 === 0 ? 'right' : 'left';
 }
 
-function playerOnSide(positions: Record<PlayerId, CourtSide>, teamId: TeamId, side: CourtSide): PlayerId | undefined {
-  return TEAM_PLAYERS[teamId].find((playerId) => positions[playerId] === side);
+function playerOnSide(match: MatchState, teamId: TeamId, side: CourtSide): PlayerId | undefined {
+  return playersForMode(match.mode, teamId).find((playerId) => match.courtPositions[playerId] === side);
 }
 
 function swapTeamToPutPlayerOnSide(
@@ -135,13 +151,24 @@ function swapTeamToPutPlayerOnSide(
   playerId: PlayerId,
   side: CourtSide,
 ): Record<PlayerId, CourtSide> {
-  const [first, second] = TEAM_PLAYERS[teamId];
+  const [first, second] = DOUBLES_TEAM_PLAYERS[teamId];
   const other = playerId === first ? second : first;
 
   return {
     ...positions,
     [playerId]: side,
     [other]: side === 'right' ? 'left' : 'right',
+  };
+}
+
+function positionSinglesForServingSide(
+  positions: Record<PlayerId, CourtSide>,
+  side: CourtSide,
+): Record<PlayerId, CourtSide> {
+  return {
+    ...positions,
+    A1: side,
+    B1: side,
   };
 }
 
@@ -168,4 +195,49 @@ function getWinner(score: Score): TeamId | undefined {
 function withoutPrevious(match: MatchState): MatchState {
   const { previous, ...rest } = match;
   return rest;
+}
+
+function cloneMatchSnapshot(match: MatchState): MatchState {
+  const snapshot = withoutPrevious(match);
+
+  return {
+    ...snapshot,
+    teams: {
+      teamA: {
+        ...snapshot.teams.teamA,
+        players: snapshot.teams.teamA.players.map((player) => ({ ...player })),
+      },
+      teamB: {
+        ...snapshot.teams.teamB,
+        players: snapshot.teams.teamB.players.map((player) => ({ ...player })),
+      },
+    },
+    score: { ...snapshot.score },
+    courtPositions: { ...snapshot.courtPositions },
+  };
+}
+
+function playersForMode(mode: MatchMode, teamId: TeamId): PlayerId[] {
+  return mode === 'singles' ? SINGLES_TEAM_PLAYERS[teamId] : DOUBLES_TEAM_PLAYERS[teamId];
+}
+
+function validateTeamPlayer(mode: MatchMode, teamId: TeamId, playerId: PlayerId): void {
+  if (!playersForMode(mode, teamId).includes(playerId)) {
+    throw new Error(`Player ${playerId} does not belong to ${teamId}`);
+  }
+}
+
+function createPlayer(playerId: PlayerId): Player {
+  const playerNames: Record<PlayerId, string> = {
+    A1: 'Player 1',
+    A2: 'Player 2',
+    B1: 'Player 3',
+    B2: 'Player 4',
+  };
+
+  return {
+    id: playerId,
+    name: playerNames[playerId],
+    teamId: playerId.startsWith('A') ? 'teamA' : 'teamB',
+  };
 }
