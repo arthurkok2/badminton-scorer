@@ -47,6 +47,38 @@ describe('match engine', () => {
     expect(next.courtPositions.A2).toBe('right');
   });
 
+  it('tracks a multi-rally doubles sequence with legal transitions', () => {
+    const initial = createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
+    const teamAWinsOnServe = awardPointToServingTeam(initial);
+    const teamBWinsService = awardPointToReceivingTeam(teamAWinsOnServe);
+    const teamBWinsOnServe = awardPointToServingTeam(teamBWinsService);
+    const teamAWinsServiceBack = awardPointToReceivingTeam(teamBWinsOnServe);
+
+    expect(teamAWinsOnServe.score).toEqual({ teamA: 1, teamB: 0 });
+    expect(teamAWinsOnServe.serverId).toBe('A1');
+    expect(teamAWinsOnServe.receiverId).toBe('B2');
+    expect(teamAWinsOnServe.courtPositions.A1).toBe('left');
+    expect(teamAWinsOnServe.courtPositions.A2).toBe('right');
+
+    expect(teamBWinsService.score).toEqual({ teamA: 1, teamB: 1 });
+    expect(teamBWinsService.servingTeamId).toBe('teamB');
+    expect(teamBWinsService.serverId).toBe('B2');
+    expect(teamBWinsService.receiverId).toBe('A1');
+    expect(teamBWinsService.courtPositions.B1).toBe('right');
+    expect(teamBWinsService.courtPositions.B2).toBe('left');
+
+    expect(teamBWinsOnServe.score).toEqual({ teamA: 1, teamB: 2 });
+    expect(teamBWinsOnServe.serverId).toBe('B2');
+    expect(teamBWinsOnServe.receiverId).toBe('A2');
+    expect(teamBWinsOnServe.courtPositions.B1).toBe('left');
+    expect(teamBWinsOnServe.courtPositions.B2).toBe('right');
+
+    expect(teamAWinsServiceBack.score).toEqual({ teamA: 2, teamB: 2 });
+    expect(teamAWinsServiceBack.servingTeamId).toBe('teamA');
+    expect(teamAWinsServiceBack.serverId).toBe('A2');
+    expect(teamAWinsServiceBack.receiverId).toBe('B2');
+  });
+
   it('changes service to the receiving team without moving players after receiver wins a rally', () => {
     const match = createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
     const next = awardPointToReceivingTeam(match);
@@ -89,12 +121,27 @@ describe('match engine', () => {
     expect(undone.previous).toBeUndefined();
   });
 
+  it('undoes only the last action after multiple points', () => {
+    const match = createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
+    const firstPoint = awardPointToServingTeam(match);
+    const secondPoint = awardPointToReceivingTeam(firstPoint);
+    const undone = undoLastPoint(secondPoint);
+
+    expect(undone.score).toEqual(firstPoint.score);
+    expect(undone.servingTeamId).toBe(firstPoint.servingTeamId);
+    expect(undone.serverId).toBe(firstPoint.serverId);
+    expect(undone.receiverId).toBe(firstPoint.receiverId);
+    expect(undone.previous).toBeUndefined();
+  });
+
   it('keeps undo snapshots independent of caller mutations after scoring', () => {
     const match = createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
     const next = awardPointToServingTeam(match);
+    const mutableScore = match.score as { teamA: number };
+    const mutableCourtPositions = match.courtPositions as { A1: 'left' | 'right' };
 
-    match.score.teamA = 99;
-    match.courtPositions.A1 = 'left';
+    mutableScore.teamA = 99;
+    mutableCourtPositions.A1 = 'left';
 
     const undone = undoLastPoint(next);
 

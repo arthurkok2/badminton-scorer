@@ -4,36 +4,39 @@ export type PlayerId = 'A1' | 'A2' | 'B1' | 'B2';
 export type CourtSide = 'left' | 'right';
 
 export interface Player {
-  id: PlayerId;
-  name: string;
-  teamId: TeamId;
+  readonly id: PlayerId;
+  readonly name: string;
+  readonly teamId: TeamId;
 }
 
 export interface Team {
-  id: TeamId;
-  name: string;
-  players: Player[];
+  readonly id: TeamId;
+  readonly name: string;
+  readonly players: readonly Player[];
 }
 
 export interface Score {
-  teamA: number;
-  teamB: number;
+  readonly teamA: number;
+  readonly teamB: number;
 }
 
-export interface MatchState {
-  mode: MatchMode;
-  teams: Record<TeamId, Team>;
-  score: Score;
-  servingTeamId: TeamId;
-  serverId: PlayerId;
-  receiverId: PlayerId;
-  courtPositions: Record<PlayerId, CourtSide>;
-  winnerTeamId?: TeamId;
-  previous?: MatchState;
+export interface MatchSnapshot {
+  readonly mode: MatchMode;
+  readonly teams: Readonly<Record<TeamId, Team>>;
+  readonly score: Score;
+  readonly servingTeamId: TeamId;
+  readonly serverId: PlayerId;
+  readonly receiverId: PlayerId;
+  readonly courtPositions: Readonly<Record<PlayerId, CourtSide>>;
+  readonly winnerTeamId?: TeamId;
+}
+
+export interface MatchState extends MatchSnapshot {
+  readonly previous?: MatchSnapshot;
 }
 
 export interface CreateMatchOptions {
-  mode: MatchMode;
-  initialServingTeamId: TeamId;
-  initialServingPlayerId: PlayerId;
+  readonly mode: MatchMode;
+  readonly initialServingTeamId: TeamId;
+  readonly initialServingPlayerId: PlayerId;
 }

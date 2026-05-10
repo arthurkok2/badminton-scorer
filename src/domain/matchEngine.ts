@@ -1,4 +1,14 @@
-import type { CourtSide, CreateMatchOptions, MatchMode, MatchState, Player, PlayerId, Score, TeamId } from './matchTypes';
+import type {
+  CourtSide,
+  CreateMatchOptions,
+  MatchMode,
+  MatchSnapshot,
+  MatchState,
+  Player,
+  PlayerId,
+  Score,
+  TeamId,
+} from './matchTypes';
 
 const DOUBLES_TEAM_PLAYERS: Record<TeamId, PlayerId[]> = {
   teamA: ['A1', 'A2'],
@@ -121,7 +131,7 @@ export function awardPointToReceivingTeam(match: MatchState): MatchState {
 }
 
 export function undoLastPoint(match: MatchState): MatchState {
-  return match.previous ? withoutPrevious(match.previous) : match;
+  return match.previous ? restoreSnapshot(match.previous) : match;
 }
 
 function deriveServerAndReceiver(match: MatchState): MatchState {
@@ -146,7 +156,7 @@ function playerOnSide(match: MatchState, teamId: TeamId, side: CourtSide): Playe
 }
 
 function swapTeamToPutPlayerOnSide(
-  positions: Record<PlayerId, CourtSide>,
+  positions: Readonly<Record<PlayerId, CourtSide>>,
   teamId: TeamId,
   playerId: PlayerId,
   side: CourtSide,
@@ -162,7 +172,7 @@ function swapTeamToPutPlayerOnSide(
 }
 
 function positionSinglesForServingSide(
-  positions: Record<PlayerId, CourtSide>,
+  positions: Readonly<Record<PlayerId, CourtSide>>,
   side: CourtSide,
 ): Record<PlayerId, CourtSide> {
   return {
@@ -192,14 +202,32 @@ function getWinner(score: Score): TeamId | undefined {
   return undefined;
 }
 
-function withoutPrevious(match: MatchState): MatchState {
+function withoutPrevious(match: MatchState): MatchSnapshot {
   const { previous, ...rest } = match;
   return rest;
 }
 
-function cloneMatchSnapshot(match: MatchState): MatchState {
+function cloneMatchSnapshot(match: MatchState): MatchSnapshot {
   const snapshot = withoutPrevious(match);
 
+  return {
+    ...snapshot,
+    teams: {
+      teamA: {
+        ...snapshot.teams.teamA,
+        players: snapshot.teams.teamA.players.map((player) => ({ ...player })),
+      },
+      teamB: {
+        ...snapshot.teams.teamB,
+        players: snapshot.teams.teamB.players.map((player) => ({ ...player })),
+      },
+    },
+    score: { ...snapshot.score },
+    courtPositions: { ...snapshot.courtPositions },
+  };
+}
+
+function restoreSnapshot(snapshot: MatchSnapshot): MatchState {
   return {
     ...snapshot,
     teams: {
