@@ -1,0 +1,8 @@
+{
+  "name": "Badminton Score",
+  "short_name": "Badminton",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#101820",
+  "theme_color": "#0f766e"
+}
