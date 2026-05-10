@@ -1,0 +1,42 @@
+import type { MatchState, TeamId } from '../domain/matchTypes';
+
+export type SpeechStatus = 'available' | 'unsupported';
+
+export function getSpeechStatus(): SpeechStatus {
+  return typeof window !== 'undefined' && 'speechSynthesis' in window ? 'available' : 'unsupported';
+}
+
+export function buildAnnouncement(match: MatchState): string {
+  if (match.winnerTeamId) {
+    const winner = match.teams[match.winnerTeamId].name;
+    return `Game. ${winner} wins, ${scoreForTeam(match, match.winnerTeamId)}-${scoreForTeam(match, otherTeam(match.winnerTeamId))}.`;
+  }
+
+  const server = findPlayerName(match, match.serverId);
+  const servingTeam = match.teams[match.servingTeamId].name;
+  const receivingTeamId = otherTeam(match.servingTeamId);
+
+  return `${servingTeam} serving, ${server}, ${scoreForTeam(match, match.servingTeamId)}-${scoreForTeam(match, receivingTeamId)}.`;
+}
+
+export function speakAnnouncement(match: MatchState): boolean {
+  if (getSpeechStatus() === 'unsupported') {
+    return false;
+  }
+
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(new SpeechSynthesisUtterance(buildAnnouncement(match)));
+  return true;
+}
+
+function findPlayerName(match: MatchState, playerId: string): string {
+  return [...match.teams.teamA.players, ...match.teams.teamB.players].find((player) => player.id === playerId)?.name ?? playerId;
+}
+
+function scoreForTeam(match: MatchState, teamId: TeamId): number {
+  return match.score[teamId];
+}
+
+function otherTeam(teamId: TeamId): TeamId {
+  return teamId === 'teamA' ? 'teamB' : 'teamA';
+}
