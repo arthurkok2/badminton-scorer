@@ -1,8 +1,9 @@
 const CACHE_NAME = 'badminton-score-v1';
 const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png'];
+const ASSET_MANIFEST = '/asset-manifest.json';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
+  event.waitUntil(precacheAppShell());
   self.skipWaiting();
 });
 
@@ -45,6 +46,55 @@ async function cacheFirst(request) {
   const response = await fetch(request);
   await cacheSuccessfulResponse(request, response);
   return response;
+}
+
+async function precacheAppShell() {
+  const cache = await caches.open(CACHE_NAME);
+  await cache.addAll(APP_SHELL);
+  const assets = await getBuildAssets();
+
+  if (assets.length > 0) {
+    await cache.addAll([ASSET_MANIFEST, ...assets]);
+  }
+}
+
+async function getBuildAssets() {
+  try {
+    const response = await fetch(ASSET_MANIFEST, { cache: 'no-store' });
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const manifest = await response.json();
+    const assets = new Set();
+
+    for (const entry of Object.values(manifest)) {
+      addManifestAsset(assets, entry.file);
+
+      for (const cssFile of entry.css ?? []) {
+        addManifestAsset(assets, cssFile);
+      }
+
+      for (const importedFile of entry.imports ?? []) {
+        const importedEntry = manifest[importedFile];
+
+        if (importedEntry) {
+          addManifestAsset(assets, importedEntry.file);
+        }
+      }
+    }
+
+    return [...assets];
+  } catch {
+    return [];
+  }
+}
+
+function addManifestAsset(assets, file) {
+  if (typeof file === 'string') {
+    assets.add(`/${file}`);
+  }
 }
 
 async function navigationFallback() {

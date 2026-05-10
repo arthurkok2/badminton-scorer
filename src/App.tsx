@@ -4,7 +4,7 @@ import { CourtView } from './components/CourtView';
 import { Scoreboard } from './components/Scoreboard';
 import { StatusBar } from './components/StatusBar';
 import { createMatch } from './domain/matchEngine';
-import type { MatchMode, MatchState } from './domain/matchTypes';
+import type { MatchMode, MatchState, PlayerId, TeamId } from './domain/matchTypes';
 import { applyCommand, type AppCommand } from './input/commands';
 import {
   connectBluetoothRemote,
@@ -93,11 +93,51 @@ export default function App() {
 
   const handleMatchModeChange = useCallback(
     (mode: MatchMode) => {
+      if (mode === preferencesRef.current.matchMode) {
+        return;
+      }
+
+      if (hasStarted(matchView.match) && !window.confirm('Start a new match and discard the current score?')) {
+        return;
+      }
+
       updatePreferences((current) => ({ ...current, matchMode: mode }));
       setMatchView((current) => applyMatchViewAction(current, { type: 'RESET_MODE', mode }));
     },
-    [updatePreferences],
+    [matchView.match, updatePreferences],
   );
+
+  const handleNewMatch = useCallback(() => {
+    if (hasStarted(matchView.match) && !window.confirm('Start a new match and discard the current score?')) {
+      return;
+    }
+
+    setMatchView((current) => applyMatchViewAction(current, { type: 'RESET_MODE', mode: preferencesRef.current.matchMode }));
+  }, [matchView.match]);
+
+  const handleSetInitialServer = useCallback(
+    (teamId: TeamId, playerId: PlayerId) => {
+      dispatch({ type: 'SET_INITIAL_SERVER', teamId, playerId });
+    },
+    [dispatch],
+  );
+
+  const handleRerollFirstServer = useCallback(() => {
+    const choices: ReadonlyArray<{ teamId: TeamId; playerId: PlayerId }> =
+      preferencesRef.current.matchMode === 'singles'
+        ? [
+            { teamId: 'teamA', playerId: 'A1' },
+            { teamId: 'teamB', playerId: 'B1' },
+          ]
+        : [
+            { teamId: 'teamA', playerId: 'A1' },
+            { teamId: 'teamA', playerId: 'A2' },
+            { teamId: 'teamB', playerId: 'B1' },
+            { teamId: 'teamB', playerId: 'B2' },
+          ];
+    const choice = choices[Math.floor(Math.random() * choices.length)];
+    dispatch({ type: 'SET_INITIAL_SERVER', teamId: choice.teamId, playerId: choice.playerId });
+  }, [dispatch]);
 
   const handleConnectBluetooth = useCallback(async () => {
     connectionRef.current?.disconnect();
@@ -145,6 +185,9 @@ export default function App() {
           onAnnounce={() => speakAnnouncement(match)}
           onAutoAnnounceChange={(autoAnnounce) => updatePreferences((current) => ({ ...current, autoAnnounce }))}
           onMatchModeChange={handleMatchModeChange}
+          onNewMatch={handleNewMatch}
+          onSetInitialServer={handleSetInitialServer}
+          onRerollFirstServer={handleRerollFirstServer}
         />
       </div>
     </main>
@@ -153,6 +196,10 @@ export default function App() {
 
 function createInitialMatch(mode: MatchMode): MatchState {
   return createMatch({ mode, initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
+}
+
+function hasStarted(match: MatchState): boolean {
+  return match.score.teamA !== 0 || match.score.teamB !== 0 || match.previous !== undefined || match.winnerTeamId !== undefined;
 }
 
 function applyMatchViewAction(current: MatchViewState, action: MatchViewAction): MatchViewState {

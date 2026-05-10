@@ -339,6 +339,26 @@ button {
   color: #ffffff;
 }
 
+.mode-option:disabled {
+  opacity: 1;
+}
+
+.setup-controls {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.setup-controls button {
+  min-height: 42px;
+  background: #203541;
+}
+
+.new-match-button {
+  background: #3f2f2f;
+  color: #ffd7d7;
+}
+
 @media (min-width: 680px) {
   .app-shell {
     padding: 20px;

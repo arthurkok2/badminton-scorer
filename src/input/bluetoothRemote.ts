@@ -70,13 +70,14 @@ export async function connectBluetoothRemote(options: BluetoothRemoteOptions): P
   const setFlushInterval = options.setInterval ?? ((callback, delay) => window.setInterval(callback, delay));
   const clearFlushInterval = options.clearInterval ?? ((intervalId) => window.clearInterval(intervalId));
   const interpreter = createGestureInterpreter(options.dispatch);
+  let gattServer: BluetoothRemoteGATTServer | undefined;
 
   try {
     const device = await bluetooth.requestDevice({
       acceptAllDevices: true,
       optionalServices: [serviceUuid],
     });
-    const gattServer = await device.gatt?.connect();
+    gattServer = await device.gatt?.connect();
 
     if (gattServer === undefined) {
       options.onStatusChange('disconnected');
@@ -86,6 +87,7 @@ export async function connectBluetoothRemote(options: BluetoothRemoteOptions): P
     const service = await gattServer.getPrimaryService(serviceUuid);
     const characteristic = await service.getCharacteristic(characteristicUuid);
     await characteristic.startNotifications();
+    const connectedGattServer = gattServer;
 
     let isDisconnected = false;
     let flushIntervalId: number | undefined;
@@ -144,11 +146,12 @@ export async function connectBluetoothRemote(options: BluetoothRemoteOptions): P
 
         isDisconnected = true;
         cleanup();
-        gattServer.disconnect();
+        connectedGattServer.disconnect();
         options.onStatusChange('disconnected');
       },
     };
   } catch {
+    gattServer?.disconnect();
     options.onStatusChange('disconnected');
     return undefined;
   }

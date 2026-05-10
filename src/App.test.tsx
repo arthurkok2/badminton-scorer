@@ -185,7 +185,66 @@ describe('App', () => {
     render(<App />);
 
     expect(screen.getByRole('button', { name: /doubles/i })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /doubles/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /singles/i })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('does not reset when the selected match mode is tapped again', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: /point for serving team/i }));
+    await user.click(screen.getByRole('button', { name: /doubles/i }));
+
+    expect(screen.getByTestId('score-teamA')).toHaveTextContent('1');
+    expect(screen.getByTestId('score-teamB')).toHaveTextContent('0');
+  });
+
+  it('requires confirmation before changing mode after scoring starts', async () => {
+    const user = userEvent.setup();
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: /point for serving team/i }));
+    await user.click(screen.getByRole('button', { name: /singles/i }));
+
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('score-teamA')).toHaveTextContent('1');
+    expect(screen.getByRole('button', { name: /doubles/i })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('starts a new match from an explicit confirmed control', async () => {
+    const user = userEvent.setup();
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: /point for serving team/i }));
+    await user.click(screen.getByRole('button', { name: /new match/i }));
+
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('score-teamA')).toHaveTextContent('0');
+    expect(screen.getByTestId('score-teamB')).toHaveTextContent('0');
+  });
+
+  it('allows first server adjustment before scoring starts', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: /team b player 3 serves/i }));
+
+    expect(screen.getByText(/serving: Team B/i)).toBeInTheDocument();
+    expect(screen.getByText(/server: Player 3/i)).toBeInTheDocument();
+  });
+
+  it('hides first server setup after scoring starts', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    expect(screen.getByRole('group', { name: /first server setup/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /point for serving team/i }));
+
+    expect(screen.queryByRole('group', { name: /first server setup/i })).not.toBeInTheDocument();
   });
 
   it('disables scoring after a winner while leaving undo available', async () => {

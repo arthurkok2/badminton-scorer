@@ -1,4 +1,5 @@
 import { connectBluetoothRemote, getBluetoothSupportStatus, translateRemoteValue } from './bluetoothRemote';
+import { vi } from 'vitest';
 import type { AppCommand } from './commands';
 
 function createDeferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
@@ -125,6 +126,46 @@ describe('bluetooth remote adapter', () => {
 
     expect(connection).toBeUndefined();
     expect(statuses).toEqual(['connecting', 'disconnected']);
+  });
+
+  it('disconnects GATT when setup fails after connection', async () => {
+    const statuses: string[] = [];
+    const disconnect = vi.fn();
+    const device = {
+      gatt: {
+        connect: async () => ({
+          connected: true,
+          device: {} as BluetoothDevice,
+          disconnect,
+          getPrimaryService: async () => {
+            throw new Error('service unavailable');
+          },
+        }),
+      },
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as BluetoothDevice;
+
+    const connection = await connectBluetoothRemote({
+      dispatch: () => undefined,
+      onStatusChange: (status) => statuses.push(status),
+      navigatorLike: {
+        bluetooth: {
+          requestDevice: async () => device,
+        },
+      } as unknown as Navigator,
+    });
+
+    expect(connection).toBeUndefined();
+    expect(disconnect).toHaveBeenCalledTimes(1);
+    expect(statuses).toEqual(['connecting', 'disconnected']);
+  });
+
+  it('reads DataView values with a non-zero byte offset', async () => {
+    const source = new Uint8Array([99, 1, 0]);
+    const view = new DataView(source.buffer, 1, 1);
+
+    expect(translateRemoteValue(new Uint8Array(view.buffer, view.byteOffset, view.byteLength))).toBe('press');
   });
 
   it('reports connected only after GATT connection and notification setup succeed', async () => {

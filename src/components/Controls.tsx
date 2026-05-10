@@ -1,5 +1,5 @@
 import { Megaphone, RotateCcw, Volume2, VolumeX } from 'lucide-react';
-import type { MatchMode, MatchState } from '../domain/matchTypes';
+import type { MatchMode, MatchState, PlayerId, TeamId } from '../domain/matchTypes';
 
 interface ControlsProps {
   readonly match: MatchState;
@@ -11,6 +11,9 @@ interface ControlsProps {
   readonly onAnnounce: () => void;
   readonly onAutoAnnounceChange: (enabled: boolean) => void;
   readonly onMatchModeChange: (mode: MatchMode) => void;
+  readonly onNewMatch: () => void;
+  readonly onSetInitialServer: (teamId: TeamId, playerId: PlayerId) => void;
+  readonly onRerollFirstServer: () => void;
 }
 
 export function Controls({
@@ -23,9 +26,13 @@ export function Controls({
   onAnnounce,
   onAutoAnnounceChange,
   onMatchModeChange,
+  onNewMatch,
+  onSetInitialServer,
+  onRerollFirstServer,
 }: ControlsProps) {
   const receivingTeamId = match.servingTeamId === 'teamA' ? 'teamB' : 'teamA';
   const scoringDisabled = match.winnerTeamId !== undefined;
+  const canSetInitialServer = match.score.teamA === 0 && match.score.teamB === 0 && match.previous === undefined;
 
   return (
     <section className="controls" aria-label="Match controls">
@@ -67,6 +74,7 @@ export function Controls({
           type="button"
           className={matchMode === 'doubles' ? 'mode-option is-selected' : 'mode-option'}
           aria-pressed={matchMode === 'doubles'}
+          disabled={matchMode === 'doubles'}
           onClick={() => onMatchModeChange('doubles')}
         >
           Doubles
@@ -75,11 +83,30 @@ export function Controls({
           type="button"
           className={matchMode === 'singles' ? 'mode-option is-selected' : 'mode-option'}
           aria-pressed={matchMode === 'singles'}
+          disabled={matchMode === 'singles'}
           onClick={() => onMatchModeChange('singles')}
         >
           Singles
         </button>
       </div>
+
+      {canSetInitialServer ? (
+        <div className="setup-controls" role="group" aria-label="First server setup">
+          <button type="button" onClick={onRerollFirstServer}>
+            Reroll first server
+          </button>
+          <button type="button" onClick={() => onSetInitialServer('teamA', 'A1')}>
+            Team A Player 1 serves
+          </button>
+          <button type="button" onClick={() => onSetInitialServer('teamB', 'B1')}>
+            Team B Player 3 serves
+          </button>
+        </div>
+      ) : null}
+
+      <button className="new-match-button" type="button" onClick={onNewMatch}>
+        New match
+      </button>
     </section>
   );
 }
