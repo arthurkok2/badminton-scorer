@@ -22,7 +22,7 @@ export function buildAnnouncement(match: MatchState): string {
 }
 
 const LETTER_PRONUNCIATIONS: Record<string, string> = {
-  A: 'Ay',
+  A: 'Eh',
   B: 'Bee',
 };
 

@@ -21,7 +21,7 @@ describe('announcer', () => {
       createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' }),
     );
 
-    expect(buildAnnouncement(match)).toBe('Team Ay, Player 1 serving, 1-0.');
+    expect(buildAnnouncement(match)).toBe('Team Eh, Player 1 serving, 1-0.');
   });
 
   it('announces game point after a winner exists', () => {
@@ -32,7 +32,7 @@ describe('announcer', () => {
       winnerTeamId: 'teamA' as const,
     };
 
-    expect(buildAnnouncement(winner)).toBe('Game. Team Ay wins, 21-10.');
+    expect(buildAnnouncement(winner)).toBe('Game. Team Eh wins, 21-10.');
   });
 
   it('reports speech as unsupported when speech APIs do not exist', () => {
@@ -58,8 +58,8 @@ describe('announcer', () => {
 
     expect(speakAnnouncement(match)).toBe(true);
     expect(cancel).toHaveBeenCalledOnce();
-    expect(SpeechSynthesisUtterance).toHaveBeenCalledWith('Team Ay, Player 1 serving, 0-0.');
-    expect(speak).toHaveBeenCalledWith({ text: 'Team Ay, Player 1 serving, 0-0.' });
+    expect(SpeechSynthesisUtterance).toHaveBeenCalledWith('Team Eh, Player 1 serving, 0-0.');
+    expect(speak).toHaveBeenCalledWith({ text: 'Team Eh, Player 1 serving, 0-0.' });
   });
 
   it('returns false if speech APIs throw', () => {
