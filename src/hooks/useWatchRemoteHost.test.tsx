@@ -1,11 +1,9 @@
 import { renderHook, act } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useWatchRemoteHost, type WatchRemoteService } from './useWatchRemoteHost';
+import { useWatchRemoteHost, STORAGE_KEY, type WatchRemoteService } from './useWatchRemoteHost';
 import { createMatch } from '../domain/matchEngine';
 import type { MatchState } from '../domain/matchTypes';
 import type { PendingWatchRemoteCommand } from '../remote/firestoreRemoteTypes';
-
-const STORAGE_KEY = 'badminton-scorer-watch-remote-room';
 
 function createTestMatch(): MatchState {
   return createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
@@ -254,5 +252,164 @@ describe('useWatchRemoteHost', () => {
     expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
     expect(result.current.status).toBe('inactive');
     expect(result.current.code).toBeUndefined();
+  });
+
+  it('stop() clears lastCommandLabel and error', async () => {
+    let capturedOnCommands: ((commands: PendingWatchRemoteCommand[]) => void) | undefined;
+    const service = makeService({
+      subscribeToCommands: vi.fn().mockImplementation(({ onCommands }) => {
+        capturedOnCommands = onCommands;
+        return vi.fn();
+      }),
+    });
+    const dispatch = vi.fn();
+    const announce = vi.fn();
+    const match = createTestMatch();
+
+    const { result } = renderHook(() =>
+      useWatchRemoteHost({ match, dispatch, announce, service }),
+    );
+
+    await act(async () => {
+      await result.current.start();
+    });
+
+    // Trigger a command to populate lastCommandLabel
+    await act(async () => {
+      capturedOnCommands!([makePendingUndo('cmd-x')]);
+    });
+    expect(result.current.lastCommandLabel).toBe('UNDO');
+
+    await act(async () => {
+      await result.current.stop();
+    });
+
+    expect(result.current.lastCommandLabel).toBeUndefined();
+    expect(result.current.error).toBeUndefined();
+  });
+
+  it('duplicate command ID is dispatched only once', async () => {
+    let capturedOnCommands: ((commands: PendingWatchRemoteCommand[]) => void) | undefined;
+    const service = makeService({
+      subscribeToCommands: vi.fn().mockImplementation(({ onCommands }) => {
+        capturedOnCommands = onCommands;
+        return vi.fn();
+      }),
+    });
+    const dispatch = vi.fn();
+    const announce = vi.fn();
+    const match = createTestMatch();
+
+    const { result } = renderHook(() =>
+      useWatchRemoteHost({ match, dispatch, announce, service }),
+    );
+
+    await act(async () => {
+      await result.current.start();
+    });
+
+    const command = makePendingPointTeam('cmd-dup');
+
+    await act(async () => {
+      capturedOnCommands!([command]);
+    });
+    await act(async () => {
+      capturedOnCommands!([command]);
+    });
+
+    expect(dispatch).toHaveBeenCalledOnce();
+    expect(service.markApplied).toHaveBeenCalledOnce();
+  });
+
+  it('second start() while active is a no-op', async () => {
+    const service = makeService();
+    const dispatch = vi.fn();
+    const announce = vi.fn();
+    const match = createTestMatch();
+
+    const { result } = renderHook(() =>
+      useWatchRemoteHost({ match, dispatch, announce, service }),
+    );
+
+    await act(async () => {
+      await result.current.start();
+    });
+
+    await act(async () => {
+      await result.current.start();
+    });
+
+    expect(service.createRoom).toHaveBeenCalledOnce();
+  });
+
+  it('unknown command type calls markRejected and does not dispatch', async () => {
+    let capturedOnCommands: ((commands: PendingWatchRemoteCommand[]) => void) | undefined;
+    const service = makeService({
+      subscribeToCommands: vi.fn().mockImplementation(({ onCommands }) => {
+        capturedOnCommands = onCommands;
+        return vi.fn();
+      }),
+    });
+    const dispatch = vi.fn();
+    const announce = vi.fn();
+    const match = createTestMatch();
+
+    const { result } = renderHook(() =>
+      useWatchRemoteHost({ match, dispatch, announce, service }),
+    );
+
+    await act(async () => {
+      await result.current.start();
+    });
+
+    const unknownCommand = {
+      id: 'cmd-unknown',
+      command: {
+        type: 'UNKNOWN_FUTURE_COMMAND' as never,
+        sourceId: 'watch-1',
+        sourceKind: 'wear' as const,
+        createdAt: Date.now(),
+      },
+    };
+
+    await act(async () => {
+      capturedOnCommands!([unknownCommand]);
+    });
+
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(service.markApplied).not.toHaveBeenCalled();
+    expect(service.markRejected).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 'ABCD', commandId: 'cmd-unknown', reason: 'unsupported command type' }),
+    );
+  });
+
+  it('onError callback sets status to error with the error message', async () => {
+    let capturedOnError: ((error: Error) => void) | undefined;
+    const service = makeService({
+      subscribeToCommands: vi.fn().mockImplementation(({ onError }) => {
+        capturedOnError = onError;
+        return vi.fn();
+      }),
+    });
+    const dispatch = vi.fn();
+    const announce = vi.fn();
+    const match = createTestMatch();
+
+    const { result } = renderHook(() =>
+      useWatchRemoteHost({ match, dispatch, announce, service }),
+    );
+
+    await act(async () => {
+      await result.current.start();
+    });
+
+    expect(result.current.status).toBe('active');
+
+    await act(async () => {
+      capturedOnError!(new Error('Firestore connection lost'));
+    });
+
+    expect(result.current.status).toBe('error');
+    expect(result.current.error).toBe('Firestore connection lost');
   });
 });

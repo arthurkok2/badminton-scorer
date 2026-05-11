@@ -11,7 +11,7 @@ import {
   subscribeToPendingCommands,
 } from '../remote/firestoreRemoteService';
 
-const STORAGE_KEY = 'badminton-scorer-watch-remote-room';
+export const STORAGE_KEY = 'badminton-scorer-watch-remote-room';
 
 export interface WatchRemoteService {
   createRoom: (options: { match: MatchState; hostId: string }) => Promise<string>;
@@ -63,12 +63,37 @@ export function useWatchRemoteHost(options: {
   const matchRef = useRef<MatchState>(match);
   matchRef.current = match;
 
+  // Mirror status in a ref so callbacks and guards can read current value without stale closures
+  const statusRef = useRef<WatchRemoteHostStatus>('inactive');
+  const updateStatus = (s: WatchRemoteHostStatus) => {
+    statusRef.current = s;
+    setStatus(s);
+  };
+
+  // Tracks whether stop() was called while start() was still in progress
+  const cancelledRef = useRef(false);
+
+  // Tracks command IDs already processed to prevent duplicate dispatches
+  const processedCommandIds = useRef(new Set<string>());
+
   const start = useCallback(async () => {
-    setStatus('starting');
+    // Guard against double-start
+    if (statusRef.current !== 'inactive') return;
+
+    cancelledRef.current = false;
+    updateStatus('starting');
     setError(undefined);
 
     try {
       const roomCode = await service.createRoom({ match: matchRef.current, hostId: hostIdRef.current });
+
+      // If stop() was called while createRoom was in flight, clean up the room and bail
+      if (cancelledRef.current) {
+        try { await service.endRoom({ code: roomCode }); } catch { /* ignore */ }
+        updateStatus('inactive');
+        return;
+      }
+
       await service.publishState({ code: roomCode, match: matchRef.current, hostId: hostIdRef.current });
 
       const unsubscribe = service.subscribeToCommands({
@@ -76,6 +101,10 @@ export function useWatchRemoteHost(options: {
         onCommands: (commands) => {
           for (const pending of commands) {
             const { id, command } = pending;
+
+            // Deduplication guard: skip commands already processed
+            if (processedCommandIds.current.has(id)) continue;
+            processedCommandIds.current.add(id);
 
             if (command.type === 'POINT_TEAM') {
               dispatch({ type: 'POINT_TEAM', teamId: command.teamId });
@@ -89,11 +118,13 @@ export function useWatchRemoteHost(options: {
               announce();
               setLastCommandLabel('ANNOUNCE');
               void service.markApplied({ code: roomCode, commandId: id, match: matchRef.current });
+            } else {
+              void service.markRejected({ code: roomCode, commandId: id, reason: 'unsupported command type' });
             }
           }
         },
         onError: (err) => {
-          setStatus('error');
+          updateStatus('error');
           setError(err.message);
         },
       });
@@ -102,15 +133,30 @@ export function useWatchRemoteHost(options: {
       codeRef.current = roomCode;
       localStorage.setItem(STORAGE_KEY, roomCode);
       setCode(roomCode);
-      setStatus('active');
+      updateStatus('active');
     } catch (err) {
-      setStatus('error');
+      updateStatus('error');
       setError(err instanceof Error ? err.message : String(err));
     }
   }, [service, dispatch, announce]);
 
   const stop = useCallback(async () => {
-    setStatus('stopping');
+    // Handle stop() called while start() is still in progress
+    if (statusRef.current === 'starting') {
+      cancelledRef.current = true;
+      unsubscribeRef.current?.();
+      unsubscribeRef.current = undefined;
+      localStorage.removeItem(STORAGE_KEY);
+      codeRef.current = undefined;
+      setCode(undefined);
+      setLastCommandLabel(undefined);
+      setError(undefined);
+      processedCommandIds.current.clear();
+      updateStatus('inactive');
+      return;
+    }
+
+    updateStatus('stopping');
 
     const roomCode = codeRef.current;
 
@@ -124,7 +170,10 @@ export function useWatchRemoteHost(options: {
     localStorage.removeItem(STORAGE_KEY);
     codeRef.current = undefined;
     setCode(undefined);
-    setStatus('inactive');
+    setLastCommandLabel(undefined);
+    setError(undefined);
+    processedCommandIds.current.clear();
+    updateStatus('inactive');
   }, [service]);
 
   return { status, code, error, lastCommandLabel, start, stop };
