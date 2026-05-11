@@ -1,12 +1,14 @@
 import { StrictMode } from 'react';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { connectBluetoothRemote, getBluetoothSupportStatus } from './input/bluetoothRemote';
+import { connectGamepadRemote } from './input/gamepadRemote';
 import { connectKeyboardRemote } from './input/keyboardRemote';
 import { speakAnnouncement } from './speech/announcer';
 import type { BluetoothRemoteConnection } from './input/bluetoothRemote';
+import type { GamepadRemoteConnection, GamepadRemoteDiagnosticEvent } from './input/gamepadRemote';
 import type { KeyboardRemoteConnection, KeyboardRemoteDiagnosticEvent } from './input/keyboardRemote';
 
 vi.mock('./speech/announcer', async (importOriginal) => {
@@ -38,11 +40,21 @@ vi.mock('./input/keyboardRemote', async (importOriginal) => {
   };
 });
 
+vi.mock('./input/gamepadRemote', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./input/gamepadRemote')>();
+
+  return {
+    ...actual,
+    connectGamepadRemote: vi.fn(),
+  };
+});
+
 const STORAGE_KEY = 'badminton-scorer-preferences';
 const mockedSpeakAnnouncement = vi.mocked(speakAnnouncement);
 const mockedGetBluetoothSupportStatus = vi.mocked(getBluetoothSupportStatus);
 const mockedConnectBluetoothRemote = vi.mocked(connectBluetoothRemote);
 const mockedConnectKeyboardRemote = vi.mocked(connectKeyboardRemote);
+const mockedConnectGamepadRemote = vi.mocked(connectGamepadRemote);
 
 describe('App', () => {
   beforeEach(() => {
@@ -52,6 +64,7 @@ describe('App', () => {
     mockedConnectBluetoothRemote.mockReset();
     mockedConnectKeyboardRemote.mockReset();
     mockedConnectKeyboardRemote.mockReturnValue({ disconnect: vi.fn() });
+    mockedConnectGamepadRemote.mockReturnValue({ disconnect: vi.fn() });
   });
 
   afterEach(() => {
@@ -311,5 +324,112 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: /Team A score/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /Team B score/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /undo last point/i })).toBeEnabled();
+  });
+
+  // Remote input log
+  it('prefixes keyboard events with [key] in the remote input log', () => {
+    let emitDiagnosticEvent: (event: KeyboardRemoteDiagnosticEvent) => void = () => undefined;
+    mockedConnectKeyboardRemote.mockImplementation((options) => {
+      emitDiagnosticEvent = options.onDiagnosticEvent ?? (() => undefined);
+      return { disconnect: vi.fn() };
+    });
+
+    render(<App />);
+
+    act(() => {
+      emitDiagnosticEvent({ type: 'keydown', key: 'VolumeUp', code: 'VolumeUp', keyCode: 175, which: 175, repeat: false });
+    });
+
+    expect(screen.getByText(/\[key\] keydown/i)).toBeInTheDocument();
+  });
+
+  it('connects gamepad remote on mount and disconnects on unmount', () => {
+    const connection: GamepadRemoteConnection = { disconnect: vi.fn() };
+    mockedConnectGamepadRemote.mockReturnValue(connection);
+
+    const { unmount } = render(<App />);
+
+    expect(mockedConnectGamepadRemote).toHaveBeenCalledTimes(1);
+    unmount();
+    expect(connection.disconnect).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows gamepad diagnostic events with [gamepad] prefix, pad index, and button index', () => {
+    let emitDiagnosticEvent: (event: GamepadRemoteDiagnosticEvent) => void = () => undefined;
+    mockedConnectGamepadRemote.mockImplementation((options) => {
+      emitDiagnosticEvent = options.onDiagnosticEvent ?? (() => undefined);
+      return { disconnect: vi.fn() };
+    });
+
+    render(<App />);
+
+    act(() => {
+      emitDiagnosticEvent({ source: 'gamepad', type: 'press', gamepadIndex: 0, gamepadId: 'Generic Controller', buttonIndex: 2 });
+    });
+
+    expect(screen.getByText(/\[gamepad\] press/i)).toBeInTheDocument();
+    expect(screen.getByText(/pad 0/i)).toBeInTheDocument();
+    expect(screen.getByText(/btn 2/i)).toBeInTheDocument();
+  });
+
+  // Player names
+  it('shows default player names in the name inputs before a match starts', () => {
+    render(<App />);
+
+    expect(screen.getByRole('textbox', { name: /team a player 1 name/i })).toHaveValue('Player 1');
+    expect(screen.getByRole('textbox', { name: /team b player 1 name/i })).toHaveValue('Player 3');
+  });
+
+  it('persists an edited player name to local storage', () => {
+    render(<App />);
+
+    fireEvent.change(screen.getByRole('textbox', { name: /team a player 1 name/i }), {
+      target: { value: 'Alice' },
+    });
+
+    expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '{}')).toMatchObject({
+      playerNames: { A1: 'Alice' },
+    });
+  });
+
+  it('loads saved player names from storage and shows them in the inputs on startup', () => {
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ playerNames: { A1: 'Alice', A2: 'Bob', B1: 'Carol', B2: 'Dave' } }),
+    );
+
+    render(<App />);
+
+    expect(screen.getByRole('textbox', { name: /team a player 1 name/i })).toHaveValue('Alice');
+    expect(screen.getByRole('textbox', { name: /team a player 2 name/i })).toHaveValue('Bob');
+    expect(screen.getByRole('textbox', { name: /team b player 1 name/i })).toHaveValue('Carol');
+    expect(screen.getByRole('textbox', { name: /team b player 2 name/i })).toHaveValue('Dave');
+  });
+
+  it('reflects an edited player name in the match serve summary immediately', () => {
+    render(<App />);
+
+    expect(screen.getByText(/server: Player 1/i)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole('textbox', { name: /team a player 1 name/i }), {
+      target: { value: 'Alice' },
+    });
+
+    expect(screen.getByText(/server: Alice/i)).toBeInTheDocument();
+  });
+
+  it('uses player names from storage when starting a new match', async () => {
+    const user = userEvent.setup();
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ playerNames: { A1: 'Alice', A2: 'Bob', B1: 'Carol', B2: 'Dave' } }));
+
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: /Team A score/i }));
+    await user.click(screen.getByRole('button', { name: /new match/i }));
+
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('textbox', { name: /team a player 1 name/i })).toHaveValue('Alice');
+    expect(screen.getByText(/server: Alice/i)).toBeInTheDocument();
   });
 });
