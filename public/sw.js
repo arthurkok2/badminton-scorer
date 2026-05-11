@@ -1,6 +1,8 @@
 const CACHE_NAME = 'badminton-scorer-v1';
-const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png'];
-const ASSET_MANIFEST = '/asset-manifest.json';
+const BASE_PATH = new URL(self.registration.scope).pathname.replace(/\/$/, '');
+const withBase = (path) => `${BASE_PATH}${path}`;
+const APP_SHELL = [withBase('/'), withBase('/index.html'), withBase('/manifest.webmanifest'), withBase('/icon-192.png'), withBase('/icon-512.png')];
+const ASSET_MANIFEST = withBase('/asset-manifest.json');
 
 self.addEventListener('install', (event) => {
   event.waitUntil(precacheAppShell());
@@ -28,7 +30,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (url.origin === self.location.origin && url.pathname.startsWith('/assets/')) {
+  if (url.origin === self.location.origin && url.pathname.startsWith(withBase('/assets/'))) {
     event.respondWith(cacheFirst(event.request));
     return;
   }
@@ -93,18 +95,18 @@ async function getBuildAssets() {
 
 function addManifestAsset(assets, file) {
   if (typeof file === 'string') {
-    assets.add(`/${file}`);
+    assets.add(withBase(`/${file}`));
   }
 }
 
 async function navigationFallback() {
-  const cachedRoot = await caches.match('/');
+  const cachedRoot = await caches.match(withBase('/'));
 
   if (cachedRoot) {
     return cachedRoot;
   }
 
-  return caches.match('/index.html');
+  return caches.match(withBase('/index.html'));
 }
 
 async function networkFirst(request) {
