@@ -10,6 +10,8 @@ Build a phone-first installable web app for keeping score during a badminton gam
 
 The first version targets Android Chrome as a Progressive Web App. The app must remain fully usable through touch controls when Bluetooth is unavailable, unsupported, disconnected, hidden by the operating system, or not yet configured.
 
+The layout is responsive and adapts to wider screens (tablets, laptops) so the app is usable as a courtside display on any device.
+
 ## Match Scope
 
 The first version supports both doubles and singles, with doubles as the priority. Doubles behavior must follow standard badminton rally scoring:
@@ -141,13 +143,18 @@ The speech layer reads current match state and produces an announcement string. 
 
 ### Persistence
 
-Version 1 only needs local browser storage for preferences:
+The app uses `localStorage` for two independent storage keys.
+
+**Preferences** (`badminton-scorer-preferences`) stores user settings:
 
 - Auto-announce enabled or disabled.
 - Last selected match mode.
 - Remote mapping selected by the user.
+- Player names.
 
-The active match remains in memory. Reload recovery is out of scope for version 1.
+**Match state** (`badminton-scorer-match`) stores the live `MatchState` as JSON, including score, serving team, serving player, receiver, court positions, and the single-level undo snapshot. This allows the active match to survive a page refresh.
+
+On startup the app attempts to restore the saved match state. Restoration is accepted only if the saved mode matches the current preferences mode; otherwise a fresh match is created. When the user explicitly resets (new match or mode change), the saved match state is cleared so the next load starts fresh.
 
 ## UI Direction
 
@@ -162,6 +169,10 @@ The visual hierarchy should prioritize:
 5. Secondary actions.
 
 The court diagram should make player positions and court sides clear at a glance. It should use a top-down SVG layout scaled to the real doubles court dimensions: `13.40m x 6.10m`, with 40mm lines represented proportionally enough for display, singles sidelines, short service lines, doubles long service lines, center service lines, and the net. The diagram should be rotated horizontally so the net runs vertically in the middle of the screen. Team A appears on the left and Team B on the right. Because the teams face each other, Team B's visual lanes must be mirrored: Team B's right service court appears in the upper-right box and Team B's left service court appears in the lower-right box. The active server should be highlighted in both the scoreboard and court view when space allows.
+
+### Responsive Layout
+
+The app uses a single-column stacked layout on narrow screens (phones). At viewport widths of 960px and above the layout switches to a two-column grid: the scoreboard occupies the left column (`minmax(280px, 1fr)`) and the court diagram occupies the right column (`2fr`), displayed side by side. Controls, status bar, and the remote diagnostics log span both columns below. The overall layout is capped at 1400px wide and centered on very large screens.
 
 ## Error Handling
 
@@ -213,7 +224,6 @@ Bluetooth and keyboard remote tests should use simulated events through their in
 - iPhone Bluetooth support.
 - Guaranteed volume-key capture when the mobile operating system reserves volume buttons.
 - Native mobile app packaging.
-- Reload recovery for an active match.
 
 ## Implementation Notes
 
