@@ -109,7 +109,7 @@ Three render states based on `status`:
 - Error message
 - Back button (calls `leave()`, returns to disconnected state)
 
-Styles use the `.controller-*` CSS class namespace, appended to `styles.css`.
+Styles use the `.controller-*` CSS class namespace, appended to `styles.css`. All styling must match the existing app's visual language: same font, spacing, button styles, and color scheme. No new design tokens or custom styles — reuse existing CSS patterns from the scorer and session components.
 
 ## Data Flow
 
