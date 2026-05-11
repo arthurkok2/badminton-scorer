@@ -22,7 +22,7 @@ import {
   type GamepadRemoteConnection,
   type GamepadRemoteDiagnosticEvent,
 } from './input/gamepadRemote';
-import { loadPreferences, savePreferences, type AppPreferences } from './preferences';
+import { loadPreferences, loadMatchState, savePreferences, saveMatchState, clearMatchState, type AppPreferences } from './preferences';
 import { getSpeechStatus, speakAnnouncement } from './speech/announcer';
 
 interface MatchViewState {
@@ -44,9 +44,14 @@ type MatchViewAction =
 
 export default function App() {
   const [preferences, setPreferences] = useState<AppPreferences>(() => loadPreferences());
-  const [matchView, setMatchView] = useState<MatchViewState>(() => ({
-    match: createInitialMatch(preferences.matchMode, preferences.playerNames),
-  }));
+  const [matchView, setMatchView] = useState<MatchViewState>(() => {
+    const saved = loadMatchState();
+    const match =
+      saved !== undefined && saved.mode === preferences.matchMode
+        ? saved
+        : createInitialMatch(preferences.matchMode, preferences.playerNames);
+    return { match };
+  });
   const [bluetoothStatus, setBluetoothStatus] = useState<BluetoothStatus>(() => getBluetoothSupportStatus());
   const [diagnostics, setDiagnostics] = useState<DiagnosticEvent[]>([]);
   const connectionRef = useRef<BluetoothRemoteConnection | undefined>(undefined);
@@ -62,6 +67,10 @@ export default function App() {
   useEffect(() => {
     preferencesRef.current = preferences;
   }, [preferences]);
+
+  useEffect(() => {
+    saveMatchState(matchView.match);
+  }, [matchView.match]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -148,6 +157,7 @@ export default function App() {
         return;
       }
 
+      clearMatchState();
       updatePreferences((current) => ({ ...current, matchMode: mode }));
       setMatchView((current) =>
         applyMatchViewAction(current, { type: 'RESET_MODE', mode, playerNames: preferencesRef.current.playerNames }),
@@ -161,6 +171,7 @@ export default function App() {
       return;
     }
 
+    clearMatchState();
     setMatchView((current) =>
       applyMatchViewAction(current, {
         type: 'RESET_MODE',

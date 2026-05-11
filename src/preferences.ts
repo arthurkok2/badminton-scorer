@@ -1,4 +1,4 @@
-import type { PlayerId } from './domain/matchTypes';
+import type { MatchState, PlayerId } from './domain/matchTypes';
 
 export const DEFAULT_PLAYER_NAMES: Record<PlayerId, string> = {
   A1: 'Player 1',
@@ -66,6 +66,36 @@ function parsePlayerNames(value: unknown): Record<PlayerId, string> {
     B1: typeof value.B1 === 'string' && value.B1.trim() ? value.B1 : DEFAULT_PLAYER_NAMES.B1,
     B2: typeof value.B2 === 'string' && value.B2.trim() ? value.B2 : DEFAULT_PLAYER_NAMES.B2,
   };
+}
+
+const MATCH_STORAGE_KEY = 'badminton-scorer-match';
+
+export function loadMatchState(): MatchState | undefined {
+  try {
+    const raw = window.localStorage.getItem(MATCH_STORAGE_KEY);
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw);
+    if (!isRecord(parsed) || (parsed.mode !== 'singles' && parsed.mode !== 'doubles')) return undefined;
+    return parsed as unknown as MatchState;
+  } catch {
+    return undefined;
+  }
+}
+
+export function saveMatchState(match: MatchState): void {
+  try {
+    window.localStorage.setItem(MATCH_STORAGE_KEY, JSON.stringify(match));
+  } catch {
+    // Non-critical; can fail in private mode or when storage is full.
+  }
+}
+
+export function clearMatchState(): void {
+  try {
+    window.localStorage.removeItem(MATCH_STORAGE_KEY);
+  } catch {
+    // ignore
+  }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
