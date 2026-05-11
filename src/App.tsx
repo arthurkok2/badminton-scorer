@@ -244,11 +244,11 @@ type DiagnosticEvent = ({ source: 'keyboard' } & KeyboardRemoteDiagnosticEvent) 
 
 function RemoteDiagnostics({ events }: { readonly events: DiagnosticEvent[] }) {
   return (
-    <section className="remote-diagnostics" aria-label="Remote input log">
-      <div className="remote-diagnostics-header">
+    <details className="remote-diagnostics" aria-label="Remote input log">
+      <summary className="remote-diagnostics-header">
         <h2>Remote input log</h2>
         <span>{events.length === 0 ? 'Listening' : `${events.length} shown`}</span>
-      </div>
+      </summary>
       {events.length === 0 ? (
         <p className="remote-diagnostics-empty">No events seen yet</p>
       ) : (
@@ -274,7 +274,7 @@ function RemoteDiagnostics({ events }: { readonly events: DiagnosticEvent[] }) {
           )}
         </ol>
       )}
-    </section>
+    </details>
   );
 }
 
