@@ -31,7 +31,12 @@ export function isGamepadSupported(nav: Navigator = navigator): boolean {
 export function connectGamepadRemote(options: GamepadRemoteOptions): GamepadRemoteConnection {
   const raf = options.requestAnimationFrame ?? ((cb) => window.requestAnimationFrame(cb));
   const caf = options.cancelAnimationFrame ?? ((id) => window.cancelAnimationFrame(id));
-  const getGamepads = options.getGamepads ?? (() => Array.from(navigator.getGamepads()));
+  const getGamepads = options.getGamepads ?? (() => {
+    if (typeof navigator === 'undefined' || !('getGamepads' in navigator)) {
+      return [];
+    }
+    return Array.from(navigator.getGamepads());
+  });
   const now = options.now ?? (() => performance.now());
   const setFlushInterval = options.setInterval ?? ((cb, delay) => window.setInterval(cb, delay));
   const clearFlushInterval = options.clearInterval ?? ((id) => window.clearInterval(id));

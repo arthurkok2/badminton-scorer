@@ -114,7 +114,7 @@ describe('App', () => {
 
     render(<App />);
 
-    expect(screen.getByText(/no keyboard events seen yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/no events seen yet/i)).toBeInTheDocument();
 
     act(() => {
       emitDiagnosticEvent({
