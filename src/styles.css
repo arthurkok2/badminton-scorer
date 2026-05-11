@@ -903,3 +903,51 @@ button {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Watch Remote Panel ───────────────────────────────────────────── */
+
+.watch-remote-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: #131c22;
+}
+
+.watch-remote-code {
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-align: center;
+  color: #68d391;
+}
+
+.watch-remote-status {
+  font-size: 0.85rem;
+  color: #a0aec0;
+  text-align: center;
+}
+
+.watch-remote-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.watch-remote-actions button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 6px;
+  background: #1f766a;
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.watch-remote-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
