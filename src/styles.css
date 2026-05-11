@@ -42,7 +42,7 @@ button {
 
 @media (min-width: 960px) {
   .app-layout {
-    grid-template-columns: minmax(280px, 1fr) 2fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas:
       "scoreboard court"
       "controls   controls"
@@ -537,6 +537,14 @@ button {
 @media (min-width: 960px) {
   .court {
     width: 100%;
+  }
+
+  .team-score {
+    min-height: 190px;
+  }
+
+  .score-value {
+    font-size: clamp(6rem, 12vw, 12rem);
   }
 }
 
