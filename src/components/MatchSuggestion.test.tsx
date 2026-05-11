@@ -5,7 +5,6 @@ import { MatchSuggestion } from './MatchSuggestion';
 import type {
   MatchSuggestion as MatchSuggestionData,
   PairingMatrix,
-  SessionPlayer,
 } from '../session/sessionTypes';
 
 const suggestion: MatchSuggestionData = {
@@ -17,21 +16,12 @@ const suggestion: MatchSuggestionData = {
   onBreak: ['Eve'],
 };
 
-const allPlayers: SessionPlayer[] = [
-  { name: 'Alice', gamesPlayed: 1, consecutiveStreak: 1, onBreak: false },
-  { name: 'Bob', gamesPlayed: 1, consecutiveStreak: 1, onBreak: false },
-  { name: 'Carol', gamesPlayed: 1, consecutiveStreak: 1, onBreak: false },
-  { name: 'Dave', gamesPlayed: 1, consecutiveStreak: 1, onBreak: false },
-  { name: 'Eve', gamesPlayed: 0, consecutiveStreak: 0, onBreak: true },
-];
-
 const emptyMatrix: PairingMatrix = { together: {}, against: {} };
 
 function renderSuggestion(overrides?: Partial<React.ComponentProps<typeof MatchSuggestion>>) {
   return render(
     <MatchSuggestion
       suggestion={suggestion}
-      allPlayers={allPlayers}
       pairingMatrix={emptyMatrix}
       onStartMatch={vi.fn()}
       onEditPlayers={vi.fn()}

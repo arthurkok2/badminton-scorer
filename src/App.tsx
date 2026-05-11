@@ -311,8 +311,9 @@ export default function App() {
   }, [activeSession]);
 
   const handleEditPlayers = useCallback(() => {
+    if (activeSession && activeSession.matches.length > 0 && !window.confirm('Editing players will reset the current session\'s match history. Continue?')) return;
     setSessionPhase('setup');
-  }, []);
+  }, [activeSession]);
 
   const handleConnectBluetooth = useCallback(async () => {
     connectionRef.current?.disconnect();
@@ -361,7 +362,6 @@ export default function App() {
         <div className="app-layout">
           <MatchSuggestion
             suggestion={currentSuggestion}
-            allPlayers={activeSession.players}
             pairingMatrix={activeSession.pairingMatrix}
             onStartMatch={handleStartMatch}
             onEditPlayers={handleEditPlayers}

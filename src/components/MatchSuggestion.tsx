@@ -3,13 +3,11 @@ import { rankSplitsForPlayers } from '../session/sessionScheduler';
 import type {
   MatchSuggestion as MatchSuggestionData,
   PairingMatrix,
-  SessionPlayer,
   TeamSplit,
 } from '../session/sessionTypes';
 
 interface MatchSuggestionProps {
   readonly suggestion: MatchSuggestionData;
-  readonly allPlayers: readonly SessionPlayer[];
   readonly pairingMatrix: PairingMatrix;
   readonly onStartMatch: (split: TeamSplit) => void;
   readonly onEditPlayers: () => void;
@@ -18,7 +16,6 @@ interface MatchSuggestionProps {
 
 export function MatchSuggestion({
   suggestion,
-  allPlayers: _allPlayers,
   pairingMatrix,
   onStartMatch,
   onEditPlayers,
