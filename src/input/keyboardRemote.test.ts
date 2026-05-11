@@ -12,7 +12,7 @@ describe('keyboard remote adapter', () => {
     const target = new EventTarget();
     const commands: AppCommand[] = [];
     const intervalCallbacks: Array<() => void> = [];
-    const timestamps = [0, 80, 260];
+    const timestamps = [0, 80, 500];
 
     connectKeyboardRemote({
       dispatch: (command) => commands.push(command),
@@ -76,7 +76,7 @@ describe('keyboard remote adapter', () => {
     const target = new EventTarget();
     const commands: AppCommand[] = [];
     const intervalCallbacks: Array<() => void> = [];
-    const timestamps = [0, 80, 260];
+    const timestamps = [0, 80, 500];
 
     connectKeyboardRemote({
       dispatch: (command) => commands.push(command),

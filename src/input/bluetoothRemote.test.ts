@@ -200,7 +200,7 @@ describe('bluetooth remote adapter', () => {
     const device = new FakeBluetoothDevice(characteristic);
     const commands: AppCommand[] = [];
     const intervalCallbacks: Array<() => void> = [];
-    const timestamps = [0, 80, 260];
+    const timestamps = [0, 80, 500];
 
     await connectBluetoothRemote({
       dispatch: (command) => commands.push(command),

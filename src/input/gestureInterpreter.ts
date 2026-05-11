@@ -1,6 +1,6 @@
 import type { AppCommand } from './commands';
 
-const DOUBLE_CLICK_MS = 180;
+const DOUBLE_CLICK_MS = 400;
 const HOLD_MS = 650;
 
 export interface GestureInterpreter {

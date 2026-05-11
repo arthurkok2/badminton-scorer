@@ -7,7 +7,7 @@ describe('gesture interpreter', () => {
 
     interpreter.handlePress(0);
     interpreter.handleRelease(80);
-    interpreter.flush(260);
+    interpreter.flush(500);
 
     expect(commands).toEqual([{ type: 'POINT_TEAM', teamId: 'teamA' }]);
   });
@@ -42,9 +42,9 @@ describe('gesture interpreter', () => {
 
     interpreter.handlePress(0);
     interpreter.handleRelease(80);
-    interpreter.handlePress(300);
-    interpreter.handleRelease(360);
-    interpreter.flush(540);
+    interpreter.handlePress(500);
+    interpreter.handleRelease(560);
+    interpreter.flush(970);
 
     expect(commands).toEqual(['POINT_TEAM', 'POINT_TEAM']);
   });
@@ -55,9 +55,9 @@ describe('gesture interpreter', () => {
 
     interpreter.handlePress(0);
     interpreter.handleRelease(80);
-    interpreter.handlePress(300);
-    interpreter.handleRelease(1000);
-    interpreter.flush(1100);
+    interpreter.handlePress(500);
+    interpreter.handleRelease(1200);
+    interpreter.flush(1300);
 
     expect(commands).toEqual(['POINT_TEAM', 'UNDO']);
   });
