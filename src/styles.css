@@ -156,6 +156,51 @@ button {
   cursor: pointer;
 }
 
+.player-names-editor {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.player-names-team {
+  display: grid;
+  gap: 6px;
+}
+
+.player-names-label {
+  font-size: 0.8rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: #aabcc4;
+}
+
+.player-name-field {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px;
+  align-items: center;
+}
+
+.player-name-field > span {
+  font-size: 0.78rem;
+  font-weight: 900;
+  color: #7f949e;
+}
+
+.player-name-field input {
+  padding: 5px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  background: #101820;
+  color: #f5f7fa;
+  min-width: 0;
+}
+
+.player-name-field input:focus {
+  outline: none;
+  border-color: #68d391;
+}
+
 .connect-button {
   min-height: 38px;
   padding: 0 14px;

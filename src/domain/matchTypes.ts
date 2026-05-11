@@ -39,4 +39,5 @@ export interface CreateMatchOptions {
   readonly mode: MatchMode;
   readonly initialServingTeamId: TeamId;
   readonly initialServingPlayerId: PlayerId;
+  readonly playerNames?: Readonly<Record<PlayerId, string>>;
 }

@@ -49,12 +49,12 @@ export function createMatch(options: CreateMatchOptions): MatchState {
       teamA: {
         id: 'teamA',
         name: 'Team A',
-        players: playersForMode(options.mode, 'teamA').map(createPlayer),
+        players: playersForMode(options.mode, 'teamA').map((id) => createPlayer(id, options.playerNames)),
       },
       teamB: {
         id: 'teamB',
         name: 'Team B',
-        players: playersForMode(options.mode, 'teamB').map(createPlayer),
+        players: playersForMode(options.mode, 'teamB').map((id) => createPlayer(id, options.playerNames)),
       },
     },
     score,
@@ -259,17 +259,17 @@ function validateTeamPlayer(mode: MatchMode, teamId: TeamId, playerId: PlayerId)
   }
 }
 
-function createPlayer(playerId: PlayerId): Player {
-  const playerNames: Record<PlayerId, string> = {
-    A1: 'Player 1',
-    A2: 'Player 2',
-    B1: 'Player 3',
-    B2: 'Player 4',
-  };
+const DEFAULT_PLAYER_NAMES: Record<PlayerId, string> = {
+  A1: 'Player 1',
+  A2: 'Player 2',
+  B1: 'Player 3',
+  B2: 'Player 4',
+};
 
+function createPlayer(playerId: PlayerId, playerNames?: Readonly<Record<PlayerId, string>>): Player {
   return {
     id: playerId,
-    name: playerNames[playerId],
+    name: playerNames?.[playerId] ?? DEFAULT_PLAYER_NAMES[playerId],
     teamId: playerId.startsWith('A') ? 'teamA' : 'teamB',
   };
 }

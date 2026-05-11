@@ -40,12 +40,12 @@ type MatchViewAction =
       readonly autoAnnounce: boolean;
       readonly announcementId: number;
     }
-  | { readonly type: 'RESET_MODE'; readonly mode: MatchMode };
+  | { readonly type: 'RESET_MODE'; readonly mode: MatchMode; readonly playerNames: Record<PlayerId, string> };
 
 export default function App() {
   const [preferences, setPreferences] = useState<AppPreferences>(() => loadPreferences());
   const [matchView, setMatchView] = useState<MatchViewState>(() => ({
-    match: createInitialMatch(preferences.matchMode),
+    match: createInitialMatch(preferences.matchMode, preferences.playerNames),
   }));
   const [bluetoothStatus, setBluetoothStatus] = useState<BluetoothStatus>(() => getBluetoothSupportStatus());
   const [diagnostics, setDiagnostics] = useState<DiagnosticEvent[]>([]);
@@ -149,7 +149,9 @@ export default function App() {
       }
 
       updatePreferences((current) => ({ ...current, matchMode: mode }));
-      setMatchView((current) => applyMatchViewAction(current, { type: 'RESET_MODE', mode }));
+      setMatchView((current) =>
+        applyMatchViewAction(current, { type: 'RESET_MODE', mode, playerNames: preferencesRef.current.playerNames }),
+      );
     },
     [matchView.match, updatePreferences],
   );
@@ -159,7 +161,13 @@ export default function App() {
       return;
     }
 
-    setMatchView((current) => applyMatchViewAction(current, { type: 'RESET_MODE', mode: preferencesRef.current.matchMode }));
+    setMatchView((current) =>
+      applyMatchViewAction(current, {
+        type: 'RESET_MODE',
+        mode: preferencesRef.current.matchMode,
+        playerNames: preferencesRef.current.playerNames,
+      }),
+    );
   }, [matchView.match]);
 
   const handleSetInitialServer = useCallback(
@@ -167,6 +175,18 @@ export default function App() {
       dispatch({ type: 'SET_INITIAL_SERVER', teamId, playerId });
     },
     [dispatch],
+  );
+
+  const handlePlayerNameChange = useCallback(
+    (playerId: PlayerId, name: string) => {
+      const nextPlayerNames = { ...preferencesRef.current.playerNames, [playerId]: name };
+      updatePreferences((current) => ({ ...current, playerNames: nextPlayerNames }));
+      setMatchView((current) => {
+        if (hasStarted(current.match)) return current;
+        return { match: createInitialMatch(preferencesRef.current.matchMode, nextPlayerNames) };
+      });
+    },
+    [updatePreferences],
   );
 
   const handleRerollFirstServer = useCallback(() => {
@@ -227,6 +247,7 @@ export default function App() {
           match={match}
           autoAnnounce={preferences.autoAnnounce}
           matchMode={preferences.matchMode}
+          playerNames={preferences.playerNames}
           onUndo={() => dispatch({ type: 'UNDO' })}
           onAnnounce={() => speakAnnouncement(match)}
           onAutoAnnounceChange={(autoAnnounce) => updatePreferences((current) => ({ ...current, autoAnnounce }))}
@@ -234,6 +255,7 @@ export default function App() {
           onNewMatch={handleNewMatch}
           onSetInitialServer={handleSetInitialServer}
           onRerollFirstServer={handleRerollFirstServer}
+          onPlayerNameChange={handlePlayerNameChange}
         />
       </div>
     </main>
@@ -278,8 +300,8 @@ function RemoteDiagnostics({ events }: { readonly events: DiagnosticEvent[] }) {
   );
 }
 
-function createInitialMatch(mode: MatchMode): MatchState {
-  return createMatch({ mode, initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
+function createInitialMatch(mode: MatchMode, playerNames: Record<PlayerId, string>): MatchState {
+  return createMatch({ mode, initialServingTeamId: 'teamA', initialServingPlayerId: 'A1', playerNames });
 }
 
 function hasStarted(match: MatchState): boolean {
@@ -289,7 +311,7 @@ function hasStarted(match: MatchState): boolean {
 function applyMatchViewAction(current: MatchViewState, action: MatchViewAction): MatchViewState {
   if (action.type === 'RESET_MODE') {
     return {
-      match: createInitialMatch(action.mode),
+      match: createInitialMatch(action.mode, action.playerNames),
     };
   }
 

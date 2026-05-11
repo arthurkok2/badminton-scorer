@@ -1,4 +1,4 @@
-import { DEFAULT_PREFERENCES, loadPreferences, savePreferences } from './preferences';
+import { DEFAULT_PLAYER_NAMES, DEFAULT_PREFERENCES, loadPreferences, savePreferences } from './preferences';
 
 const STORAGE_KEY = 'badminton-scorer-preferences';
 
@@ -47,6 +47,28 @@ describe('preferences', () => {
       autoAnnounce: true,
       matchMode: 'singles',
       remoteMapping: 'server-receiver-default',
+      playerNames: DEFAULT_PLAYER_NAMES,
+    });
+  });
+
+  it('saves and loads custom player names', () => {
+    const playerNames = { A1: 'Alice', A2: 'Bob', B1: 'Carol', B2: 'Dave' };
+    savePreferences({ ...DEFAULT_PREFERENCES, playerNames });
+
+    expect(loadPreferences().playerNames).toEqual(playerNames);
+  });
+
+  it('falls back to default player name for any blank or missing entry', () => {
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ ...DEFAULT_PREFERENCES, playerNames: { A1: 'Alice', A2: '', B1: null, B2: 'Dave' } }),
+    );
+
+    expect(loadPreferences().playerNames).toEqual({
+      A1: 'Alice',
+      A2: DEFAULT_PLAYER_NAMES.A2,
+      B1: DEFAULT_PLAYER_NAMES.B1,
+      B2: 'Dave',
     });
   });
 

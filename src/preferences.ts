@@ -1,7 +1,17 @@
+import type { PlayerId } from './domain/matchTypes';
+
+export const DEFAULT_PLAYER_NAMES: Record<PlayerId, string> = {
+  A1: 'Player 1',
+  A2: 'Player 2',
+  B1: 'Player 3',
+  B2: 'Player 4',
+};
+
 export interface AppPreferences {
   autoAnnounce: boolean;
   matchMode: 'singles' | 'doubles';
   remoteMapping: 'server-receiver-default';
+  playerNames: Record<PlayerId, string>;
 }
 
 const STORAGE_KEY = 'badminton-scorer-preferences';
@@ -10,6 +20,7 @@ export const DEFAULT_PREFERENCES: AppPreferences = {
   autoAnnounce: false,
   matchMode: 'doubles',
   remoteMapping: 'server-receiver-default',
+  playerNames: { ...DEFAULT_PLAYER_NAMES },
 };
 
 export function loadPreferences(): AppPreferences {
@@ -31,7 +42,7 @@ export function savePreferences(preferences: AppPreferences): void {
 
 function parsePreferences(value: unknown): AppPreferences {
   if (!isRecord(value)) {
-    return { ...DEFAULT_PREFERENCES };
+    return { ...DEFAULT_PREFERENCES, playerNames: { ...DEFAULT_PLAYER_NAMES } };
   }
 
   return {
@@ -40,6 +51,20 @@ function parsePreferences(value: unknown): AppPreferences {
     remoteMapping: value.remoteMapping === 'server-receiver-default'
       ? value.remoteMapping
       : DEFAULT_PREFERENCES.remoteMapping,
+    playerNames: parsePlayerNames(value.playerNames),
+  };
+}
+
+function parsePlayerNames(value: unknown): Record<PlayerId, string> {
+  if (!isRecord(value)) {
+    return { ...DEFAULT_PLAYER_NAMES };
+  }
+
+  return {
+    A1: typeof value.A1 === 'string' && value.A1.trim() ? value.A1 : DEFAULT_PLAYER_NAMES.A1,
+    A2: typeof value.A2 === 'string' && value.A2.trim() ? value.A2 : DEFAULT_PLAYER_NAMES.A2,
+    B1: typeof value.B1 === 'string' && value.B1.trim() ? value.B1 : DEFAULT_PLAYER_NAMES.B1,
+    B2: typeof value.B2 === 'string' && value.B2.trim() ? value.B2 : DEFAULT_PLAYER_NAMES.B2,
   };
 }
 
