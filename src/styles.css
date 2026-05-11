@@ -75,7 +75,9 @@ button {
 .icon-button,
 .toggle-button,
 .mode-option,
-.point-button {
+.team-score,
+.new-match-button,
+.setup-controls button {
   border: 0;
   border-radius: 8px;
   color: #f8fafc;
@@ -94,7 +96,7 @@ button {
   opacity: 0.5;
 }
 
-.point-button:disabled {
+.team-score:disabled {
   cursor: not-allowed;
   filter: grayscale(0.35);
   opacity: 0.58;
@@ -120,6 +122,8 @@ button {
   border-radius: 8px;
   place-items: center;
   background: #101820;
+  color: #f8fafc;
+  cursor: pointer;
 }
 
 .team-score.is-serving {
@@ -286,42 +290,6 @@ button {
   display: grid;
   gap: 12px;
   padding: 12px;
-}
-
-.point-controls {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.point-button {
-  display: grid;
-  gap: 4px;
-  min-height: 116px;
-  padding: 14px 10px;
-  align-content: center;
-  justify-items: center;
-  font-weight: 900;
-  line-height: 1.12;
-  text-align: center;
-}
-
-.point-button span {
-  font-size: 2.1rem;
-  line-height: 1;
-}
-
-.point-button small {
-  color: inherit;
-  opacity: 0.82;
-}
-
-.point-button.primary {
-  background: #2f855a;
-}
-
-.point-button.secondary {
-  background: #2b6cb0;
 }
 
 .utility-controls {

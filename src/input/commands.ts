@@ -1,6 +1,5 @@
 import {
-  awardPointToReceivingTeam,
-  awardPointToServingTeam,
+  awardPointToTeam,
   createMatch,
   setInitialServer,
   undoLastPoint,
@@ -8,18 +7,15 @@ import {
 import type { MatchMode, MatchState, PlayerId, TeamId } from '../domain/matchTypes';
 
 export type AppCommand =
-  | { type: 'POINT_SERVING' }
-  | { type: 'POINT_RECEIVING' }
+  | { type: 'POINT_TEAM'; teamId: TeamId }
   | { type: 'UNDO' }
   | { type: 'RESET'; mode: MatchMode }
   | { type: 'SET_INITIAL_SERVER'; teamId: TeamId; playerId: PlayerId };
 
 export function applyCommand(match: MatchState, command: AppCommand): MatchState {
   switch (command.type) {
-    case 'POINT_SERVING':
-      return awardPointToServingTeam(match);
-    case 'POINT_RECEIVING':
-      return awardPointToReceivingTeam(match);
+    case 'POINT_TEAM':
+      return awardPointToTeam(match, command.teamId);
     case 'UNDO':
       return undoLastPoint(match);
     case 'RESET':

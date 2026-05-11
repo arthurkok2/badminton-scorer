@@ -223,7 +223,7 @@ describe('bluetooth remote adapter', () => {
     characteristic.emitValue([0]);
     intervalCallbacks[0]();
 
-    expect(commands).toEqual([{ type: 'POINT_SERVING' }]);
+    expect(commands).toEqual([{ type: 'POINT_TEAM', teamId: 'teamA' }]);
   });
 
   it('disconnect cleanup clears the flush interval and removes notification and disconnect listeners', async () => {

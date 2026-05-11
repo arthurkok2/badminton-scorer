@@ -130,6 +130,10 @@ export function awardPointToReceivingTeam(match: MatchState): MatchState {
   return { ...next, winnerTeamId: getWinner(score) };
 }
 
+export function awardPointToTeam(match: MatchState, teamId: TeamId): MatchState {
+  return teamId === match.servingTeamId ? awardPointToServingTeam(match) : awardPointToReceivingTeam(match);
+}
+
 export function undoLastPoint(match: MatchState): MatchState {
   return match.previous ? restoreSnapshot(match.previous) : match;
 }

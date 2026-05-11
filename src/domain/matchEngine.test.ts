@@ -1,4 +1,5 @@
 import {
+  awardPointToTeam,
   awardPointToReceivingTeam,
   awardPointToServingTeam,
   createMatch,
@@ -45,6 +46,30 @@ describe('match engine', () => {
     expect(next.receiverId).toBe('B2');
     expect(next.courtPositions.A1).toBe('left');
     expect(next.courtPositions.A2).toBe('right');
+  });
+
+  it('awards a point to Team A and keeps service when Team A is serving', () => {
+    const match = createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
+    const next = awardPointToTeam(match, 'teamA');
+
+    expect(next.score).toEqual({ teamA: 1, teamB: 0 });
+    expect(next.servingTeamId).toBe('teamA');
+    expect(next.serverId).toBe('A1');
+    expect(next.receiverId).toBe('B2');
+    expect(next.courtPositions.A1).toBe('left');
+    expect(next.courtPositions.A2).toBe('right');
+  });
+
+  it('awards a point to Team B and changes service when Team A is serving', () => {
+    const match = createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
+    const next = awardPointToTeam(match, 'teamB');
+
+    expect(next.score).toEqual({ teamA: 0, teamB: 1 });
+    expect(next.servingTeamId).toBe('teamB');
+    expect(next.serverId).toBe('B2');
+    expect(next.receiverId).toBe('A2');
+    expect(next.courtPositions).toEqual(match.courtPositions);
+    expect(next.courtPositions).not.toBe(match.courtPositions);
   });
 
   it('tracks a multi-rally doubles sequence with legal transitions', () => {

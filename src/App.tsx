@@ -188,14 +188,12 @@ export default function App() {
           speechStatus={getSpeechStatus()}
           onConnectBluetooth={handleConnectBluetooth}
         />
-        <Scoreboard match={match} />
+        <Scoreboard match={match} onPointTeam={(teamId) => dispatch({ type: 'POINT_TEAM', teamId })} />
         <CourtView match={match} />
         <Controls
           match={match}
           autoAnnounce={preferences.autoAnnounce}
           matchMode={preferences.matchMode}
-          onPointServing={() => dispatch({ type: 'POINT_SERVING' })}
-          onPointReceiving={() => dispatch({ type: 'POINT_RECEIVING' })}
           onUndo={() => dispatch({ type: 'UNDO' })}
           onAnnounce={() => speakAnnouncement(match)}
           onAutoAnnounceChange={(autoAnnounce) => updatePreferences((current) => ({ ...current, autoAnnounce }))}
@@ -225,7 +223,7 @@ function applyMatchViewAction(current: MatchViewState, action: MatchViewAction):
   }
 
   const nextMatch = applyCommand(current.match, action.command);
-  const scored = action.command.type === 'POINT_SERVING' || action.command.type === 'POINT_RECEIVING';
+  const scored = action.command.type === 'POINT_TEAM';
   const pendingAutoAnnouncement =
     scored && action.autoAnnounce && nextMatch !== current.match
       ? { id: action.announcementId, match: nextMatch }

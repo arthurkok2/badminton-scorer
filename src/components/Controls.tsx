@@ -5,8 +5,6 @@ interface ControlsProps {
   readonly match: MatchState;
   readonly autoAnnounce: boolean;
   readonly matchMode: MatchMode;
-  readonly onPointServing: () => void;
-  readonly onPointReceiving: () => void;
   readonly onUndo: () => void;
   readonly onAnnounce: () => void;
   readonly onAutoAnnounceChange: (enabled: boolean) => void;
@@ -20,8 +18,6 @@ export function Controls({
   match,
   autoAnnounce,
   matchMode,
-  onPointServing,
-  onPointReceiving,
   onUndo,
   onAnnounce,
   onAutoAnnounceChange,
@@ -30,25 +26,10 @@ export function Controls({
   onSetInitialServer,
   onRerollFirstServer,
 }: ControlsProps) {
-  const receivingTeamId = match.servingTeamId === 'teamA' ? 'teamB' : 'teamA';
-  const scoringDisabled = match.winnerTeamId !== undefined;
   const canSetInitialServer = match.score.teamA === 0 && match.score.teamB === 0 && match.previous === undefined;
 
   return (
     <section className="controls" aria-label="Match controls">
-      <div className="point-controls">
-        <button className="point-button primary" type="button" onClick={onPointServing} disabled={scoringDisabled}>
-          <span>+1</span>
-          Point for serving team
-          <small>{match.teams[match.servingTeamId].name}</small>
-        </button>
-        <button className="point-button secondary" type="button" onClick={onPointReceiving} disabled={scoringDisabled}>
-          <span>+1</span>
-          Point for receiving team
-          <small>{match.teams[receivingTeamId].name}</small>
-        </button>
-      </div>
-
       <div className="utility-controls">
         <button className="icon-button" type="button" onClick={onUndo} aria-label="Undo last point">
           <RotateCcw size={22} aria-hidden="true" />

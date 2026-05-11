@@ -1,20 +1,20 @@
 import { createGestureInterpreter } from './gestureInterpreter';
 
 describe('gesture interpreter', () => {
-  it('maps one click to point for serving team', () => {
-    const commands: string[] = [];
-    const interpreter = createGestureInterpreter((command) => commands.push(command.type));
+  it('maps one click to point for Team A', () => {
+    const commands: unknown[] = [];
+    const interpreter = createGestureInterpreter((command) => commands.push(command));
 
     interpreter.handlePress(0);
     interpreter.handleRelease(80);
     interpreter.flush(260);
 
-    expect(commands).toEqual(['POINT_SERVING']);
+    expect(commands).toEqual([{ type: 'POINT_TEAM', teamId: 'teamA' }]);
   });
 
-  it('maps double click to point for receiving team', () => {
-    const commands: string[] = [];
-    const interpreter = createGestureInterpreter((command) => commands.push(command.type));
+  it('maps double click to point for Team B', () => {
+    const commands: unknown[] = [];
+    const interpreter = createGestureInterpreter((command) => commands.push(command));
 
     interpreter.handlePress(0);
     interpreter.handleRelease(70);
@@ -22,7 +22,7 @@ describe('gesture interpreter', () => {
     interpreter.handleRelease(210);
     interpreter.flush(420);
 
-    expect(commands).toEqual(['POINT_RECEIVING']);
+    expect(commands).toEqual([{ type: 'POINT_TEAM', teamId: 'teamB' }]);
   });
 
   it('maps hold to undo', () => {
@@ -46,7 +46,7 @@ describe('gesture interpreter', () => {
     interpreter.handleRelease(360);
     interpreter.flush(540);
 
-    expect(commands).toEqual(['POINT_SERVING', 'POINT_SERVING']);
+    expect(commands).toEqual(['POINT_TEAM', 'POINT_TEAM']);
   });
 
   it('dispatches a pending single click before a later hold dispatches undo', () => {
@@ -59,7 +59,7 @@ describe('gesture interpreter', () => {
     interpreter.handleRelease(1000);
     interpreter.flush(1100);
 
-    expect(commands).toEqual(['POINT_SERVING', 'UNDO']);
+    expect(commands).toEqual(['POINT_TEAM', 'UNDO']);
   });
 
   it('ignores release without press', () => {
@@ -95,6 +95,6 @@ describe('gesture interpreter', () => {
     interpreter.handleRelease(330);
     interpreter.flush(520);
 
-    expect(commands).toEqual(['POINT_RECEIVING']);
+    expect(commands).toEqual(['POINT_TEAM']);
   });
 });

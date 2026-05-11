@@ -2,19 +2,19 @@ import { createMatch } from '../domain/matchEngine';
 import { applyCommand } from './commands';
 
 describe('command reducer', () => {
-  it('increments the serving team for POINT_SERVING', () => {
+  it('increments Team A for POINT_TEAM', () => {
     const match = createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
 
-    const next = applyCommand(match, { type: 'POINT_SERVING' });
+    const next = applyCommand(match, { type: 'POINT_TEAM', teamId: 'teamA' });
 
     expect(next.score).toEqual({ teamA: 1, teamB: 0 });
     expect(next.servingTeamId).toBe('teamA');
   });
 
-  it('changes service for POINT_RECEIVING', () => {
+  it('increments Team B and changes service for POINT_TEAM', () => {
     const match = createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
 
-    const next = applyCommand(match, { type: 'POINT_RECEIVING' });
+    const next = applyCommand(match, { type: 'POINT_TEAM', teamId: 'teamB' });
 
     expect(next.score).toEqual({ teamA: 0, teamB: 1 });
     expect(next.servingTeamId).toBe('teamB');
@@ -22,7 +22,7 @@ describe('command reducer', () => {
 
   it('restores the last point for UNDO', () => {
     const match = createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
-    const scored = applyCommand(match, { type: 'POINT_SERVING' });
+    const scored = applyCommand(match, { type: 'POINT_TEAM', teamId: 'teamA' });
 
     const undone = applyCommand(scored, { type: 'UNDO' });
 

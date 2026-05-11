@@ -30,7 +30,7 @@ describe('keyboard remote adapter', () => {
     target.dispatchEvent(new KeyboardEvent('keyup', { key: 'AudioVolumeUp' }));
     intervalCallbacks[0]();
 
-    expect(commands).toEqual([{ type: 'POINT_SERVING' }]);
+    expect(commands).toEqual([{ type: 'POINT_TEAM', teamId: 'teamA' }]);
   });
 
   it('ignores repeated volume-up keydown events from key auto-repeat', () => {
@@ -55,7 +55,7 @@ describe('keyboard remote adapter', () => {
     target.dispatchEvent(new KeyboardEvent('keyup', { key: 'AudioVolumeUp' }));
     intervalCallbacks[0]();
 
-    expect(commands).toEqual([{ type: 'POINT_SERVING' }]);
+    expect(commands).toEqual([{ type: 'POINT_TEAM', teamId: 'teamA' }]);
   });
 
   it('cleans up key listeners and the flush interval on disconnect', () => {

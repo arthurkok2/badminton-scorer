@@ -18,7 +18,7 @@ export function createGestureInterpreter(dispatch: (command: AppCommand) => void
     if (clickCount === 1 && lastReleaseAt !== undefined && timestamp - lastReleaseAt >= DOUBLE_CLICK_MS) {
       clickCount = 0;
       lastReleaseAt = undefined;
-      dispatch({ type: 'POINT_SERVING' });
+      dispatch({ type: 'POINT_TEAM', teamId: 'teamA' });
     }
   }
 
@@ -52,7 +52,7 @@ export function createGestureInterpreter(dispatch: (command: AppCommand) => void
       if (clickCount === 2) {
         clickCount = 0;
         lastReleaseAt = undefined;
-        dispatch({ type: 'POINT_RECEIVING' });
+        dispatch({ type: 'POINT_TEAM', teamId: 'teamB' });
       }
     },
     flush(timestamp) {

@@ -58,11 +58,11 @@ describe('App', () => {
     vi.restoreAllMocks();
   });
 
-  it('awards a point to the serving team and keeps the serving player visible', async () => {
+  it('awards a point to Team A from the Team A score', async () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(screen.getByRole('button', { name: /point for serving team/i }));
+    await user.click(screen.getByRole('button', { name: /Team A score/i }));
 
     expect(screen.getByTestId('score-teamA')).toHaveTextContent('1');
     expect(screen.getByTestId('score-teamB')).toHaveTextContent('0');
@@ -70,11 +70,11 @@ describe('App', () => {
     expect(screen.getByText(/server: Player 1/i)).toBeInTheDocument();
   });
 
-  it('awards a point to the receiving team and changes server', async () => {
+  it('awards a point to Team B from the Team B score and changes server', async () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(screen.getByRole('button', { name: /point for receiving team/i }));
+    await user.click(screen.getByRole('button', { name: /Team B score/i }));
 
     expect(screen.getByTestId('score-teamA')).toHaveTextContent('0');
     expect(screen.getByTestId('score-teamB')).toHaveTextContent('1');
@@ -86,7 +86,7 @@ describe('App', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(screen.getByRole('button', { name: /point for serving team/i }));
+    await user.click(screen.getByRole('button', { name: /Team A score/i }));
     await user.click(screen.getByRole('button', { name: /undo last point/i }));
 
     expect(screen.getByTestId('score-teamA')).toHaveTextContent('0');
@@ -116,13 +116,13 @@ describe('App', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(screen.getByRole('button', { name: /point for serving team/i }));
+    await user.click(screen.getByRole('button', { name: /Team A score/i }));
     expect(mockedSpeakAnnouncement).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole('switch', { name: /auto announce/i }));
     expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '{}')).toMatchObject({ autoAnnounce: true });
 
-    await user.click(screen.getByRole('button', { name: /point for serving team/i }));
+    await user.click(screen.getByRole('button', { name: /Team A score/i }));
 
     expect(mockedSpeakAnnouncement).toHaveBeenCalledTimes(1);
     expect(mockedSpeakAnnouncement.mock.calls[0][0].score).toEqual({ teamA: 2, teamB: 0 });
@@ -138,7 +138,7 @@ describe('App', () => {
       </StrictMode>,
     );
 
-    await user.click(screen.getByRole('button', { name: /point for serving team/i }));
+    await user.click(screen.getByRole('button', { name: /Team A score/i }));
 
     await waitFor(() => expect(mockedSpeakAnnouncement).toHaveBeenCalledTimes(1));
     expect(mockedSpeakAnnouncement.mock.calls[0][0].score).toEqual({ teamA: 1, teamB: 0 });
@@ -218,7 +218,7 @@ describe('App', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(screen.getByRole('button', { name: /point for serving team/i }));
+    await user.click(screen.getByRole('button', { name: /Team A score/i }));
     await user.click(screen.getByRole('button', { name: /doubles/i }));
 
     expect(screen.getByTestId('score-teamA')).toHaveTextContent('1');
@@ -230,7 +230,7 @@ describe('App', () => {
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
     render(<App />);
 
-    await user.click(screen.getByRole('button', { name: /point for serving team/i }));
+    await user.click(screen.getByRole('button', { name: /Team A score/i }));
     await user.click(screen.getByRole('button', { name: /singles/i }));
 
     expect(confirm).toHaveBeenCalledTimes(1);
@@ -243,7 +243,7 @@ describe('App', () => {
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
     render(<App />);
 
-    await user.click(screen.getByRole('button', { name: /point for serving team/i }));
+    await user.click(screen.getByRole('button', { name: /Team A score/i }));
     await user.click(screen.getByRole('button', { name: /new match/i }));
 
     expect(confirm).toHaveBeenCalledTimes(1);
@@ -267,7 +267,7 @@ describe('App', () => {
 
     expect(screen.getByRole('group', { name: /first server setup/i })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /point for serving team/i }));
+    await user.click(screen.getByRole('button', { name: /Team A score/i }));
 
     expect(screen.queryByRole('group', { name: /first server setup/i })).not.toBeInTheDocument();
   });
@@ -277,11 +277,11 @@ describe('App', () => {
     render(<App />);
 
     for (let point = 0; point < 21; point += 1) {
-      await user.click(screen.getByRole('button', { name: /point for serving team/i }));
+      await user.click(screen.getByRole('button', { name: /Team A score/i }));
     }
 
-    expect(screen.getByRole('button', { name: /point for serving team/i })).toBeDisabled();
-    expect(screen.getByRole('button', { name: /point for receiving team/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Team A score/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Team B score/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /undo last point/i })).toBeEnabled();
   });
 });

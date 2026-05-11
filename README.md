@@ -10,7 +10,7 @@ Phone-first badminton scorekeeper for live games. It tracks rally scoring, the c
 - Regulation-proportioned court display with full badminton line markings.
 - Last-action undo.
 - Manual and optional automatic score announcements.
-- Touch controls for scoring, undo, announcements, match mode, first-server setup, and new match.
+- Tap-to-score Team A and Team B scoreboard controls, plus controls for undo, announcements, match mode, first-server setup, and new match.
 - Web Bluetooth adapter for BLE remotes on Android Chrome.
 - Keyboard-style Bluetooth remote support for camera clickers that emit volume-up key presses.
 - Installable PWA with manifest, icons, and service worker.
@@ -63,8 +63,8 @@ The app supports two remote input paths:
 
 Both paths use the same gesture mapping:
 
-- Single click: serving team wins the rally
-- Double click: receiving team wins the rally
+- Single click: Team A wins the rally
+- Double click: Team B wins the rally
 - Press and hold: undo last point
 
 The BLE adapter supports a generic press/release byte mapping:
