@@ -40,6 +40,8 @@ import {
 } from './session/sessionStorage';
 import { SessionSetup } from './components/SessionSetup';
 import { MatchSuggestion } from './components/MatchSuggestion';
+import { WatchRemotePanel } from './components/WatchRemotePanel';
+import { useWatchRemoteHost } from './hooks/useWatchRemoteHost';
 import type { ActiveSession, MatchSuggestion as MatchSuggestionData, TeamSplit } from './session/sessionTypes';
 
 type AppMode = 'match' | 'session';
@@ -128,6 +130,12 @@ export default function App() {
     };
     setMatchView((current) => applyMatchViewAction(current, action));
   }, []);
+
+  const watchRemote = useWatchRemoteHost({
+    match,
+    dispatch,
+    announce: () => speakAnnouncement(match),
+  });
 
   const handleKeyboardDiagnosticEvent = useCallback((event: KeyboardRemoteDiagnosticEvent) => {
     setDiagnostics((current) => [{ source: 'keyboard' as const, ...event }, ...current].slice(0, 10));
@@ -407,6 +415,14 @@ export default function App() {
           onConnectBluetooth={handleConnectBluetooth}
         />
         <RemoteDiagnostics events={diagnostics} />
+        <WatchRemotePanel
+          status={watchRemote.status}
+          code={watchRemote.code}
+          error={watchRemote.error}
+          lastCommandLabel={watchRemote.lastCommandLabel}
+          onStart={() => { void watchRemote.start(); }}
+          onStop={() => { void watchRemote.stop(); }}
+        />
         {appMode === 'session' && sessionPhase === 'playing' && matchWinner && (
           <div className="session-match-over" role="dialog" aria-label="Match over">
             <p>{match.teams[matchWinner].name} wins!</p>
