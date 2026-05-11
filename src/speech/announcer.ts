@@ -10,15 +10,19 @@ export function getSpeechStatus(): SpeechStatus {
 
 export function buildAnnouncement(match: MatchState): string {
   if (match.winnerTeamId) {
-    const winner = match.teams[match.winnerTeamId].name;
+    const winner = teamNameForSpeech(match.teams[match.winnerTeamId].name);
     return `Game. ${winner} wins, ${scoreForTeam(match, match.winnerTeamId)}-${scoreForTeam(match, otherTeam(match.winnerTeamId))}.`;
   }
 
   const server = findPlayerName(match, match.serverId);
-  const servingTeam = match.teams[match.servingTeamId].name;
+  const servingTeam = teamNameForSpeech(match.teams[match.servingTeamId].name);
   const receivingTeamId = otherTeam(match.servingTeamId);
 
   return `${servingTeam} serving, ${server}, ${scoreForTeam(match, match.servingTeamId)}-${scoreForTeam(match, receivingTeamId)}.`;
+}
+
+function teamNameForSpeech(name: string): string {
+  return name.replace(/ ([A-Z])$/, ', $1');
 }
 
 export function speakAnnouncement(match: MatchState): boolean {
