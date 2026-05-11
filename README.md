@@ -7,6 +7,7 @@ Phone-first badminton scorekeeper for live games. It tracks rally scoring, the c
 - Standard badminton rally scoring to 21, win by 2, capped at 30.
 - Doubles-first scoring engine with singles support.
 - Current server, receiver, and player court-side tracking.
+- Regulation-proportioned court display with full badminton line markings.
 - Last-action undo.
 - Manual and optional automatic score announcements.
 - Touch controls for scoring, undo, announcements, match mode, first-server setup, and new match.
@@ -75,11 +76,23 @@ BLE devices vary, so service and characteristic UUIDs are configurable in the ad
 
 Keyboard-style camera remotes depend on browser and operating system behavior. If the OS reserves volume keys, the web app may not receive the key events.
 
+## Court Display Notes
+
+The court view is drawn as a scaled top-down doubles court:
+
+- Outer court: `13.40m x 6.10m`.
+- Singles sidelines are inset by `0.46m` on each side.
+- Short service lines are `1.98m` from the net.
+- Doubles long service lines are `0.76m` from each back boundary.
+- Center service lines divide the left and right service courts.
+
+The display is rotated horizontally so the net runs vertically in the middle of the screen. Team A appears on the left and Team B appears on the right. Because teams face each other, Team B's visual lanes are mirrored so its right service court appears at the top of the right half and its left service court appears at the bottom.
+
 ## Project Structure
 
 - `src/domain/`: framework-independent scoring engine and types.
 - `src/input/`: command reducer, gesture interpreter, Bluetooth adapter, and keyboard remote adapter.
 - `src/speech/`: score announcement text and speech synthesis adapter.
-- `src/components/`: React UI components.
+- `src/components/`: React UI components, including the regulation court view.
 - `public/`: PWA manifest, service worker, and icons.
 - `docs/superpowers/`: design spec and implementation plan used to build the app.

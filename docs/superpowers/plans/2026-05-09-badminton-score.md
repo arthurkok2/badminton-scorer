@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a phone-first badminton score PWA with standard scoring, doubles-priority court state, speech announcements, touch controls, and a Web Bluetooth remote input adapter for Android Chrome.
+**Goal:** Build a phone-first badminton score PWA with standard scoring, doubles-priority court state, a regulation-proportioned court diagram, speech announcements, touch controls, and remote input adapters for Web Bluetooth remotes and keyboard-style camera remotes.
 
-**Architecture:** Keep match rules in a framework-independent domain engine under `src/domain`. React renders the live match screen and sends typed commands through one command dispatcher. Speech, preferences, gesture interpretation, and Bluetooth are separate adapters so hardware and browser APIs do not leak into scoring logic.
+**Architecture:** Keep match rules in a framework-independent domain engine under `src/domain`. React renders the live match screen and sends typed commands through one command dispatcher. Speech, preferences, gesture interpretation, Bluetooth, and keyboard remote handling are separate adapters so hardware and browser APIs do not leak into scoring logic.
 
 **Tech Stack:** Vite, React, TypeScript, Vitest, React Testing Library, Web Speech API, Web Bluetooth API, localStorage, CSS modules through plain CSS files.
 
@@ -31,8 +31,11 @@
 - `src/input/gestureInterpreter.test.ts`: simulated remote gesture tests.
 - `src/input/bluetoothRemote.ts`: Web Bluetooth adapter and status model.
 - `src/input/bluetoothRemote.test.ts`: Bluetooth unsupported and event translation tests.
+- `src/input/keyboardRemote.ts`: keyboard-style Bluetooth camera remote adapter for volume-up HID events.
+- `src/input/keyboardRemote.test.ts`: keyboard remote key translation, gesture routing, and cleanup tests.
 - `src/components/Scoreboard.tsx`: score and server summary.
-- `src/components/CourtView.tsx`: player court layout.
+- `src/components/CourtView.tsx`: regulation-proportioned court layout and player positioning.
+- `src/components/CourtView.test.tsx`: court line rendering and mirrored right-side lane tests.
 - `src/components/Controls.tsx`: touch controls and toggles.
 - `src/components/StatusBar.tsx`: Bluetooth and speech status.
 - `src/App.test.tsx`: integration tests for scoring UI and fallback states.
