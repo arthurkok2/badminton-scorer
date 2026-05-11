@@ -12,7 +12,11 @@ import {
   type BluetoothRemoteConnection,
   type BluetoothStatus,
 } from './input/bluetoothRemote';
-import { connectKeyboardRemote, type KeyboardRemoteConnection } from './input/keyboardRemote';
+import {
+  connectKeyboardRemote,
+  type KeyboardRemoteConnection,
+  type KeyboardRemoteDiagnosticEvent,
+} from './input/keyboardRemote';
 import { loadPreferences, savePreferences, type AppPreferences } from './preferences';
 import { getSpeechStatus, speakAnnouncement } from './speech/announcer';
 
@@ -39,6 +43,7 @@ export default function App() {
     match: createInitialMatch(preferences.matchMode),
   }));
   const [bluetoothStatus, setBluetoothStatus] = useState<BluetoothStatus>(() => getBluetoothSupportStatus());
+  const [keyboardDiagnostics, setKeyboardDiagnostics] = useState<KeyboardRemoteDiagnosticEvent[]>([]);
   const connectionRef = useRef<BluetoothRemoteConnection | undefined>(undefined);
   const keyboardConnectionRef = useRef<KeyboardRemoteConnection | undefined>(undefined);
   const preferencesRef = useRef(preferences);
@@ -74,8 +79,12 @@ export default function App() {
     setMatchView((current) => applyMatchViewAction(current, action));
   }, []);
 
+  const handleKeyboardDiagnosticEvent = useCallback((event: KeyboardRemoteDiagnosticEvent) => {
+    setKeyboardDiagnostics((current) => [event, ...current].slice(0, 5));
+  }, []);
+
   useEffect(() => {
-    const connection = connectKeyboardRemote({ dispatch });
+    const connection = connectKeyboardRemote({ dispatch, onDiagnosticEvent: handleKeyboardDiagnosticEvent });
     keyboardConnectionRef.current = connection;
 
     return () => {
@@ -85,7 +94,7 @@ export default function App() {
         keyboardConnectionRef.current = undefined;
       }
     };
-  }, [dispatch]);
+  }, [dispatch, handleKeyboardDiagnosticEvent]);
 
   useEffect(() => {
     const pending = matchView.pendingAutoAnnouncement;
@@ -188,6 +197,7 @@ export default function App() {
           speechStatus={getSpeechStatus()}
           onConnectBluetooth={handleConnectBluetooth}
         />
+        <RemoteDiagnostics events={keyboardDiagnostics} />
         <Scoreboard match={match} onPointTeam={(teamId) => dispatch({ type: 'POINT_TEAM', teamId })} />
         <CourtView match={match} />
         <Controls
@@ -204,6 +214,33 @@ export default function App() {
         />
       </div>
     </main>
+  );
+}
+
+function RemoteDiagnostics({ events }: { readonly events: KeyboardRemoteDiagnosticEvent[] }) {
+  return (
+    <section className="remote-diagnostics" aria-label="Remote input log">
+      <div className="remote-diagnostics-header">
+        <h2>Remote input log</h2>
+        <span>{events.length === 0 ? 'Listening' : `${events.length} shown`}</span>
+      </div>
+      {events.length === 0 ? (
+        <p className="remote-diagnostics-empty">No keyboard events seen yet</p>
+      ) : (
+        <ol className="remote-diagnostics-list">
+          {events.map((event, index) => (
+            <li key={`${event.type}-${event.key}-${event.code}-${event.keyCode}-${index}`}>
+              <strong>{event.type}</strong>
+              <span>Key {event.key || 'Unidentified'}</span>
+              <span>Code {event.code || 'none'}</span>
+              <span>KeyCode {event.keyCode}</span>
+              <span>Which {event.which}</span>
+              <span>Repeat {event.repeat ? 'yes' : 'no'}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
   );
 }
 

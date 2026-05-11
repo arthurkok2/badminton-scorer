@@ -1,5 +1,5 @@
 import { StrictMode } from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
@@ -7,7 +7,7 @@ import { connectBluetoothRemote, getBluetoothSupportStatus } from './input/bluet
 import { connectKeyboardRemote } from './input/keyboardRemote';
 import { speakAnnouncement } from './speech/announcer';
 import type { BluetoothRemoteConnection } from './input/bluetoothRemote';
-import type { KeyboardRemoteConnection } from './input/keyboardRemote';
+import type { KeyboardRemoteConnection, KeyboardRemoteDiagnosticEvent } from './input/keyboardRemote';
 
 vi.mock('./speech/announcer', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./speech/announcer')>();
@@ -103,6 +103,34 @@ describe('App', () => {
     expect(mockedConnectKeyboardRemote).toHaveBeenCalledTimes(1);
     unmount();
     expect(connection.disconnect).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the latest keyboard remote diagnostic events', () => {
+    let emitDiagnosticEvent: (event: KeyboardRemoteDiagnosticEvent) => void = () => undefined;
+    mockedConnectKeyboardRemote.mockImplementation((options) => {
+      emitDiagnosticEvent = options.onDiagnosticEvent ?? (() => undefined);
+      return { disconnect: vi.fn() };
+    });
+
+    render(<App />);
+
+    expect(screen.getByText(/no keyboard events seen yet/i)).toBeInTheDocument();
+
+    act(() => {
+      emitDiagnosticEvent({
+        type: 'keydown',
+        key: 'Camera',
+        code: 'F24',
+        keyCode: 135,
+        which: 135,
+        repeat: false,
+      });
+    });
+
+    expect(screen.getByText(/keydown/i)).toBeInTheDocument();
+    expect(screen.getByText(/key camera/i)).toBeInTheDocument();
+    expect(screen.getByText(/code f24/i)).toBeInTheDocument();
+    expect(screen.getByText(/keycode 135/i)).toBeInTheDocument();
   });
 
   it('shows Bluetooth unsupported fallback and disables connect', () => {

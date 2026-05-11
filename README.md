@@ -76,6 +76,8 @@ BLE devices vary, so service and characteristic UUIDs are configurable in the ad
 
 Keyboard-style camera remotes depend on browser and operating system behavior. If the OS reserves volume keys, the web app may not receive the key events.
 
+The app shows a Remote input log near the top of the screen. On Android Chrome, press the remote button and check this log for the latest `keydown` or `keyup` values. If no events appear, Chrome is not receiving the key from Android. If events appear with unexpected `key`, `code`, `keyCode`, or `which` values, those values can be used to add a device-specific keyboard mapping.
+
 ## Court Display Notes
 
 The court view is drawn as a scaled top-down doubles court:

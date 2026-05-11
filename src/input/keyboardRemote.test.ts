@@ -33,6 +33,45 @@ describe('keyboard remote adapter', () => {
     expect(commands).toEqual([{ type: 'POINT_TEAM', teamId: 'teamA' }]);
   });
 
+  it('reports keyboard event details for remote diagnostics', () => {
+    const target = new EventTarget();
+    const diagnostics: Array<{
+      type: string;
+      key: string;
+      code: string;
+      keyCode: number;
+      which: number;
+      repeat: boolean;
+    }> = [];
+
+    connectKeyboardRemote({
+      dispatch: () => undefined,
+      target,
+      onDiagnosticEvent: (event) => diagnostics.push(event),
+    });
+
+    target.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'Camera',
+        code: 'F24',
+        keyCode: 135,
+        which: 135,
+        repeat: true,
+      }),
+    );
+
+    expect(diagnostics).toEqual([
+      {
+        type: 'keydown',
+        key: 'Camera',
+        code: 'F24',
+        keyCode: 135,
+        which: 135,
+        repeat: true,
+      },
+    ]);
+  });
+
   it('ignores repeated volume-up keydown events from key auto-repeat', () => {
     const target = new EventTarget();
     const commands: AppCommand[] = [];

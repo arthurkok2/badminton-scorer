@@ -43,6 +43,7 @@ button {
 .scoreboard,
 .court-section,
 .controls,
+.remote-diagnostics,
 .status-bar {
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
@@ -69,6 +70,70 @@ button {
 
 .status-item span {
   overflow-wrap: anywhere;
+}
+
+.remote-diagnostics {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+}
+
+.remote-diagnostics-header {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.remote-diagnostics h2,
+.remote-diagnostics p,
+.remote-diagnostics ol {
+  margin: 0;
+}
+
+.remote-diagnostics h2 {
+  color: #f5f7fa;
+  font-size: 0.9rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.remote-diagnostics-header span,
+.remote-diagnostics-empty {
+  color: #aabcc4;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.remote-diagnostics-list {
+  display: grid;
+  gap: 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.remote-diagnostics-list li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+  color: #dce8ed;
+  font-size: 0.82rem;
+}
+
+.remote-diagnostics-list strong,
+.remote-diagnostics-list span {
+  min-width: 0;
+  padding: 4px 7px;
+  border-radius: 6px;
+  background: #101820;
+  overflow-wrap: anywhere;
+}
+
+.remote-diagnostics-list strong {
+  color: #80e0bd;
+  text-transform: uppercase;
 }
 
 .connect-button,

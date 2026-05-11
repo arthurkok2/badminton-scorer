@@ -3,10 +3,20 @@ import type { AppCommand } from './commands';
 
 interface KeyboardRemoteOptions {
   dispatch: (command: AppCommand) => void;
+  onDiagnosticEvent?: (event: KeyboardRemoteDiagnosticEvent) => void;
   target?: EventTarget;
   setInterval?: (callback: () => void, delay: number) => number;
   clearInterval?: (intervalId: number) => void;
   now?: () => number;
+}
+
+export interface KeyboardRemoteDiagnosticEvent {
+  readonly type: string;
+  readonly key: string;
+  readonly code: string;
+  readonly keyCode: number;
+  readonly which: number;
+  readonly repeat: boolean;
 }
 
 export interface KeyboardRemoteConnection {
@@ -28,7 +38,13 @@ export function connectKeyboardRemote(options: KeyboardRemoteOptions): KeyboardR
   }, 100);
 
   const handleKeyDown = (event: Event): void => {
-    if (!(event instanceof KeyboardEvent) || !isVolumeUpKeyEvent(event) || event.repeat) {
+    if (!(event instanceof KeyboardEvent)) {
+      return;
+    }
+
+    options.onDiagnosticEvent?.(diagnosticEventFromKeyboardEvent(event));
+
+    if (!isVolumeUpKeyEvent(event) || event.repeat) {
       return;
     }
 
@@ -37,7 +53,13 @@ export function connectKeyboardRemote(options: KeyboardRemoteOptions): KeyboardR
   };
 
   const handleKeyUp = (event: Event): void => {
-    if (!(event instanceof KeyboardEvent) || !isVolumeUpKeyEvent(event)) {
+    if (!(event instanceof KeyboardEvent)) {
+      return;
+    }
+
+    options.onDiagnosticEvent?.(diagnosticEventFromKeyboardEvent(event));
+
+    if (!isVolumeUpKeyEvent(event)) {
       return;
     }
 
@@ -54,5 +76,16 @@ export function connectKeyboardRemote(options: KeyboardRemoteOptions): KeyboardR
       target.removeEventListener('keydown', handleKeyDown);
       target.removeEventListener('keyup', handleKeyUp);
     },
+  };
+}
+
+function diagnosticEventFromKeyboardEvent(event: KeyboardEvent): KeyboardRemoteDiagnosticEvent {
+  return {
+    type: event.type,
+    key: event.key,
+    code: event.code,
+    keyCode: event.keyCode,
+    which: event.which,
+    repeat: event.repeat,
   };
 }
