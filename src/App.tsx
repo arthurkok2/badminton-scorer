@@ -24,6 +24,26 @@ import {
 } from './input/gamepadRemote';
 import { loadPreferences, loadMatchState, savePreferences, saveMatchState, clearMatchState, type AppPreferences } from './preferences';
 import { getSpeechStatus, speakAnnouncement } from './speech/announcer';
+import {
+  createSession,
+  generateMatchSuggestion,
+  applyMatchResult,
+  archiveSession,
+} from './session/sessionScheduler';
+import {
+  loadActiveSession,
+  saveActiveSession,
+  clearActiveSession,
+  appendToSessionArchive,
+  loadSavedPlayers,
+  saveSavedPlayers,
+} from './session/sessionStorage';
+import { SessionSetup } from './components/SessionSetup';
+import { MatchSuggestion } from './components/MatchSuggestion';
+import type { ActiveSession, MatchSuggestion as MatchSuggestionData, TeamSplit } from './session/sessionTypes';
+
+type AppMode = 'match' | 'session';
+type SessionPhase = 'setup' | 'suggestion' | 'playing';
 
 interface MatchViewState {
   readonly match: MatchState;
@@ -52,6 +72,21 @@ export default function App() {
         : createInitialMatch(preferences.matchMode, preferences.playerNames);
     return { match };
   });
+  const [appMode, setAppMode] = useState<AppMode>(() =>
+    loadActiveSession() ? 'session' : 'match',
+  );
+  const [sessionPhase, setSessionPhase] = useState<SessionPhase>(() =>
+    loadActiveSession() ? 'suggestion' : 'setup',
+  );
+  const [activeSession, setActiveSession] = useState<ActiveSession | undefined>(
+    () => loadActiveSession(),
+  );
+  const [currentSuggestion, setCurrentSuggestion] = useState<MatchSuggestionData | undefined>(() => {
+    const saved = loadActiveSession();
+    return saved ? generateMatchSuggestion(saved) : undefined;
+  });
+  const [currentPlayedSplit, setCurrentPlayedSplit] = useState<TeamSplit | undefined>(undefined);
+  const [savedPlayers, setSavedPlayers] = useState<string[]>(() => loadSavedPlayers());
   const [bluetoothStatus, setBluetoothStatus] = useState<BluetoothStatus>(() => getBluetoothSupportStatus());
   const [diagnostics, setDiagnostics] = useState<DiagnosticEvent[]>([]);
   const connectionRef = useRef<BluetoothRemoteConnection | undefined>(undefined);
@@ -217,6 +252,68 @@ export default function App() {
     dispatch({ type: 'SET_INITIAL_SERVER', teamId: choice.teamId, playerId: choice.playerId });
   }, [dispatch]);
 
+  const handleSwitchToSession = useCallback(() => {
+    if (hasStarted(matchView.match) && !window.confirm('Leave this match and start a session?')) return;
+    setAppMode('session');
+  }, [matchView.match]);
+
+  const handleSwitchToMatch = useCallback(() => {
+    if (activeSession && !window.confirm('End the current session?')) return;
+    if (activeSession) {
+      appendToSessionArchive(archiveSession(activeSession, new Date().toISOString()));
+      clearActiveSession();
+      setActiveSession(undefined);
+      setCurrentSuggestion(undefined);
+    }
+    setAppMode('match');
+    setSessionPhase('setup');
+  }, [activeSession]);
+
+  const handleStartSession = useCallback((playerNames: readonly string[]) => {
+    const merged = Array.from(new Set([...savedPlayers, ...playerNames]));
+    saveSavedPlayers(merged);
+    setSavedPlayers(merged);
+    const session = createSession(playerNames);
+    saveActiveSession(session);
+    const suggestion = generateMatchSuggestion(session);
+    setActiveSession(session);
+    setCurrentSuggestion(suggestion);
+    setSessionPhase('suggestion');
+  }, [savedPlayers]);
+
+  const handleStartMatch = useCallback((split: TeamSplit) => {
+    const playerNames = { A1: split.teamA[0], A2: split.teamA[1], B1: split.teamB[0], B2: split.teamB[1] };
+    clearMatchState();
+    setMatchView({ match: createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1', playerNames }) });
+    setCurrentPlayedSplit(split);
+    setSessionPhase('playing');
+  }, []);
+
+  const handleMatchEnded = useCallback((winnerTeam: 'teamA' | 'teamB') => {
+    if (!activeSession || !currentPlayedSplit) return;
+    const updated = applyMatchResult(activeSession, currentPlayedSplit, winnerTeam);
+    saveActiveSession(updated);
+    const suggestion = generateMatchSuggestion(updated);
+    setActiveSession(updated);
+    setCurrentSuggestion(suggestion);
+    setCurrentPlayedSplit(undefined);
+    setSessionPhase('suggestion');
+  }, [activeSession, currentPlayedSplit]);
+
+  const handleEndSession = useCallback(() => {
+    if (!activeSession) return;
+    appendToSessionArchive(archiveSession(activeSession, new Date().toISOString()));
+    clearActiveSession();
+    setActiveSession(undefined);
+    setCurrentSuggestion(undefined);
+    setSessionPhase('setup');
+    setAppMode('match');
+  }, [activeSession]);
+
+  const handleEditPlayers = useCallback(() => {
+    setSessionPhase('setup');
+  }, []);
+
   const handleConnectBluetooth = useCallback(async () => {
     connectionRef.current?.disconnect();
     connectionRef.current = undefined;
@@ -243,16 +340,62 @@ export default function App() {
     connectionRef.current = connection;
   }, [dispatch]);
 
+  const matchWinner = match.winnerTeamId;
+
+  if (appMode === 'session' && sessionPhase === 'setup') {
+    return (
+      <main className="app-shell">
+        <div className="app-layout">
+          <div className="app-mode-toggle">
+            <button onClick={handleSwitchToMatch}>← Match mode</button>
+          </div>
+          <SessionSetup savedPlayers={savedPlayers} onStartSession={handleStartSession} />
+        </div>
+      </main>
+    );
+  }
+
+  if (appMode === 'session' && sessionPhase === 'suggestion' && currentSuggestion && activeSession) {
+    return (
+      <main className="app-shell">
+        <div className="app-layout">
+          <MatchSuggestion
+            suggestion={currentSuggestion}
+            allPlayers={activeSession.players}
+            pairingMatrix={activeSession.pairingMatrix}
+            onStartMatch={handleStartMatch}
+            onEditPlayers={handleEditPlayers}
+            onEndSession={handleEndSession}
+          />
+        </div>
+      </main>
+    );
+  }
+
+  const sessionPlayerNames = appMode === 'session'
+    ? {
+        A1: [...match.teams.teamA.players, ...match.teams.teamB.players].find(p => p.id === 'A1')?.name ?? '',
+        A2: [...match.teams.teamA.players, ...match.teams.teamB.players].find(p => p.id === 'A2')?.name ?? '',
+        B1: [...match.teams.teamA.players, ...match.teams.teamB.players].find(p => p.id === 'B1')?.name ?? '',
+        B2: [...match.teams.teamA.players, ...match.teams.teamB.players].find(p => p.id === 'B2')?.name ?? '',
+      }
+    : undefined;
+
   return (
     <main className="app-shell">
       <div className="app-layout">
+        <div className="app-mode-toggle">
+          {appMode === 'match' && (
+            <button onClick={handleSwitchToSession}>Session mode</button>
+          )}
+        </div>
         <Scoreboard match={match} onPointTeam={(teamId) => dispatch({ type: 'POINT_TEAM', teamId })} />
         <CourtView match={match} />
         <Controls
           match={match}
           autoAnnounce={preferences.autoAnnounce}
           matchMode={preferences.matchMode}
-          playerNames={preferences.playerNames}
+          playerNames={sessionPlayerNames ?? preferences.playerNames}
           onUndo={() => dispatch({ type: 'UNDO' })}
           onAnnounce={() => speakAnnouncement(match)}
           onAutoAnnounceChange={(autoAnnounce) => updatePreferences((current) => ({ ...current, autoAnnounce }))}
@@ -260,7 +403,7 @@ export default function App() {
           onNewMatch={handleNewMatch}
           onSetInitialServer={handleSetInitialServer}
           onRerollFirstServer={handleRerollFirstServer}
-          onPlayerNameChange={handlePlayerNameChange}
+          onPlayerNameChange={appMode === 'session' ? () => {} : handlePlayerNameChange}
         />
         <StatusBar
           bluetoothStatus={bluetoothStatus}
@@ -268,6 +411,12 @@ export default function App() {
           onConnectBluetooth={handleConnectBluetooth}
         />
         <RemoteDiagnostics events={diagnostics} />
+        {appMode === 'session' && sessionPhase === 'playing' && matchWinner && (
+          <div className="session-match-over" role="dialog" aria-label="Match over">
+            <p>{match.teams[matchWinner].name} wins!</p>
+            <button onClick={() => handleMatchEnded(matchWinner)}>Next match →</button>
+          </div>
+        )}
       </div>
     </main>
   );
