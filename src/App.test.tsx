@@ -27,7 +27,7 @@ vi.mock('./input/bluetoothRemote', async (importOriginal) => {
   };
 });
 
-const STORAGE_KEY = 'badminton-score-preferences';
+const STORAGE_KEY = 'badminton-scorer-preferences';
 const mockedSpeakAnnouncement = vi.mocked(speakAnnouncement);
 const mockedGetBluetoothSupportStatus = vi.mocked(getBluetoothSupportStatus);
 const mockedConnectBluetoothRemote = vi.mocked(connectBluetoothRemote);

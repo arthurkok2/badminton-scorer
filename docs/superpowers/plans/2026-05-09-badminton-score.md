@@ -1,4 +1,4 @@
-# Badminton Score Implementation Plan
+# Badminton Scorer Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -59,7 +59,7 @@ Create `package.json`:
 
 ```json
 {
-  "name": "badminton-score",
+  "name": "badminton-scorer",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -99,7 +99,7 @@ Create `index.html`:
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0f766e" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <title>Badminton Score</title>
+    <title>Badminton Scorer</title>
   </head>
   <body>
     <div id="root"></div>
@@ -205,7 +205,7 @@ export default function App() {
   return (
     <main className="app-shell">
       <section className="scoreboard-panel" aria-label="Badminton scoreboard">
-        <p className="eyebrow">Badminton Score</p>
+        <p className="eyebrow">Badminton Scorer</p>
         <h1>0 - 0</h1>
         <p>Match setup is ready for implementation.</p>
       </section>
@@ -746,7 +746,7 @@ export interface AppPreferences {
   remoteMapping: 'server-receiver-default';
 }
 
-const STORAGE_KEY = 'badminton-score-preferences';
+const STORAGE_KEY = 'badminton-scorer-preferences';
 
 export const DEFAULT_PREFERENCES: AppPreferences = {
   autoAnnounce: false,
@@ -1643,7 +1643,7 @@ Create `public/manifest.webmanifest`:
 
 ```json
 {
-  "name": "Badminton Score",
+  "name": "Badminton Scorer",
   "short_name": "Score",
   "start_url": "/",
   "display": "standalone",
@@ -1669,7 +1669,7 @@ Create `public/manifest.webmanifest`:
 Create `public/sw.js`:
 
 ```js
-const CACHE_NAME = 'badminton-score-v1';
+const CACHE_NAME = 'badminton-scorer-v1';
 const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {

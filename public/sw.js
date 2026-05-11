@@ -1,4 +1,4 @@
-const CACHE_NAME = 'badminton-score-v1';
+const CACHE_NAME = 'badminton-scorer-v1';
 const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png'];
 const ASSET_MANIFEST = '/asset-manifest.json';
 

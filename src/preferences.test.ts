@@ -1,6 +1,6 @@
 import { DEFAULT_PREFERENCES, loadPreferences, savePreferences } from './preferences';
 
-const STORAGE_KEY = 'badminton-score-preferences';
+const STORAGE_KEY = 'badminton-scorer-preferences';
 
 describe('preferences', () => {
   beforeEach(() => {

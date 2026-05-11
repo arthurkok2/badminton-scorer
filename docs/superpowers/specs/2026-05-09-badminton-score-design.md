@@ -1,4 +1,4 @@
-# Badminton Score App Design
+# Badminton Scorer App Design
 
 Date: 2026-05-09
 

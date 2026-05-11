@@ -4,7 +4,7 @@ export interface AppPreferences {
   remoteMapping: 'server-receiver-default';
 }
 
-const STORAGE_KEY = 'badminton-score-preferences';
+const STORAGE_KEY = 'badminton-scorer-preferences';
 
 export const DEFAULT_PREFERENCES: AppPreferences = {
   autoAnnounce: false,
