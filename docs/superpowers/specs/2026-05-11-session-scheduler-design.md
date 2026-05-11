@@ -13,7 +13,7 @@ Targets: 1 court, 5–8 players, equal skill assumed.
 
 ## Section 1: Overall Architecture
 
-The app gains a top-level mode toggle: **Match** (existing behaviour, unchanged) vs **Session**.
+The app adds a **Session mode** entry point inside the existing Match controls panel. Match mode remains the default scorer experience; Session mode is launched from the controls alongside other match-level actions.
 
 Session mode flow:
 
@@ -27,6 +27,8 @@ The scheduler is a pure layer on top of the existing scorer. No changes to the s
 
 If an active session exists in localStorage on app load, the app opens in Session mode on the next-match suggestion screen.
 
+Session setup and match suggestion screens use the same visual language as the scorer: dark bordered panels, compact spacing, 8px radii, uppercase section labels, and the existing primary/secondary/danger button hierarchy.
+
 ---
 
 ## Section 2: Session Setup
@@ -37,6 +39,8 @@ A setup screen appears when starting a new session:
 - **Minimum 4 players** to start a session.
 - **Edit players between matches** — an "Edit players" button is available on the match suggestion screen. If the current session has completed matches, the app asks for confirmation and then returns to setup; starting again creates a new session and resets the previous match history.
 - No skill levels or seeding.
+
+The setup screen is shown as a focused session panel, with a separate "Match mode" button above the panel to return to the standard scorer.
 
 ---
 

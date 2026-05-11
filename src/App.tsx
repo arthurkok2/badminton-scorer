@@ -346,7 +346,7 @@ export default function App() {
   if (appMode === 'session' && sessionPhase === 'setup') {
     return (
       <main className="app-shell">
-        <div className="app-layout">
+        <div className="app-layout session-layout">
           <div className="app-mode-toggle">
             <button onClick={handleSwitchToMatch}>← Match mode</button>
           </div>
@@ -359,7 +359,7 @@ export default function App() {
   if (appMode === 'session' && sessionPhase === 'suggestion' && currentSuggestion && activeSession) {
     return (
       <main className="app-shell">
-        <div className="app-layout">
+        <div className="app-layout session-layout">
           <MatchSuggestion
             suggestion={currentSuggestion}
             pairingMatrix={activeSession.pairingMatrix}
@@ -384,11 +384,6 @@ export default function App() {
   return (
     <main className="app-shell">
       <div className="app-layout">
-        <div className="app-mode-toggle">
-          {appMode === 'match' && (
-            <button onClick={handleSwitchToSession}>Session mode</button>
-          )}
-        </div>
         <Scoreboard match={match} onPointTeam={(teamId) => dispatch({ type: 'POINT_TEAM', teamId })} />
         <CourtView match={match} />
         <Controls
@@ -401,6 +396,7 @@ export default function App() {
           onAutoAnnounceChange={(autoAnnounce) => updatePreferences((current) => ({ ...current, autoAnnounce }))}
           onMatchModeChange={handleMatchModeChange}
           onNewMatch={handleNewMatch}
+          onStartSessionMode={handleSwitchToSession}
           onSetInitialServer={handleSetInitialServer}
           onRerollFirstServer={handleRerollFirstServer}
           onPlayerNameChange={appMode === 'session' ? () => {} : handlePlayerNameChange}

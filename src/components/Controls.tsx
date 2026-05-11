@@ -11,6 +11,7 @@ interface ControlsProps {
   readonly onAutoAnnounceChange: (enabled: boolean) => void;
   readonly onMatchModeChange: (mode: MatchMode) => void;
   readonly onNewMatch: () => void;
+  readonly onStartSessionMode: () => void;
   readonly onSetInitialServer: (teamId: TeamId, playerId: PlayerId) => void;
   readonly onRerollFirstServer: () => void;
   readonly onPlayerNameChange: (playerId: PlayerId, name: string) => void;
@@ -26,6 +27,7 @@ export function Controls({
   onAutoAnnounceChange,
   onMatchModeChange,
   onNewMatch,
+  onStartSessionMode,
   onSetInitialServer,
   onRerollFirstServer,
   onPlayerNameChange,
@@ -141,9 +143,14 @@ export function Controls({
         </div>
       ) : null}
 
-      <button className="new-match-button" type="button" onClick={onNewMatch}>
-        New match
-      </button>
+      <div className="match-action-controls">
+        <button className="new-match-button" type="button" onClick={onNewMatch}>
+          New match
+        </button>
+        <button className="session-mode-button" type="button" onClick={onStartSessionMode}>
+          Session mode
+        </button>
+      </div>
     </section>
   );
 }

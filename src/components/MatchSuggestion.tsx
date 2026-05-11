@@ -49,7 +49,10 @@ export function MatchSuggestion({
 
   return (
     <section className="match-suggestion" aria-label="Next match">
-      <h2>Next match</h2>
+      <div className="session-panel-header">
+        <span>Up next</span>
+        <h2>Next match</h2>
+      </div>
 
       <div className="match-suggestion-teams">
         <fieldset role="group" aria-label="Team A">
@@ -74,13 +77,13 @@ export function MatchSuggestion({
       )}
 
       <div className="match-suggestion-actions">
-        <button onClick={handleSwap} aria-label="Swap teams">Swap teams</button>
+        <button className="session-secondary-button" onClick={handleSwap} aria-label="Swap teams">Swap teams</button>
         {onBreak.length > 0 && (
-          <button onClick={() => setShowBreakPicker(v => !v)} aria-label="Change break">
+          <button className="session-secondary-button" onClick={() => setShowBreakPicker(v => !v)} aria-label="Change break">
             Change break
           </button>
         )}
-        <button onClick={() => onStartMatch(currentSplit)} aria-label="Start match">Start match</button>
+        <button className="session-primary-button" onClick={() => onStartMatch(currentSplit)} aria-label="Start match">Start match</button>
       </div>
 
       {showBreakPicker && (
@@ -95,13 +98,13 @@ export function MatchSuggestion({
             <option value="">Select…</option>
             {onBreak.map(name => <option key={name} value={name}>{name}</option>)}
           </select>
-          <button onClick={handleConfirmBreakChange} disabled={!swapOut || !swapIn}>Confirm</button>
+          <button className="session-secondary-button" onClick={handleConfirmBreakChange} disabled={!swapOut || !swapIn}>Confirm</button>
         </div>
       )}
 
       <div className="match-suggestion-secondary">
-        <button onClick={onEditPlayers} aria-label="Edit players">Edit players</button>
-        <button onClick={onEndSession} aria-label="End session">End session</button>
+        <button className="session-secondary-button" onClick={onEditPlayers} aria-label="Edit players">Edit players</button>
+        <button className="session-danger-button" onClick={onEndSession} aria-label="End session">End session</button>
       </div>
     </section>
   );

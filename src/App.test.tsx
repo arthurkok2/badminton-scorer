@@ -1,5 +1,5 @@
 import { StrictMode } from 'react';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
@@ -81,6 +81,12 @@ describe('App', () => {
     expect(screen.getByTestId('score-teamB')).toHaveTextContent('0');
     expect(screen.getByText(/serving: Team A/i)).toBeInTheDocument();
     expect(screen.getByText(/server: Player 1/i)).toBeInTheDocument();
+  });
+
+  it('shows the session mode entry inside match controls', () => {
+    render(<App />);
+
+    expect(within(screen.getByRole('region', { name: /match controls/i })).getByRole('button', { name: /session mode/i })).toBeInTheDocument();
   });
 
   it('awards a point to Team B from the Team B score and changes server', async () => {

@@ -14,6 +14,7 @@ function renderControls(overrides?: {
   playerNames?: Record<PlayerId, string>;
   onPlayerNameChange?: (playerId: PlayerId, name: string) => void;
   onSetInitialServer?: (teamId: TeamId, playerId: PlayerId) => void;
+  onStartSessionMode?: () => void;
 }) {
   const props = {
     match: overrides?.match ?? defaultMatch,
@@ -28,12 +29,23 @@ function renderControls(overrides?: {
     onSetInitialServer: overrides?.onSetInitialServer ?? vi.fn(),
     onRerollFirstServer: vi.fn(),
     onPlayerNameChange: overrides?.onPlayerNameChange ?? vi.fn(),
+    onStartSessionMode: overrides?.onStartSessionMode ?? vi.fn(),
   };
 
   return render(<Controls {...props} />);
 }
 
 describe('Controls > player name editor', () => {
+  it('calls onStartSessionMode from the Session mode control', async () => {
+    const user = userEvent.setup();
+    const onStartSessionMode = vi.fn();
+    renderControls({ onStartSessionMode });
+
+    await user.click(screen.getByRole('button', { name: /session mode/i }));
+
+    expect(onStartSessionMode).toHaveBeenCalledTimes(1);
+  });
+
   it('shows four name inputs in doubles mode before the match starts', () => {
     renderControls();
 
