@@ -86,3 +86,65 @@ export function rankSplitsForPlayers(
   splits.sort((a, b) => scoreTeamSplit(a, matrix) - scoreTeamSplit(b, matrix));
   return splits;
 }
+
+export function generateMatchSuggestion(session: ActiveSession): MatchSuggestion {
+  const { selected, onBreak } = selectNextPlayers(session.players);
+  const rankedSplits = rankSplitsForPlayers(selected, session.pairingMatrix);
+  return { rankedSplits, onBreak };
+}
+
+function incrementPairCount(
+  matrix: Readonly<Record<string, Readonly<Record<string, number>>>>,
+  a: string,
+  b: string,
+): Readonly<Record<string, Readonly<Record<string, number>>>> {
+  return {
+    ...matrix,
+    [a]: { ...matrix[a], [b]: (matrix[a]?.[b] ?? 0) + 1 },
+    [b]: { ...matrix[b], [a]: (matrix[b]?.[a] ?? 0) + 1 },
+  };
+}
+
+function updatePairingMatrix(matrix: PairingMatrix, split: TeamSplit): PairingMatrix {
+  const [a1, a2] = split.teamA;
+  const [b1, b2] = split.teamB;
+  let together = matrix.together;
+  together = incrementPairCount(together, a1, a2);
+  together = incrementPairCount(together, b1, b2);
+  let against = matrix.against;
+  against = incrementPairCount(against, a1, b1);
+  against = incrementPairCount(against, a1, b2);
+  against = incrementPairCount(against, a2, b1);
+  against = incrementPairCount(against, a2, b2);
+  return { together, against };
+}
+
+export function applyMatchResult(
+  session: ActiveSession,
+  split: TeamSplit,
+  winnerTeam: 'teamA' | 'teamB',
+): ActiveSession {
+  const playedNames = new Set([...split.teamA, ...split.teamB]);
+  const newMatrix = updatePairingMatrix(session.pairingMatrix, split);
+  const newPlayers: SessionPlayer[] = session.players.map(player =>
+    playedNames.has(player.name)
+      ? { ...player, gamesPlayed: player.gamesPlayed + 1, consecutiveStreak: player.consecutiveStreak + 1, onBreak: false }
+      : { ...player, consecutiveStreak: 0, onBreak: true },
+  );
+  const matchRecord: MatchRecord = { teamA: split.teamA, teamB: split.teamB, winnerTeam };
+  return { ...session, players: newPlayers, matches: [...session.matches, matchRecord], pairingMatrix: newMatrix };
+}
+
+export function archiveSession(session: ActiveSession, endedAt: string): ArchivedSession {
+  return {
+    id: session.id,
+    startedAt: session.startedAt,
+    endedAt,
+    players: session.players.map(player => ({
+      name: player.name,
+      gamesPlayed: player.gamesPlayed,
+      breaksTaken: session.matches.length - player.gamesPlayed,
+    })),
+    matches: session.matches,
+  };
+}
