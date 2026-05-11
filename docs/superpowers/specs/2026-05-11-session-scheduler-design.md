@@ -32,7 +32,7 @@ The scheduler is a pure layer on top of the existing scorer. No changes to the s
 A setup screen appears when starting a new session:
 
 - **Player list** — add players by name. Previously used names are shown as quick-tap chips (saved roster). New names can be typed and are saved automatically.
-- **Minimum 5 players** to start a session.
+- **Minimum 4 players** to start a session.
 - **Add/remove mid-session** — an "Edit players" button is available on the match suggestion screen between matches. Players can join or leave at any time; the scheduler adapts automatically. If the active player count drops below 4, the session is paused and the setup screen prompts to add more players before the next match can start.
 - No skill levels or seeding.
 
@@ -53,6 +53,7 @@ Player state tracked per session:
 - On-break status (sat out last match)
 
 Break counts by player count:
+- 4 players → 0 sit out (everyone plays every match)
 - 5 players → 1 sits out
 - 6 players → 2 sit out
 - 7 players → 3 sit out
