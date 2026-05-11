@@ -235,12 +235,6 @@ export default function App() {
   return (
     <main className="app-shell">
       <div className="app-layout">
-        <StatusBar
-          bluetoothStatus={bluetoothStatus}
-          speechStatus={getSpeechStatus()}
-          onConnectBluetooth={handleConnectBluetooth}
-        />
-        <RemoteDiagnostics events={diagnostics} />
         <Scoreboard match={match} onPointTeam={(teamId) => dispatch({ type: 'POINT_TEAM', teamId })} />
         <CourtView match={match} />
         <Controls
@@ -257,6 +251,12 @@ export default function App() {
           onRerollFirstServer={handleRerollFirstServer}
           onPlayerNameChange={handlePlayerNameChange}
         />
+        <StatusBar
+          bluetoothStatus={bluetoothStatus}
+          speechStatus={getSpeechStatus()}
+          onConnectBluetooth={handleConnectBluetooth}
+        />
+        <RemoteDiagnostics events={diagnostics} />
       </div>
     </main>
   );
