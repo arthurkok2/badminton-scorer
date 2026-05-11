@@ -1,7 +1,7 @@
 # Session Scheduler Design
 
 **Date:** 2026-05-11
-**Status:** Approved
+**Status:** Implemented
 
 ## Overview
 
@@ -25,6 +25,8 @@ Session mode flow:
 
 The scheduler is a pure layer on top of the existing scorer. No changes to the scoring engine, court view, speech, or remote input.
 
+If an active session exists in localStorage on app load, the app opens in Session mode on the next-match suggestion screen.
+
 ---
 
 ## Section 2: Session Setup
@@ -33,7 +35,7 @@ A setup screen appears when starting a new session:
 
 - **Player list** — add players by name. Previously used names are shown as quick-tap chips (saved roster). New names can be typed and are saved automatically.
 - **Minimum 4 players** to start a session.
-- **Add/remove mid-session** — an "Edit players" button is available on the match suggestion screen between matches. Players can join or leave at any time; the scheduler adapts automatically. If the active player count drops below 4, the session is paused and the setup screen prompts to add more players before the next match can start.
+- **Edit players between matches** — an "Edit players" button is available on the match suggestion screen. If the current session has completed matches, the app asks for confirmation and then returns to setup; starting again creates a new session and resets the previous match history.
 - No skill levels or seeding.
 
 ---
@@ -45,7 +47,9 @@ After each match ends, the next 4 players are selected:
 1. **Players on break come on first** — anyone who sat out the last match is guaranteed a spot.
 2. **If more than 4 players are returning from break**, prioritise those with the fewest total games played this session.
 3. **Fill remaining spots from on-court players**, prioritising those with the longest consecutive game streak (most consecutive = sits out first).
-4. **Ties** broken randomly.
+4. **Ties** preserve the current roster order. The implementation uses deterministic sorting, not random tie-breaking.
+
+The UI enforces a minimum of 4 players before starting. The pure scheduler functions assume they receive at least 4 players.
 
 Player state tracked per session:
 - Total games played
@@ -70,7 +74,11 @@ Given the 4 selected players, there are exactly 3 ways to split them into 2 team
 
 Partner repeats are weighted more than opponent repeats — playing with the same person repeatedly is more noticeable than facing them again.
 
-The split with the **lowest repeat score** is suggested. Ties broken randomly.
+The split with the **lowest repeat score** is suggested. Ties preserve the generated split order:
+
+1. players 1+2 vs players 3+4
+2. players 1+3 vs players 2+4
+3. players 1+4 vs players 2+3
 
 The app maintains a running pairing matrix across all matches in the session: `togetherCount[playerA][playerB]` and `againstCount[playerA][playerB]`.
 
@@ -82,7 +90,7 @@ Before each match starts, a **"Next match" screen** shows:
 
 - The two proposed teams and who is on break
 - **Swap** button — cycles through the other 2 possible team splits for the current 4 players
-- **Change break** button — opens a picker to swap one on-court player with one on-break player (for players needing a longer rest)
+- **Change break** button — opens a picker to swap one player from the suggested 4 with one on-break player, then re-ranks the 3 team splits for that revised group
 - **Start match** button — confirms and launches the scorer
 
 Override is intentionally lightweight: cycle team splits or swap one player in/out. No drag-and-drop or free-form assignment. Fast to use between games.
@@ -97,7 +105,7 @@ All session data is stored in `localStorage`.
 
 ### Active session
 
-Persisted throughout the session so a page refresh mid-session resumes on the match suggestion screen:
+Persisted throughout the session so a page refresh resumes the active session on the match suggestion screen:
 
 - Player roster (names, join order, on-break status, consecutive streak, total games)
 - Full match history (teams, winner, order)
@@ -117,7 +125,7 @@ There is no analytics UI in this feature — the archive is the foundation for a
 
 ### Saved player roster
 
-The quick-tap name chips in session setup are shared with Match mode and persist across sessions in the existing preferences store.
+The quick-tap name chips in session setup are stored separately in localStorage under the session storage module.
 
 ---
 
