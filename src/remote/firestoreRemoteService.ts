@@ -21,13 +21,9 @@ const ROOM_COLLECTION = 'matches';
 const COMMAND_COLLECTION = 'commands';
 
 export function createRoomCode(): string {
-  let code = '';
-
-  for (let index = 0; index < ROOM_CODE_LENGTH; index += 1) {
-    code += ROOM_CODE_ALPHABET[Math.floor(Math.random() * ROOM_CODE_ALPHABET.length)];
-  }
-
-  return code;
+  const randomValues = new Uint32Array(ROOM_CODE_LENGTH);
+  crypto.getRandomValues(randomValues);
+  return Array.from(randomValues, (v) => ROOM_CODE_ALPHABET[v % ROOM_CODE_ALPHABET.length]).join('');
 }
 
 export async function createWatchRemoteRoom(options: {
@@ -180,7 +176,14 @@ function toPendingCommand(id: string, data: unknown): PendingWatchRemoteCommand 
 }
 
 function isWatchRemoteCommand(data: unknown): data is WatchRemoteCommandDocument {
-  if (!isRecord(data) || typeof data.type !== 'string') {
+  if (
+    !isRecord(data) ||
+    typeof data.type !== 'string' ||
+    data.createdAt === undefined ||
+    data.createdAt === null ||
+    typeof data.sourceId !== 'string' ||
+    (data.sourceKind !== 'wear' && data.sourceKind !== 'web')
+  ) {
     return false;
   }
 

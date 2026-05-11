@@ -84,10 +84,10 @@ describe('firestore remote service', () => {
     firestoreMocks.onSnapshot.mockImplementation((_query, next) => {
       next({
         docs: [
-          commandDoc('pending-point', { type: 'POINT_TEAM', teamId: 'teamA', createdAt: 1 }),
-          commandDoc('applied-undo', { type: 'UNDO', createdAt: 2, appliedAt: 3 }),
-          commandDoc('rejected-announce', { type: 'ANNOUNCE', createdAt: 4, rejectedAt: 5 }),
-          commandDoc('pending-undo', { type: 'UNDO', createdAt: 6 }),
+          commandDoc('pending-point', { type: 'POINT_TEAM', teamId: 'teamA', createdAt: 1, sourceId: 'watch-1', sourceKind: 'wear' }),
+          commandDoc('applied-undo', { type: 'UNDO', createdAt: 2, appliedAt: 3, sourceId: 'watch-1', sourceKind: 'wear' }),
+          commandDoc('rejected-announce', { type: 'ANNOUNCE', createdAt: 4, rejectedAt: 5, sourceId: 'watch-1', sourceKind: 'wear' }),
+          commandDoc('pending-undo', { type: 'UNDO', createdAt: 6, sourceId: 'watch-1', sourceKind: 'wear' }),
         ],
       });
 
@@ -106,13 +106,30 @@ describe('firestore remote service', () => {
       { kind: 'orderBy', field: 'createdAt', direction: 'asc' },
     );
     expect(onCommands).toHaveBeenCalledWith([
-      { id: 'pending-point', command: { type: 'POINT_TEAM', teamId: 'teamA', createdAt: 1 } },
-      { id: 'pending-undo', command: { type: 'UNDO', createdAt: 6 } },
+      { id: 'pending-point', command: { type: 'POINT_TEAM', teamId: 'teamA', createdAt: 1, sourceId: 'watch-1', sourceKind: 'wear' } },
+      { id: 'pending-undo', command: { type: 'UNDO', createdAt: 6, sourceId: 'watch-1', sourceKind: 'wear' } },
     ]);
     expect(onError).not.toHaveBeenCalled();
 
     stop();
     expect(unsubscribe).toHaveBeenCalledOnce();
+  });
+
+  it('subscribeToPendingCommands forwards snapshot errors as Error instances', async () => {
+    const { subscribeToPendingCommands } = await import('./firestoreRemoteService');
+    const onCommands = vi.fn();
+    const onError = vi.fn();
+    firestoreMocks.onSnapshot.mockImplementation((_query, _next, onSnapshotError) => {
+      onSnapshotError('something went wrong');
+      return vi.fn();
+    });
+
+    subscribeToPendingCommands({ code: 'ABCD', onCommands, onError, db });
+
+    expect(onError).toHaveBeenCalledOnce();
+    expect(onError.mock.calls[0][0]).toBeInstanceOf(Error);
+    expect(onError.mock.calls[0][0].message).toBe('something went wrong');
+    expect(onCommands).not.toHaveBeenCalled();
   });
 
   it('publishWatchRemoteState updates room state and heartbeat timestamp', async () => {
