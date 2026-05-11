@@ -18,11 +18,16 @@ export function buildAnnouncement(match: MatchState): string {
   const servingTeam = teamNameForSpeech(match.teams[match.servingTeamId].name);
   const receivingTeamId = otherTeam(match.servingTeamId);
 
-  return `${servingTeam} serving, ${server}, ${scoreForTeam(match, match.servingTeamId)}-${scoreForTeam(match, receivingTeamId)}.`;
+  return `${servingTeam}, ${server} serving, ${scoreForTeam(match, match.servingTeamId)}-${scoreForTeam(match, receivingTeamId)}.`;
 }
 
+const LETTER_PRONUNCIATIONS: Record<string, string> = {
+  A: 'Ay',
+  B: 'Bee',
+};
+
 function teamNameForSpeech(name: string): string {
-  return name.replace(/ ([A-Z])$/, ', $1');
+  return name.replace(/ ([A-Z])$/, (_, letter: string) => ` ${LETTER_PRONUNCIATIONS[letter] ?? letter}`);
 }
 
 export function speakAnnouncement(match: MatchState): boolean {
