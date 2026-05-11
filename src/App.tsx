@@ -17,6 +17,11 @@ import {
   type KeyboardRemoteConnection,
   type KeyboardRemoteDiagnosticEvent,
 } from './input/keyboardRemote';
+import {
+  connectGamepadRemote,
+  type GamepadRemoteConnection,
+  type GamepadRemoteDiagnosticEvent,
+} from './input/gamepadRemote';
 import { loadPreferences, savePreferences, type AppPreferences } from './preferences';
 import { getSpeechStatus, speakAnnouncement } from './speech/announcer';
 
@@ -43,9 +48,10 @@ export default function App() {
     match: createInitialMatch(preferences.matchMode),
   }));
   const [bluetoothStatus, setBluetoothStatus] = useState<BluetoothStatus>(() => getBluetoothSupportStatus());
-  const [keyboardDiagnostics, setKeyboardDiagnostics] = useState<KeyboardRemoteDiagnosticEvent[]>([]);
+  const [diagnostics, setDiagnostics] = useState<DiagnosticEvent[]>([]);
   const connectionRef = useRef<BluetoothRemoteConnection | undefined>(undefined);
   const keyboardConnectionRef = useRef<KeyboardRemoteConnection | undefined>(undefined);
+  const gamepadConnectionRef = useRef<GamepadRemoteConnection | undefined>(undefined);
   const preferencesRef = useRef(preferences);
   const announcementIdRef = useRef(0);
   const lastSpokenAnnouncementIdRef = useRef(0);
@@ -80,7 +86,11 @@ export default function App() {
   }, []);
 
   const handleKeyboardDiagnosticEvent = useCallback((event: KeyboardRemoteDiagnosticEvent) => {
-    setKeyboardDiagnostics((current) => [event, ...current].slice(0, 5));
+    setDiagnostics((current) => [{ source: 'keyboard' as const, ...event }, ...current].slice(0, 10));
+  }, []);
+
+  const handleGamepadDiagnosticEvent = useCallback((event: GamepadRemoteDiagnosticEvent) => {
+    setDiagnostics((current) => [event, ...current].slice(0, 10));
   }, []);
 
   useEffect(() => {
@@ -95,6 +105,19 @@ export default function App() {
       }
     };
   }, [dispatch, handleKeyboardDiagnosticEvent]);
+
+  useEffect(() => {
+    const connection = connectGamepadRemote({ dispatch, onDiagnosticEvent: handleGamepadDiagnosticEvent });
+    gamepadConnectionRef.current = connection;
+
+    return () => {
+      connection.disconnect();
+
+      if (gamepadConnectionRef.current === connection) {
+        gamepadConnectionRef.current = undefined;
+      }
+    };
+  }, [dispatch, handleGamepadDiagnosticEvent]);
 
   useEffect(() => {
     const pending = matchView.pendingAutoAnnouncement;
@@ -197,7 +220,7 @@ export default function App() {
           speechStatus={getSpeechStatus()}
           onConnectBluetooth={handleConnectBluetooth}
         />
-        <RemoteDiagnostics events={keyboardDiagnostics} />
+        <RemoteDiagnostics events={diagnostics} />
         <Scoreboard match={match} onPointTeam={(teamId) => dispatch({ type: 'POINT_TEAM', teamId })} />
         <CourtView match={match} />
         <Controls
@@ -217,7 +240,9 @@ export default function App() {
   );
 }
 
-function RemoteDiagnostics({ events }: { readonly events: KeyboardRemoteDiagnosticEvent[] }) {
+type DiagnosticEvent = ({ source: 'keyboard' } & KeyboardRemoteDiagnosticEvent) | GamepadRemoteDiagnosticEvent;
+
+function RemoteDiagnostics({ events }: { readonly events: DiagnosticEvent[] }) {
   return (
     <section className="remote-diagnostics" aria-label="Remote input log">
       <div className="remote-diagnostics-header">
@@ -225,19 +250,28 @@ function RemoteDiagnostics({ events }: { readonly events: KeyboardRemoteDiagnost
         <span>{events.length === 0 ? 'Listening' : `${events.length} shown`}</span>
       </div>
       {events.length === 0 ? (
-        <p className="remote-diagnostics-empty">No keyboard events seen yet</p>
+        <p className="remote-diagnostics-empty">No events seen yet</p>
       ) : (
         <ol className="remote-diagnostics-list">
-          {events.map((event, index) => (
-            <li key={`${event.type}-${event.key}-${event.code}-${event.keyCode}-${index}`}>
-              <strong>{event.type}</strong>
-              <span>Key {event.key || 'Unidentified'}</span>
-              <span>Code {event.code || 'none'}</span>
-              <span>KeyCode {event.keyCode}</span>
-              <span>Which {event.which}</span>
-              <span>Repeat {event.repeat ? 'yes' : 'no'}</span>
-            </li>
-          ))}
+          {events.map((event, index) =>
+            event.source === 'gamepad' ? (
+              <li key={`gamepad-${event.type}-${event.gamepadIndex}-${event.buttonIndex}-${index}`}>
+                <strong>[gamepad] {event.type}</strong>
+                <span>Pad {event.gamepadIndex}</span>
+                <span>Btn {event.buttonIndex}</span>
+                <span title={event.gamepadId}>{event.gamepadId.slice(0, 30)}</span>
+              </li>
+            ) : (
+              <li key={`keyboard-${event.type}-${event.key}-${event.code}-${event.keyCode}-${index}`}>
+                <strong>[key] {event.type}</strong>
+                <span>Key {event.key || 'Unidentified'}</span>
+                <span>Code {event.code || 'none'}</span>
+                <span>KeyCode {event.keyCode}</span>
+                <span>Which {event.which}</span>
+                <span>Repeat {event.repeat ? 'yes' : 'no'}</span>
+              </li>
+            ),
+          )}
         </ol>
       )}
     </section>
