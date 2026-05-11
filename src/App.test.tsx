@@ -4,8 +4,10 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { connectBluetoothRemote, getBluetoothSupportStatus } from './input/bluetoothRemote';
+import { connectKeyboardRemote } from './input/keyboardRemote';
 import { speakAnnouncement } from './speech/announcer';
 import type { BluetoothRemoteConnection } from './input/bluetoothRemote';
+import type { KeyboardRemoteConnection } from './input/keyboardRemote';
 
 vi.mock('./speech/announcer', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./speech/announcer')>();
@@ -27,10 +29,20 @@ vi.mock('./input/bluetoothRemote', async (importOriginal) => {
   };
 });
 
+vi.mock('./input/keyboardRemote', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./input/keyboardRemote')>();
+
+  return {
+    ...actual,
+    connectKeyboardRemote: vi.fn(),
+  };
+});
+
 const STORAGE_KEY = 'badminton-scorer-preferences';
 const mockedSpeakAnnouncement = vi.mocked(speakAnnouncement);
 const mockedGetBluetoothSupportStatus = vi.mocked(getBluetoothSupportStatus);
 const mockedConnectBluetoothRemote = vi.mocked(connectBluetoothRemote);
+const mockedConnectKeyboardRemote = vi.mocked(connectKeyboardRemote);
 
 describe('App', () => {
   beforeEach(() => {
@@ -38,6 +50,8 @@ describe('App', () => {
     mockedSpeakAnnouncement.mockClear();
     mockedGetBluetoothSupportStatus.mockReturnValue('unsupported');
     mockedConnectBluetoothRemote.mockReset();
+    mockedConnectKeyboardRemote.mockReset();
+    mockedConnectKeyboardRemote.mockReturnValue({ disconnect: vi.fn() });
   });
 
   afterEach(() => {
@@ -78,6 +92,17 @@ describe('App', () => {
     expect(screen.getByTestId('score-teamA')).toHaveTextContent('0');
     expect(screen.getByTestId('score-teamB')).toHaveTextContent('0');
     expect(screen.getByText(/serving: Team A/i)).toBeInTheDocument();
+  });
+
+  it('connects keyboard remote input on mount and disconnects on unmount', () => {
+    const connection: KeyboardRemoteConnection = { disconnect: vi.fn() };
+    mockedConnectKeyboardRemote.mockReturnValue(connection);
+
+    const { unmount } = render(<App />);
+
+    expect(mockedConnectKeyboardRemote).toHaveBeenCalledTimes(1);
+    unmount();
+    expect(connection.disconnect).toHaveBeenCalledTimes(1);
   });
 
   it('shows Bluetooth unsupported fallback and disables connect', () => {

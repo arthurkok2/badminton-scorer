@@ -12,6 +12,7 @@ import {
   type BluetoothRemoteConnection,
   type BluetoothStatus,
 } from './input/bluetoothRemote';
+import { connectKeyboardRemote, type KeyboardRemoteConnection } from './input/keyboardRemote';
 import { loadPreferences, savePreferences, type AppPreferences } from './preferences';
 import { getSpeechStatus, speakAnnouncement } from './speech/announcer';
 
@@ -39,6 +40,7 @@ export default function App() {
   }));
   const [bluetoothStatus, setBluetoothStatus] = useState<BluetoothStatus>(() => getBluetoothSupportStatus());
   const connectionRef = useRef<BluetoothRemoteConnection | undefined>(undefined);
+  const keyboardConnectionRef = useRef<KeyboardRemoteConnection | undefined>(undefined);
   const preferencesRef = useRef(preferences);
   const announcementIdRef = useRef(0);
   const lastSpokenAnnouncementIdRef = useRef(0);
@@ -61,17 +63,6 @@ export default function App() {
     };
   }, []);
 
-  useEffect(() => {
-    const pending = matchView.pendingAutoAnnouncement;
-
-    if (pending === undefined || pending.id === lastSpokenAnnouncementIdRef.current) {
-      return;
-    }
-
-    lastSpokenAnnouncementIdRef.current = pending.id;
-    speakAnnouncement(pending.match);
-  }, [matchView.pendingAutoAnnouncement]);
-
   const dispatch = useCallback((command: AppCommand) => {
     announcementIdRef.current += 1;
     const action: MatchViewAction = {
@@ -82,6 +73,30 @@ export default function App() {
     };
     setMatchView((current) => applyMatchViewAction(current, action));
   }, []);
+
+  useEffect(() => {
+    const connection = connectKeyboardRemote({ dispatch });
+    keyboardConnectionRef.current = connection;
+
+    return () => {
+      connection.disconnect();
+
+      if (keyboardConnectionRef.current === connection) {
+        keyboardConnectionRef.current = undefined;
+      }
+    };
+  }, [dispatch]);
+
+  useEffect(() => {
+    const pending = matchView.pendingAutoAnnouncement;
+
+    if (pending === undefined || pending.id === lastSpokenAnnouncementIdRef.current) {
+      return;
+    }
+
+    lastSpokenAnnouncementIdRef.current = pending.id;
+    speakAnnouncement(pending.match);
+  }, [matchView.pendingAutoAnnouncement]);
 
   const updatePreferences = useCallback((updater: (current: AppPreferences) => AppPreferences) => {
     setPreferences((current) => {
