@@ -143,6 +143,8 @@ All existing field validation, type checks, immutability rules, and `hasOnly` co
 | `src/auth/index.ts` | New — barrel export |
 | `src/main.tsx` | Wrap router in `<AuthProvider>` |
 | `src/hooks/useWatchRemoteHost.ts` | Replace `randomUUID` hostId with `user.uid` |
+| `src/hooks/useControllerClient.ts` | Gate `join()` on auth readiness |
+| `src/pages/ControllerPage.tsx` | Add `SignInButton`, disable join when auth unavailable |
 | `src/components/SignInButton.tsx` | New — persistent sign-in UI |
 | `src/components/RequiresAuth.tsx` | New — gated feature wrapper |
 | `src/components/WatchRemotePanel.tsx` | Add `SignInButton` to header; accept `authUnavailable` prop to disable "Start watch remote" button when auth couldn't initialise |
