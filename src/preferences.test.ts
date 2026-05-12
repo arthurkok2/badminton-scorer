@@ -1,6 +1,15 @@
-import { DEFAULT_PLAYER_NAMES, DEFAULT_PREFERENCES, loadPreferences, savePreferences } from './preferences';
+import { createMatch, awardPointToServingTeam } from './domain/matchEngine';
+import {
+  DEFAULT_PLAYER_NAMES,
+  DEFAULT_PREFERENCES,
+  loadMatchState,
+  loadPreferences,
+  saveMatchState,
+  savePreferences,
+} from './preferences';
 
 const STORAGE_KEY = 'badminton-scorer-preferences';
+const MATCH_STORAGE_KEY = 'badminton-scorer-match';
 
 describe('preferences', () => {
   beforeEach(() => {
@@ -77,6 +86,54 @@ describe('preferences', () => {
       B1: DEFAULT_PLAYER_NAMES.B1,
       B2: 'Dave',
     });
+  });
+
+  it('saves match state with history and without legacy previous', () => {
+    const match = awardPointToServingTeam(
+      createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' }),
+    );
+
+    saveMatchState(match);
+
+    const saved = JSON.parse(window.localStorage.getItem(MATCH_STORAGE_KEY) ?? '{}');
+    expect(saved.history).toHaveLength(1);
+    expect(saved.previous).toBeUndefined();
+  });
+
+  it('loads saved match state with history', () => {
+    const match = awardPointToServingTeam(
+      createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' }),
+    );
+    window.localStorage.setItem(MATCH_STORAGE_KEY, JSON.stringify(match));
+
+    expect(loadMatchState()).toMatchObject({
+      mode: 'doubles',
+      score: { teamA: 1, teamB: 0 },
+      history: [expect.objectContaining({ score: { teamA: 0, teamB: 0 } })],
+    });
+  });
+
+  it('normalizes legacy saved match previous snapshot into history', () => {
+    const match = awardPointToServingTeam(
+      createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' }),
+    );
+    const previous = match.history[0];
+    const legacy = { ...match, history: undefined, previous };
+
+    window.localStorage.setItem(MATCH_STORAGE_KEY, JSON.stringify(legacy));
+
+    const loaded = loadMatchState();
+    expect(loaded?.history).toEqual([previous]);
+    expect('previous' in (loaded as object)).toBe(false);
+  });
+
+  it('falls back to empty match history when saved history is malformed', () => {
+    const match = awardPointToServingTeam(
+      createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' }),
+    );
+    window.localStorage.setItem(MATCH_STORAGE_KEY, JSON.stringify({ ...match, history: 'bad-history' }));
+
+    expect(loadMatchState()?.history).toEqual([]);
   });
 
   it('does not throw when saving preferences fails', () => {

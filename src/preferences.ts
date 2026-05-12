@@ -1,4 +1,4 @@
-import type { MatchState, PlayerId } from './domain/matchTypes';
+import type { MatchSnapshot, MatchState, PlayerId } from './domain/matchTypes';
 import type { AnnouncementMode } from './speech/announcer';
 
 export const DEFAULT_PLAYER_NAMES: Record<PlayerId, string> = {
@@ -78,9 +78,7 @@ export function loadMatchState(): MatchState | undefined {
   try {
     const raw = window.localStorage.getItem(MATCH_STORAGE_KEY);
     if (!raw) return undefined;
-    const parsed = JSON.parse(raw);
-    if (!isRecord(parsed) || (parsed.mode !== 'singles' && parsed.mode !== 'doubles')) return undefined;
-    return parsed as unknown as MatchState;
+    return parseMatchState(JSON.parse(raw));
   } catch {
     return undefined;
   }
@@ -100,6 +98,25 @@ export function clearMatchState(): void {
   } catch {
     // ignore
   }
+}
+
+function parseMatchState(value: unknown): MatchState | undefined {
+  if (!isRecord(value) || !isMatchMode(value.mode)) {
+    return undefined;
+  }
+
+  const { previous, history, ...rest } = value;
+  const normalizedHistory = Array.isArray(history)
+    ? history.map((entry) => entry as MatchSnapshot)
+    : isRecord(previous)
+      ? [previous as unknown as MatchSnapshot]
+      : [];
+
+  return {
+    ...(rest as unknown as Omit<MatchState, 'history'>),
+    mode: value.mode,
+    history: normalizedHistory,
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
