@@ -144,17 +144,7 @@ describe('match engine', () => {
     expect(capped.winnerTeamId).toBe('teamA');
   });
 
-  it('restores the previous state with last-action undo', () => {
-    const match = createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
-    const next = awardPointToServingTeam(match);
-    const undone = undoLastPoint(next);
-
-    expect(undone.score).toEqual(match.score);
-    expect(undone.serverId).toBe(match.serverId);
-    expect(undone.previous).toBeUndefined();
-  });
-
-  it('undoes only the last action after multiple points', () => {
+  it('restores the prior point and keeps earlier point history', () => {
     const match = createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
     const firstPoint = awardPointToServingTeam(match);
     const secondPoint = awardPointToReceivingTeam(firstPoint);
@@ -164,10 +154,43 @@ describe('match engine', () => {
     expect(undone.servingTeamId).toBe(firstPoint.servingTeamId);
     expect(undone.serverId).toBe(firstPoint.serverId);
     expect(undone.receiverId).toBe(firstPoint.receiverId);
-    expect(undone.previous).toBeUndefined();
+    expect(undone.courtPositions).toEqual(firstPoint.courtPositions);
+    expect(undone.history).toHaveLength(1);
   });
 
-  it('keeps undo snapshots independent of caller mutations after scoring', () => {
+  it('undoes multiple awarded points in sequence', () => {
+    const match = createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
+    const firstPoint = awardPointToServingTeam(match);
+    const secondPoint = awardPointToReceivingTeam(firstPoint);
+    const thirdPoint = awardPointToServingTeam(secondPoint);
+
+    const afterOneUndo = undoLastPoint(thirdPoint);
+    const afterTwoUndos = undoLastPoint(afterOneUndo);
+    const afterThreeUndos = undoLastPoint(afterTwoUndos);
+    const afterExtraUndo = undoLastPoint(afterThreeUndos);
+
+    expect(afterOneUndo.score).toEqual(secondPoint.score);
+    expect(afterOneUndo.servingTeamId).toBe(secondPoint.servingTeamId);
+    expect(afterOneUndo.serverId).toBe(secondPoint.serverId);
+    expect(afterOneUndo.receiverId).toBe(secondPoint.receiverId);
+    expect(afterOneUndo.history).toHaveLength(2);
+
+    expect(afterTwoUndos.score).toEqual(firstPoint.score);
+    expect(afterTwoUndos.servingTeamId).toBe(firstPoint.servingTeamId);
+    expect(afterTwoUndos.serverId).toBe(firstPoint.serverId);
+    expect(afterTwoUndos.receiverId).toBe(firstPoint.receiverId);
+    expect(afterTwoUndos.history).toHaveLength(1);
+
+    expect(afterThreeUndos.score).toEqual(match.score);
+    expect(afterThreeUndos.servingTeamId).toBe(match.servingTeamId);
+    expect(afterThreeUndos.serverId).toBe(match.serverId);
+    expect(afterThreeUndos.receiverId).toBe(match.receiverId);
+    expect(afterThreeUndos.history).toHaveLength(0);
+
+    expect(afterExtraUndo).toBe(afterThreeUndos);
+  });
+
+  it('keeps undo history snapshots independent of caller mutations after scoring', () => {
     const match = createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
     const next = awardPointToServingTeam(match);
     const mutableScore = match.score as { teamA: number };
@@ -189,6 +212,14 @@ describe('match engine', () => {
     expect(changed.servingTeamId).toBe('teamB');
     expect(changed.serverId).toBe('B2');
     expect(changed.receiverId).toBe('A1');
+  });
+
+  it('does not create point history when changing the initial server', () => {
+    const match = createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
+    const changed = setInitialServer(match, 'teamB', 'B2');
+
+    expect(changed.history).toHaveLength(0);
+    expect(undoLastPoint(changed)).toBe(changed);
   });
 
   it('rejects invalid initial server changes', () => {

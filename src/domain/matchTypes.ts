@@ -32,7 +32,7 @@ export interface MatchSnapshot {
 }
 
 export interface MatchState extends MatchSnapshot {
-  readonly previous?: MatchSnapshot;
+  readonly history: readonly MatchSnapshot[];
 }
 
 export interface CreateMatchOptions {
