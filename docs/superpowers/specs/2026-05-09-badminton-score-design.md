@@ -158,21 +158,23 @@ On startup the app attempts to restore the saved match state. Restoration is acc
 
 ## UI Direction
 
-The interface should be dense, clear, and courtside-friendly. It should not have a landing page. The first viewport is the active scoreboard.
+The interface should be dense, clear, and courtside-friendly. It should not have a landing page. The first viewport is the active court display, with the score overlaid directly on the court.
 
 The visual hierarchy should prioritize:
 
-1. Score.
-2. Serving team and player.
-3. Court positions.
-4. Point controls.
+1. The regulation court display.
+2. Score, centered within each team's court half.
+3. Player court positions and active server highlight.
+4. Utility controls.
 5. Secondary actions.
 
-The court diagram should make player positions and court sides clear at a glance. It should use a top-down SVG layout scaled to the real doubles court dimensions: `13.40m x 6.10m`, with 40mm lines represented proportionally enough for display, singles sidelines, short service lines, doubles long service lines, center service lines, and the net. The diagram should be rotated horizontally so the net runs vertically in the middle of the screen. Team A appears on the left and Team B on the right. Because the teams face each other, Team B's visual lanes must be mirrored: Team B's right service court appears in the upper-right box and Team B's left service court appears in the lower-right box. The active server should be highlighted in both the scoreboard and court view when space allows.
+The court diagram should make player positions, score, and court sides clear at a glance. It should use a top-down SVG layout scaled to the real doubles court dimensions: `13.40m x 6.10m`, with 40mm lines represented proportionally enough for display, singles sidelines, short service lines, doubles long service lines, center service lines, and the net. The diagram should be rotated horizontally so the net runs vertically in the middle of the screen. Team A appears on the left and Team B on the right. Because the teams face each other, Team B's visual lanes must be mirrored: Team B's right service court appears in the upper-right box and Team B's left service court appears in the lower-right box.
+
+Each team's score should be overlaid as a large numeric tap target centered in that team's half of the court. The score overlay should not show team names, serving details, server names, receiver names, or explanatory text. The active server should be highlighted through the player chip on the court. A non-text serving-team treatment, such as a subtle glow around the relevant score backing, is acceptable if it does not clutter the display.
 
 ### Responsive Layout
 
-The app uses a single-column stacked layout on narrow screens (phones). At viewport widths of 960px and above the layout switches to a two-column grid: the scoreboard occupies the left column (`minmax(280px, 1fr)`) and the court diagram occupies the right column (`2fr`), displayed side by side. Controls, status bar, and the remote diagnostics log span both columns below. The overall layout is capped at 1400px wide and centered on very large screens.
+The app uses a single large court display at the top of the match screen on all viewport widths. On narrow screens, the court fills the available width while preserving the regulation court aspect ratio. At wider viewport widths, the court expands across the layout width instead of sharing space with a separate scoreboard. Controls, status bar, and the remote diagnostics log remain below the court. The overall layout is capped and centered on very large screens.
 
 ## Error Handling
 
