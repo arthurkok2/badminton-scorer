@@ -57,6 +57,15 @@ button {
   .status-bar     { grid-area: status; }
   .remote-diagnostics { grid-area: diagnostics; }
 
+  .team-score {
+    min-height: 230px;
+    padding: 20px 12px;
+  }
+
+  .score-value {
+    font-size: clamp(7rem, 14vw, 12rem);
+  }
+
   .session-layout {
     grid-template-columns: 1fr;
     grid-template-areas:
