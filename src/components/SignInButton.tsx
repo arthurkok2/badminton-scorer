@@ -19,7 +19,7 @@ export function SignInButton() {
 
   return (
     <span className="sign-in-user">
-      <span>{user.displayName}</span>
+      <span>{user.displayName ?? user.email ?? 'Signed in'}</span>
       <button type="button" className="sign-out-button" onClick={() => void signOut()}>
         Sign out
       </button>
