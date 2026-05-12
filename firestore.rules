@@ -2,7 +2,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Room codes are 4 chars from a restricted alphabet (no 0/1/I/O to avoid confusion).
     function isValidRoomCode(code) {
       return code is string
         && code.size() == 4
@@ -25,8 +24,6 @@ service cloud.firestore {
       return k is string && k in ['wear', 'web'];
     }
 
-    // Permitted top-level keys on a match document (winnerTeamId and
-    // lastAppliedCommandId are optional so they may or may not be present).
     function matchDocKeys() {
       return ['active', 'code', 'createdAt', 'hostHeartbeatAt', 'hostId',
               'matchMode', 'matchState', 'updatedAt', 'winnerTeamId',
@@ -34,18 +31,17 @@ service cloud.firestore {
     }
 
     match /matches/{code} {
-      // Anyone who knows the 4-char room code can watch the score — that is
-      // the intended sharing model.
       allow read: if true;
 
       allow create: if
-        isValidRoomCode(code)
+        request.auth != null
+        && request.auth.uid == request.resource.data.hostId
+        && isValidRoomCode(code)
         && request.resource.data.code == code
         && request.resource.data.active == true
         && request.resource.data.hostId is string
         && request.resource.data.hostId.size() >= 1
         && request.resource.data.hostId.size() <= 128
-        // All three timestamps must be set to server time on creation.
         && request.resource.data.createdAt == request.time
         && request.resource.data.updatedAt == request.time
         && request.resource.data.hostHeartbeatAt == request.time
@@ -58,11 +54,11 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(matchDocKeys());
 
       allow update: if
-        // Immutable fields must not change.
-        request.resource.data.code == resource.data.code
+        request.auth != null
+        && request.auth.uid == resource.data.hostId
+        && request.resource.data.code == resource.data.code
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.hostId == resource.data.hostId
-        // Mutable fields must be well-typed.
         && request.resource.data.active is bool
         && request.resource.data.updatedAt == request.time
         && request.resource.data.hostHeartbeatAt == request.time
@@ -74,26 +70,22 @@ service cloud.firestore {
         )
         && request.resource.data.keys().hasOnly(matchDocKeys());
 
-      // Rooms are never hard-deleted; they are deactivated via active=false.
       allow delete: if false;
 
       match /commands/{commandId} {
-        // Both host (to consume commands) and controllers (to confirm delivery)
-        // need read access.
         allow read: if true;
 
         allow create: if
-          isValidCommandType(request.resource.data.type)
+          request.auth != null
+          && isValidCommandType(request.resource.data.type)
           && isValidSourceKind(request.resource.data.sourceKind)
           && request.resource.data.sourceId is string
           && request.resource.data.sourceId.size() >= 1
           && request.resource.data.sourceId.size() <= 128
           && request.resource.data.createdAt == request.time
-          // Commands are created in a pending state — no outcome fields yet.
           && !('appliedAt' in request.resource.data)
           && !('rejectedAt' in request.resource.data)
           && !('rejectionReason' in request.resource.data)
-          // POINT_TEAM must carry a teamId; others must not.
           && (
             request.resource.data.type != 'POINT_TEAM'
             || isValidTeamId(request.resource.data.teamId)
@@ -106,16 +98,16 @@ service cloud.firestore {
             ['type', 'teamId', 'sourceId', 'sourceKind', 'createdAt']
           );
 
-        // Only the host may update commands (to mark applied/rejected).
-        // Identity fields are immutable; only outcome fields may be added.
         allow update: if
-          request.resource.data.type == resource.data.type
-          && request.resource.data.sourceId == resource.data.sourceId
-          && request.resource.data.sourceKind == resource.data.sourceKind
-          && request.resource.data.createdAt == resource.data.createdAt
+          request.auth != null
+          && request.auth.uid == get(/databases/$(database)/documents/matches/$(code)).data.hostId
+          && resource.data.type == request.resource.data.type
+          && resource.data.sourceId == request.resource.data.sourceId
+          && resource.data.sourceKind == request.resource.data.sourceKind
+          && resource.data.createdAt == request.resource.data.createdAt
           && (
             !('teamId' in resource.data)
-            || request.resource.data.teamId == resource.data.teamId
+            || resource.data.teamId == request.resource.data.teamId
           )
           && (
             !('rejectionReason' in request.resource.data)
@@ -133,7 +125,6 @@ service cloud.firestore {
       }
     }
 
-    // Deny everything else explicitly.
     match /{document=**} {
       allow read, write: if false;
     }
