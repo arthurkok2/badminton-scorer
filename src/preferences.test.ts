@@ -136,6 +136,24 @@ describe('preferences', () => {
     expect(loadMatchState()?.history).toEqual([]);
   });
 
+  it('falls back to empty match history when saved history entries are malformed', () => {
+    const match = awardPointToServingTeam(
+      createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' }),
+    );
+    window.localStorage.setItem(MATCH_STORAGE_KEY, JSON.stringify({ ...match, history: [{}] }));
+
+    expect(loadMatchState()?.history).toEqual([]);
+  });
+
+  it('falls back to empty match history when legacy previous snapshot is malformed', () => {
+    const match = awardPointToServingTeam(
+      createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' }),
+    );
+    window.localStorage.setItem(MATCH_STORAGE_KEY, JSON.stringify({ ...match, history: undefined, previous: {} }));
+
+    expect(loadMatchState()?.history).toEqual([]);
+  });
+
   it('does not throw when saving preferences fails', () => {
     const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('storage full');
