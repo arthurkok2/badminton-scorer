@@ -1,6 +1,6 @@
 // src/session/sessionScheduler.test.ts
 import { createSession, selectNextPlayers, rankSplitsForPlayers, generateMatchSuggestion, applyMatchResult, archiveSession } from './sessionScheduler';
-import type { PairingMatrix, SessionPlayer, TeamSplit } from './sessionTypes';
+import type { ActiveSession, PairingMatrix, SessionPlayer, TeamSplit } from './sessionTypes';
 
 const emptyMatrix: PairingMatrix = { together: {}, against: {} };
 
@@ -206,5 +206,104 @@ describe('archiveSession', () => {
 
     expect(archive.endedAt).toBe('2026-05-11T10:00:00.000Z');
     expect(archive.matches).toHaveLength(1);
+  });
+});
+
+// A perfectly balanced matrix: every pair has played together once and against each other twice.
+// All three possible splits for [Alice, Bob, Carol, Dave] score identically (12 each).
+const balancedMatrix: PairingMatrix = {
+  together: {
+    Alice: { Bob: 1, Carol: 1, Dave: 1 },
+    Bob: { Alice: 1, Carol: 1, Dave: 1 },
+    Carol: { Alice: 1, Bob: 1, Dave: 1 },
+    Dave: { Alice: 1, Bob: 1, Carol: 1 },
+  },
+  against: {
+    Alice: { Bob: 2, Carol: 2, Dave: 2 },
+    Bob: { Alice: 2, Carol: 2, Dave: 2 },
+    Carol: { Alice: 2, Bob: 2, Dave: 2 },
+    Dave: { Alice: 2, Bob: 2, Carol: 2 },
+  },
+};
+
+describe('rankSplitsForPlayers tie-breaking', () => {
+  it('returns all 3 possible splits as top-ranked across repeated calls with a balanced matrix', () => {
+    const seenTopSplits = new Set<string>();
+
+    for (let i = 0; i < 100; i++) {
+      const [top] = rankSplitsForPlayers(['Alice', 'Bob', 'Carol', 'Dave'], balancedMatrix);
+      seenTopSplits.add(JSON.stringify([...top.teamA, ...top.teamB]));
+    }
+
+    // All 3 distinct splits must appear; a deterministic sort would always return the same one.
+    expect(seenTopSplits.size).toBe(3);
+  });
+
+  it('still ranks the split with fewer partner repeats first when scores differ', () => {
+    const matrix: PairingMatrix = {
+      together: { Alice: { Bob: 3 }, Bob: { Alice: 3 } },
+      against: {},
+    };
+    const splits = rankSplitsForPlayers(['Alice', 'Bob', 'Carol', 'Dave'], matrix);
+
+    const [a1, a2] = splits[0].teamA;
+    const [b1, b2] = splits[0].teamB;
+    expect([a1, a2]).not.toEqual(expect.arrayContaining(['Alice', 'Bob']));
+    expect([b1, b2]).not.toEqual(expect.arrayContaining(['Alice', 'Bob']));
+  });
+});
+
+describe('selectNextPlayers tie-breaking', () => {
+  it('varies which player sits out when all players have equal gamesPlayed and are all on break', () => {
+    const equalPlayers: SessionPlayer[] = [
+      { name: 'Alice', gamesPlayed: 4, consecutiveStreak: 0, onBreak: true },
+      { name: 'Bob',   gamesPlayed: 4, consecutiveStreak: 0, onBreak: true },
+      { name: 'Carol', gamesPlayed: 4, consecutiveStreak: 0, onBreak: true },
+      { name: 'Dave',  gamesPlayed: 4, consecutiveStreak: 0, onBreak: true },
+      { name: 'Eve',   gamesPlayed: 4, consecutiveStreak: 0, onBreak: true },
+    ];
+
+    const sittingOut = new Set<string>();
+    for (let i = 0; i < 100; i++) {
+      const { onBreak } = selectNextPlayers(equalPlayers);
+      for (const name of onBreak) sittingOut.add(name);
+    }
+
+    // Every player should sit out at least once; a stable sort would always bench the same player.
+    expect(sittingOut.size).toBe(5);
+  });
+});
+
+describe('full-rotation cycle', () => {
+  it('does not repeat the exact same team splits after one complete sit-out rotation', () => {
+    // Run one full 5-round rotation so every pair is equally balanced.
+    let session: ActiveSession = createSession(['Alice', 'Bob', 'Carol', 'Dave', 'Eve']);
+    for (let i = 0; i < 5; i++) {
+      const { rankedSplits } = generateMatchSuggestion(session);
+      session = applyMatchResult(session, rankedSplits[0], 'teamA');
+    }
+
+    // From this balanced state, run 20 independent second rotations.
+    // At least one must differ from the first, proving the algorithm isn't locked into a fixed cycle.
+    const firstSecondRoundKey = (() => {
+      const { rankedSplits } = generateMatchSuggestion(session);
+      return JSON.stringify([...rankedSplits[0].teamA, ...rankedSplits[0].teamB]);
+    })();
+
+    let foundDifferentCycle = false;
+    for (let attempt = 0; attempt < 20 && !foundDifferentCycle; attempt++) {
+      const { rankedSplits } = generateMatchSuggestion(session);
+      const key = JSON.stringify([...rankedSplits[0].teamA, ...rankedSplits[0].teamB]);
+      if (key !== firstSecondRoundKey) foundDifferentCycle = true;
+    }
+
+    // Actually: the right assertion is that subsequent calls to generateMatchSuggestion
+    // from the same balanced state produce more than one distinct top split.
+    const seenSplits = new Set<string>();
+    for (let i = 0; i < 50; i++) {
+      const { rankedSplits } = generateMatchSuggestion(session);
+      seenSplits.add(JSON.stringify([...rankedSplits[0].teamA, ...rankedSplits[0].teamB]));
+    }
+    expect(seenSplits.size).toBeGreaterThan(1);
   });
 });
