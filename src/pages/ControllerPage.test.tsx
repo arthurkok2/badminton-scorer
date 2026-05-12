@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import { ControllerPage } from './ControllerPage';
 import type { WatchRemoteMatchDocument } from '../remote/firestoreRemoteTypes';
 import { createMatch } from '../domain/matchEngine';
@@ -50,7 +51,7 @@ describe('ControllerPage', () => {
 
   describe('disconnected state', () => {
     it('renders a room code input and a Join button', () => {
-      render(<ControllerPage />);
+      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
 
       expect(screen.getByRole('textbox', { name: /room code/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /join/i })).toBeInTheDocument();
@@ -58,7 +59,7 @@ describe('ControllerPage', () => {
 
     it('pre-fills the input with lastCode from the hook', () => {
       mockedUseControllerClient.mockReturnValue({ ...mockHookState, lastCode: 'WXYZ' });
-      render(<ControllerPage />);
+      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
 
       expect(screen.getByRole('textbox', { name: /room code/i })).toHaveValue('WXYZ');
     });
@@ -66,7 +67,7 @@ describe('ControllerPage', () => {
     it('calls join with the input value when Join is clicked', async () => {
       const join = vi.fn();
       mockedUseControllerClient.mockReturnValue({ ...mockHookState, join });
-      render(<ControllerPage />);
+      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
 
       await userEvent.clear(screen.getByRole('textbox', { name: /room code/i }));
       await userEvent.type(screen.getByRole('textbox', { name: /room code/i }), 'ABCD');
@@ -76,7 +77,7 @@ describe('ControllerPage', () => {
     });
 
     it('shows a Back to scorer link', () => {
-      render(<ControllerPage />);
+      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
 
       expect(screen.getByRole('link', { name: /back to scorer/i })).toHaveAttribute('href', '/');
     });
@@ -85,7 +86,7 @@ describe('ControllerPage', () => {
   describe('joining state', () => {
     it('disables the Join button while joining', () => {
       mockedUseControllerClient.mockReturnValue({ ...mockHookState, status: 'joining' });
-      render(<ControllerPage />);
+      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
 
       expect(screen.getByRole('button', { name: /joining/i })).toBeDisabled();
     });
@@ -94,7 +95,7 @@ describe('ControllerPage', () => {
   describe('active state', () => {
     it('renders team names and scores', () => {
       mockedUseControllerClient.mockReturnValue(makeActiveState());
-      render(<ControllerPage />);
+      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
 
       expect(screen.getByText('Team A')).toBeInTheDocument();
       expect(screen.getByText('Team B')).toBeInTheDocument();
@@ -103,7 +104,7 @@ describe('ControllerPage', () => {
 
     it('renders all four command buttons', () => {
       mockedUseControllerClient.mockReturnValue(makeActiveState());
-      render(<ControllerPage />);
+      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
 
       expect(screen.getByRole('button', { name: /point team a/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /point team b/i })).toBeInTheDocument();
@@ -114,7 +115,7 @@ describe('ControllerPage', () => {
     it('calls sendCommand with POINT_TEAM and teamA when the first button is clicked', async () => {
       const sendCommand = vi.fn();
       mockedUseControllerClient.mockReturnValue({ ...makeActiveState(), sendCommand });
-      render(<ControllerPage />);
+      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
 
       await userEvent.click(screen.getByRole('button', { name: /point team a/i }));
 
@@ -124,7 +125,7 @@ describe('ControllerPage', () => {
     it('calls sendCommand with UNDO when Undo is clicked', async () => {
       const sendCommand = vi.fn();
       mockedUseControllerClient.mockReturnValue({ ...makeActiveState(), sendCommand });
-      render(<ControllerPage />);
+      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
 
       await userEvent.click(screen.getByRole('button', { name: /undo/i }));
 
@@ -134,7 +135,7 @@ describe('ControllerPage', () => {
     it('calls sendCommand with ANNOUNCE when Announce is clicked', async () => {
       const sendCommand = vi.fn();
       mockedUseControllerClient.mockReturnValue({ ...makeActiveState(), sendCommand });
-      render(<ControllerPage />);
+      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
 
       await userEvent.click(screen.getByRole('button', { name: /announce/i }));
 
@@ -143,7 +144,7 @@ describe('ControllerPage', () => {
 
     it('shows a commandError when one is set', () => {
       mockedUseControllerClient.mockReturnValue({ ...makeActiveState(), commandError: 'write failed' });
-      render(<ControllerPage />);
+      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
 
       expect(screen.getByRole('alert')).toHaveTextContent('write failed');
     });
@@ -151,7 +152,7 @@ describe('ControllerPage', () => {
     it('calls leave when the Leave button is clicked', async () => {
       const leave = vi.fn();
       mockedUseControllerClient.mockReturnValue({ ...makeActiveState(), leave });
-      render(<ControllerPage />);
+      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
 
       await userEvent.click(screen.getByRole('button', { name: /leave/i }));
 
@@ -160,7 +161,7 @@ describe('ControllerPage', () => {
 
     it('shows the room code', () => {
       mockedUseControllerClient.mockReturnValue(makeActiveState());
-      render(<ControllerPage />);
+      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
 
       expect(screen.getByText('ABCD')).toBeInTheDocument();
     });
@@ -169,7 +170,7 @@ describe('ControllerPage', () => {
   describe('error state', () => {
     it('shows the error message', () => {
       mockedUseControllerClient.mockReturnValue({ ...mockHookState, status: 'error', error: 'Room not found' });
-      render(<ControllerPage />);
+      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
 
       expect(screen.getByRole('alert')).toHaveTextContent('Room not found');
     });
@@ -177,7 +178,7 @@ describe('ControllerPage', () => {
     it('calls leave when Back is clicked', async () => {
       const leave = vi.fn();
       mockedUseControllerClient.mockReturnValue({ ...mockHookState, status: 'error', error: 'Room not found', leave });
-      render(<ControllerPage />);
+      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
 
       await userEvent.click(screen.getByRole('button', { name: /back/i }));
 

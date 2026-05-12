@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useControllerClient } from '../hooks/useControllerClient';
 
 export function ControllerPage() {
@@ -36,7 +37,7 @@ export function ControllerPage() {
                 {status === 'joining' ? 'Joining…' : 'Join'}
               </button>
             </div>
-            <a href="/" className="controller-back-link">← Back to scorer</a>
+            <Link to="/" className="controller-back-link">← Back to scorer</Link>
           </section>
         </div>
       </main>
