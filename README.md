@@ -90,6 +90,29 @@ The court view is drawn as a scaled top-down doubles court:
 
 The display is rotated horizontally so the net runs vertically in the middle of the screen. Team A appears on the left and Team B appears on the right. Because teams face each other, Team B's visual lanes are mirrored so its right service court appears at the top of the right half and its left service court appears at the bottom.
 
+## Firebase and Watch Remote Setup
+
+The app works entirely offline for local scoring. Firebase is only required for watch remote hosting to sync match state across devices.
+
+To use watch remotes with the Firebase emulator:
+
+**Environment Variables:**
+- `VITE_USE_FIRESTORE_EMULATOR=true` — Enable emulator connection
+- `VITE_FIRESTORE_EMULATOR_HOST` — Emulator host (default: `localhost`)
+- `VITE_FIRESTORE_EMULATOR_PORT` — Emulator port (default: `8080`)
+
+**Start the Firestore Emulator:**
+```bash
+npx firebase emulators:start --only firestore
+```
+
+**Run the app with emulator:**
+```bash
+VITE_USE_FIRESTORE_EMULATOR=true npm run dev
+```
+
+The emulator UI will be available at `http://localhost:4000`. The Firestore collection used is `matches/{code}/commands/{commandId}`.
+
 ## Project Structure
 
 - `src/domain/`: framework-independent scoring engine and types.

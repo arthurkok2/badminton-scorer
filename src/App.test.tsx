@@ -7,6 +7,7 @@ import { connectBluetoothRemote, getBluetoothSupportStatus } from './input/bluet
 import { connectGamepadRemote } from './input/gamepadRemote';
 import { connectKeyboardRemote } from './input/keyboardRemote';
 import { speakAnnouncement } from './speech/announcer';
+import * as useWatchRemoteHostModule from './hooks/useWatchRemoteHost';
 import type { BluetoothRemoteConnection } from './input/bluetoothRemote';
 import type { GamepadRemoteConnection, GamepadRemoteDiagnosticEvent } from './input/gamepadRemote';
 import type { KeyboardRemoteConnection, KeyboardRemoteDiagnosticEvent } from './input/keyboardRemote';
@@ -49,12 +50,31 @@ vi.mock('./input/gamepadRemote', async (importOriginal) => {
   };
 });
 
+vi.mock('./hooks/useWatchRemoteHost', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./hooks/useWatchRemoteHost')>();
+
+  return {
+    ...actual,
+    useWatchRemoteHost: vi.fn(),
+  };
+});
+
 const STORAGE_KEY = 'badminton-scorer-preferences';
 const mockedSpeakAnnouncement = vi.mocked(speakAnnouncement);
 const mockedGetBluetoothSupportStatus = vi.mocked(getBluetoothSupportStatus);
 const mockedConnectBluetoothRemote = vi.mocked(connectBluetoothRemote);
 const mockedConnectKeyboardRemote = vi.mocked(connectKeyboardRemote);
 const mockedConnectGamepadRemote = vi.mocked(connectGamepadRemote);
+const mockedUseWatchRemoteHost = vi.mocked(useWatchRemoteHostModule.useWatchRemoteHost);
+
+const inactiveWatchRemoteResult = {
+  status: 'inactive' as const,
+  code: undefined,
+  error: undefined,
+  lastCommandLabel: undefined,
+  start: vi.fn(),
+  stop: vi.fn(),
+};
 
 describe('App', () => {
   beforeEach(() => {
@@ -65,6 +85,7 @@ describe('App', () => {
     mockedConnectKeyboardRemote.mockReset();
     mockedConnectKeyboardRemote.mockReturnValue({ disconnect: vi.fn() });
     mockedConnectGamepadRemote.mockReturnValue({ disconnect: vi.fn() });
+    mockedUseWatchRemoteHost.mockReturnValue({ ...inactiveWatchRemoteResult, start: vi.fn(), stop: vi.fn() });
   });
 
   afterEach(() => {
@@ -454,5 +475,46 @@ describe('App', () => {
     expect(confirm).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('textbox', { name: /team a player 1 name/i })).toHaveValue('Alice');
     expect(screen.getByText(/server: Alice/i)).toBeInTheDocument();
+  });
+
+  // Watch remote hosting
+  it('renders and scores normally without invoking Firebase (useWatchRemoteHost not started)', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: /Team A score/i }));
+
+    expect(screen.getByTestId('score-teamA')).toHaveTextContent('1');
+    expect(screen.getByTestId('score-teamB')).toHaveTextContent('0');
+    // Hook was called but start() was never invoked — Firebase methods untouched
+    expect(mockedUseWatchRemoteHost).toHaveBeenCalled();
+    expect(inactiveWatchRemoteResult.start).not.toHaveBeenCalled();
+  });
+
+  it('does not call start on useWatchRemoteHost before the user triggers it', () => {
+    render(<App />);
+
+    // The hook is wired in but start() must not be called automatically
+    const calls = mockedUseWatchRemoteHost.mock.results;
+    for (const result of calls) {
+      if (result.type === 'return') {
+        expect(result.value.start).not.toHaveBeenCalled();
+      }
+    }
+  });
+
+  it('shows the watch remote panel with a room code when the hook reports active', () => {
+    mockedUseWatchRemoteHost.mockReturnValue({
+      status: 'active',
+      code: 'ABC123',
+      error: undefined,
+      lastCommandLabel: undefined,
+      start: vi.fn(),
+      stop: vi.fn(),
+    });
+
+    render(<App />);
+
+    expect(screen.getByText('ABC123')).toBeInTheDocument();
   });
 });

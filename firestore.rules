@@ -1,0 +1,10 @@
+rules_version = '2';
+// WARNING: These rules are permissive for local development.
+// Before deploying to production, tighten rules to restrict access.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
