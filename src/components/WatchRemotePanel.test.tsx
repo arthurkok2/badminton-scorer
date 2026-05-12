@@ -4,19 +4,33 @@ import { vi } from 'vitest';
 import { WatchRemotePanel } from './WatchRemotePanel';
 import type { WatchRemoteHostStatus } from '../remote/firestoreRemoteTypes';
 
+const authMock = vi.hoisted(() => ({ useAuth: vi.fn() }));
+vi.mock('../auth', () => ({ useAuth: authMock.useAuth }));
+
 function renderPanel(overrides?: {
   status?: WatchRemoteHostStatus;
   code?: string;
   error?: string;
   lastCommandLabel?: string;
+  authUnavailable?: boolean;
   onStart?: () => void;
   onStop?: () => void;
 }) {
+  authMock.useAuth.mockReturnValue({
+    user: { uid: 'anon', isAnonymous: true },
+    loading: false,
+    isAnonymous: true,
+    authUnavailable: overrides?.authUnavailable ?? false,
+    signInWithGoogle: vi.fn(),
+    signOut: vi.fn(),
+  });
+
   const props = {
     status: overrides?.status ?? 'inactive',
     code: overrides?.code,
     error: overrides?.error,
     lastCommandLabel: overrides?.lastCommandLabel,
+    authUnavailable: overrides?.authUnavailable ?? false,
     onStart: overrides?.onStart ?? vi.fn(),
     onStop: overrides?.onStop ?? vi.fn(),
   };
@@ -107,10 +121,7 @@ describe('WatchRemotePanel > stopping', () => {
 
   it('disables controls while stopping', () => {
     renderPanel({ status: 'stopping' });
-    const buttons = screen.queryAllByRole('button');
-    buttons.forEach((btn) => {
-      expect(btn).toBeDisabled();
-    });
+    expect(screen.getByRole('button', { name: /stopping/i })).toBeDisabled();
   });
 });
 
@@ -137,5 +148,19 @@ describe('WatchRemotePanel > error', () => {
     renderPanel({ status: 'error', error: 'Connection failed' });
     // The panel itself is still rendered (error message visible)
     expect(screen.getByText(/connection failed/i)).toBeInTheDocument();
+  });
+});
+
+describe('WatchRemotePanel > authUnavailable', () => {
+  it('disables the Start watch remote button when auth is unavailable', () => {
+    renderPanel({ status: 'inactive', authUnavailable: true });
+    expect(screen.getByRole('button', { name: /start watch remote/i })).toBeDisabled();
+  });
+});
+
+describe('WatchRemotePanel > sign-in area', () => {
+  it('renders the sign-in button area', () => {
+    renderPanel({ status: 'inactive' });
+    expect(screen.getByRole('button', { name: /sign in with google/i })).toBeInTheDocument();
   });
 });

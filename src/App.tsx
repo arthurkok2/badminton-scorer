@@ -41,6 +41,7 @@ import { SessionSetup } from './components/SessionSetup';
 import { MatchSuggestion } from './components/MatchSuggestion';
 import { WatchRemotePanel } from './components/WatchRemotePanel';
 import { useWatchRemoteHost } from './hooks/useWatchRemoteHost';
+import { useAuth } from './auth';
 import type { ActiveSession, MatchSuggestion as MatchSuggestionData, TeamSplit } from './session/sessionTypes';
 
 type AppMode = 'match' | 'session';
@@ -132,6 +133,8 @@ export default function App() {
     };
     setMatchView((current) => applyMatchViewAction(current, action));
   }, []);
+
+  const { authUnavailable } = useAuth();
 
   const watchRemote = useWatchRemoteHost({
     match,
@@ -446,6 +449,7 @@ export default function App() {
           code={watchRemote.code}
           error={watchRemote.error}
           lastCommandLabel={watchRemote.lastCommandLabel}
+          authUnavailable={authUnavailable}
           onStart={() => { void watchRemote.start(); }}
           onStop={() => { void watchRemote.stop(); }}
         />

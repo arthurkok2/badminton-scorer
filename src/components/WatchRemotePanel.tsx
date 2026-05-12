@@ -1,3 +1,4 @@
+import { SignInButton } from './SignInButton';
 import type { WatchRemoteHostStatus } from '../remote/firestoreRemoteTypes';
 
 interface WatchRemotePanelProps {
@@ -5,16 +6,29 @@ interface WatchRemotePanelProps {
   readonly code?: string;
   readonly error?: string;
   readonly lastCommandLabel?: string;
+  readonly authUnavailable?: boolean;
   readonly onStart: () => void;
   readonly onStop: () => void;
 }
 
-export function WatchRemotePanel({ status, code, error, lastCommandLabel, onStart, onStop }: WatchRemotePanelProps) {
+export function WatchRemotePanel({
+  status,
+  code,
+  error,
+  lastCommandLabel,
+  authUnavailable = false,
+  onStart,
+  onStop,
+}: WatchRemotePanelProps) {
   return (
     <div className="watch-remote-panel" aria-label="Watch remote">
+      <div className="watch-remote-header">
+        <SignInButton />
+      </div>
+
       {status === 'inactive' && (
         <div className="watch-remote-actions">
-          <button type="button" onClick={onStart}>
+          <button type="button" onClick={onStart} disabled={authUnavailable}>
             Start watch remote
           </button>
         </div>
@@ -52,7 +66,7 @@ export function WatchRemotePanel({ status, code, error, lastCommandLabel, onStar
         <>
           {error && <div className="watch-remote-status" role="alert">{error}</div>}
           <div className="watch-remote-actions">
-            <button type="button" onClick={onStart}>
+            <button type="button" onClick={onStart} disabled={authUnavailable}>
               Start watch remote
             </button>
           </div>

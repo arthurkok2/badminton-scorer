@@ -85,6 +85,8 @@ Renders based on auth state:
 
 Placed in the `WatchRemotePanel` header — unobtrusive, consistent with the phone-first UI.
 
+`WatchRemotePanel` accepts an `authUnavailable?: boolean` prop (sourced from `useAuth()` in `App.tsx`) that disables the "Start watch remote" button when auth couldn't initialise. This prevents an unauthenticated user from trying to open a Firestore room that would be rejected by the security rules.
+
 ### `RequiresAuth` wrapper component
 
 ```tsx
@@ -143,5 +145,5 @@ All existing field validation, type checks, immutability rules, and `hasOnly` co
 | `src/hooks/useWatchRemoteHost.ts` | Replace `randomUUID` hostId with `user.uid` |
 | `src/components/SignInButton.tsx` | New — persistent sign-in UI |
 | `src/components/RequiresAuth.tsx` | New — gated feature wrapper |
-| `src/components/WatchRemotePanel.tsx` | Add `SignInButton` to header |
+| `src/components/WatchRemotePanel.tsx` | Add `SignInButton` to header; accept `authUnavailable` prop to disable "Start watch remote" button when auth couldn't initialise |
 | `firestore.rules` | Tighten with `request.auth.uid` checks |
