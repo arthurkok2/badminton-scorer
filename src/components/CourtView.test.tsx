@@ -1,10 +1,18 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
 import { CourtView } from './CourtView';
 import { createMatch } from '../domain/matchEngine';
+import type { MatchState } from '../domain/matchTypes';
 
 describe('CourtView', () => {
   it('renders a dimensionally scaled badminton court with all regulation lines', () => {
-    render(<CourtView match={createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' })} />);
+    render(
+      <CourtView
+        match={createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' })}
+        onPointTeam={vi.fn()}
+      />,
+    );
 
     const court = screen.getByTestId('court-diagram');
 
@@ -23,7 +31,12 @@ describe('CourtView', () => {
   });
 
   it('keeps each player label centered inside its chip', () => {
-    render(<CourtView match={createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' })} />);
+    render(
+      <CourtView
+        match={createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' })}
+        onPointTeam={vi.fn()}
+      />,
+    );
 
     for (const name of ['Player 1', 'Player 2', 'Player 3', 'Player 4']) {
       const chip = screen.getByText(name).closest('.player-chip');
@@ -34,11 +47,66 @@ describe('CourtView', () => {
   });
 
   it('mirrors visual court lanes for the team on the right side of the net', () => {
-    render(<CourtView match={createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' })} />);
+    render(
+      <CourtView
+        match={createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' })}
+        onPointTeam={vi.fn()}
+      />,
+    );
 
     expect(screen.getByText('Player 1').closest('.court-slot')).toHaveClass('court-lane-bottom');
     expect(screen.getByText('Player 2').closest('.court-slot')).toHaveClass('court-lane-top');
     expect(screen.getByText('Player 3').closest('.court-slot')).toHaveClass('court-lane-top');
     expect(screen.getByText('Player 4').closest('.court-slot')).toHaveClass('court-lane-bottom');
+  });
+
+  it('renders score-only buttons centered in each team court half', () => {
+    render(
+      <CourtView
+        match={createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' })}
+        onPointTeam={vi.fn()}
+      />,
+    );
+
+    const teamAScore = screen.getByRole('button', { name: /award point to team a, score 0/i });
+    const teamBScore = screen.getByRole('button', { name: /award point to team b, score 0/i });
+
+    expect(teamAScore).toHaveClass('court-score-button', 'teamA', 'is-serving');
+    expect(teamBScore).toHaveClass('court-score-button', 'teamB');
+    expect(teamAScore).toHaveTextContent(/^0$/);
+    expect(teamBScore).toHaveTextContent(/^0$/);
+    expect(teamAScore).not.toHaveTextContent(/team a/i);
+    expect(teamBScore).not.toHaveTextContent(/team b/i);
+  });
+
+  it('awards points from the overlaid court score buttons', async () => {
+    const user = userEvent.setup();
+    const onPointTeam = vi.fn();
+
+    render(
+      <CourtView
+        match={createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' })}
+        onPointTeam={onPointTeam}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /award point to team a, score 0/i }));
+    await user.click(screen.getByRole('button', { name: /award point to team b, score 0/i }));
+
+    expect(onPointTeam).toHaveBeenNthCalledWith(1, 'teamA');
+    expect(onPointTeam).toHaveBeenNthCalledWith(2, 'teamB');
+  });
+
+  it('disables both score buttons after a winner is decided', () => {
+    const winnerMatch: MatchState = {
+      ...createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' }),
+      score: { teamA: 21, teamB: 10 },
+      winnerTeamId: 'teamA',
+    };
+
+    render(<CourtView match={winnerMatch} onPointTeam={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: /award point to team a, score 21/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /award point to team b, score 10/i })).toBeDisabled();
   });
 });
