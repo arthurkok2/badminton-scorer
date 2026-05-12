@@ -1,10 +1,141 @@
 rules_version = '2';
-// WARNING: These rules are permissive for local development.
-// Before deploying to production, tighten rules to restrict access.
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Room codes are 4 chars from a restricted alphabet (no 0/1/I/O to avoid confusion).
+    function isValidRoomCode(code) {
+      return code is string
+        && code.size() == 4
+        && code.matches('^[A-HJ-NP-Z2-9]{4}$');
+    }
+
+    function isValidMatchMode(mode) {
+      return mode is string && mode in ['singles', 'doubles'];
+    }
+
+    function isValidTeamId(v) {
+      return v is string && v in ['teamA', 'teamB'];
+    }
+
+    function isValidCommandType(t) {
+      return t is string && t in ['POINT_TEAM', 'UNDO', 'ANNOUNCE'];
+    }
+
+    function isValidSourceKind(k) {
+      return k is string && k in ['wear', 'web'];
+    }
+
+    // Permitted top-level keys on a match document (winnerTeamId and
+    // lastAppliedCommandId are optional so they may or may not be present).
+    function matchDocKeys() {
+      return ['active', 'code', 'createdAt', 'hostHeartbeatAt', 'hostId',
+              'matchMode', 'matchState', 'updatedAt', 'winnerTeamId',
+              'lastAppliedCommandId'];
+    }
+
+    match /matches/{code} {
+      // Anyone who knows the 4-char room code can watch the score — that is
+      // the intended sharing model.
+      allow read: if true;
+
+      allow create: if
+        isValidRoomCode(code)
+        && request.resource.data.code == code
+        && request.resource.data.active == true
+        && request.resource.data.hostId is string
+        && request.resource.data.hostId.size() >= 1
+        && request.resource.data.hostId.size() <= 128
+        // All three timestamps must be set to server time on creation.
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.hostHeartbeatAt == request.time
+        && isValidMatchMode(request.resource.data.matchMode)
+        && request.resource.data.matchState is map
+        && (
+          !('winnerTeamId' in request.resource.data)
+          || isValidTeamId(request.resource.data.winnerTeamId)
+        )
+        && request.resource.data.keys().hasOnly(matchDocKeys());
+
+      allow update: if
+        // Immutable fields must not change.
+        request.resource.data.code == resource.data.code
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.hostId == resource.data.hostId
+        // Mutable fields must be well-typed.
+        && request.resource.data.active is bool
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.hostHeartbeatAt == request.time
+        && isValidMatchMode(request.resource.data.matchMode)
+        && request.resource.data.matchState is map
+        && (
+          !('winnerTeamId' in request.resource.data)
+          || isValidTeamId(request.resource.data.winnerTeamId)
+        )
+        && request.resource.data.keys().hasOnly(matchDocKeys());
+
+      // Rooms are never hard-deleted; they are deactivated via active=false.
+      allow delete: if false;
+
+      match /commands/{commandId} {
+        // Both host (to consume commands) and controllers (to confirm delivery)
+        // need read access.
+        allow read: if true;
+
+        allow create: if
+          isValidCommandType(request.resource.data.type)
+          && isValidSourceKind(request.resource.data.sourceKind)
+          && request.resource.data.sourceId is string
+          && request.resource.data.sourceId.size() >= 1
+          && request.resource.data.sourceId.size() <= 128
+          && request.resource.data.createdAt == request.time
+          // Commands are created in a pending state — no outcome fields yet.
+          && !('appliedAt' in request.resource.data)
+          && !('rejectedAt' in request.resource.data)
+          && !('rejectionReason' in request.resource.data)
+          // POINT_TEAM must carry a teamId; others must not.
+          && (
+            request.resource.data.type != 'POINT_TEAM'
+            || isValidTeamId(request.resource.data.teamId)
+          )
+          && (
+            request.resource.data.type == 'POINT_TEAM'
+            || !('teamId' in request.resource.data)
+          )
+          && request.resource.data.keys().hasOnly(
+            ['type', 'teamId', 'sourceId', 'sourceKind', 'createdAt']
+          );
+
+        // Only the host may update commands (to mark applied/rejected).
+        // Identity fields are immutable; only outcome fields may be added.
+        allow update: if
+          request.resource.data.type == resource.data.type
+          && request.resource.data.sourceId == resource.data.sourceId
+          && request.resource.data.sourceKind == resource.data.sourceKind
+          && request.resource.data.createdAt == resource.data.createdAt
+          && (
+            !('teamId' in resource.data)
+            || request.resource.data.teamId == resource.data.teamId
+          )
+          && (
+            !('rejectionReason' in request.resource.data)
+            || (
+              request.resource.data.rejectionReason is string
+              && request.resource.data.rejectionReason.size() <= 256
+            )
+          )
+          && request.resource.data.keys().hasOnly(
+            ['type', 'teamId', 'sourceId', 'sourceKind', 'createdAt',
+             'appliedAt', 'rejectedAt', 'rejectionReason']
+          );
+
+        allow delete: if false;
+      }
+    }
+
+    // Deny everything else explicitly.
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }
