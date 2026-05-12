@@ -423,6 +423,58 @@ describe('useWatchRemoteHost', () => {
     expect(result.current.status).toBe('inactive');
   });
 
+  it('does not start when loading is true', async () => {
+    const { useAuth } = await import('../auth');
+    (useAuth as ReturnType<typeof vi.fn>).mockReturnValueOnce({
+      user: null,
+      loading: true,
+      isAnonymous: false,
+      authUnavailable: false,
+      signInWithGoogle: vi.fn(),
+      signOut: vi.fn(),
+    });
+
+    const service = makeService();
+    const dispatch = vi.fn();
+    const announce = vi.fn();
+    const match = createTestMatch();
+
+    const { result } = renderHook(() =>
+      useWatchRemoteHost({ match, dispatch, announce, service }),
+    );
+
+    await act(async () => { await result.current.start(); });
+
+    expect(service.createRoom).not.toHaveBeenCalled();
+    expect(result.current.status).toBe('inactive');
+  });
+
+  it('does not start when user is null and loading is false', async () => {
+    const { useAuth } = await import('../auth');
+    (useAuth as ReturnType<typeof vi.fn>).mockReturnValueOnce({
+      user: null,
+      loading: false,
+      isAnonymous: false,
+      authUnavailable: false,
+      signInWithGoogle: vi.fn(),
+      signOut: vi.fn(),
+    });
+
+    const service = makeService();
+    const dispatch = vi.fn();
+    const announce = vi.fn();
+    const match = createTestMatch();
+
+    const { result } = renderHook(() =>
+      useWatchRemoteHost({ match, dispatch, announce, service }),
+    );
+
+    await act(async () => { await result.current.start(); });
+
+    expect(service.createRoom).not.toHaveBeenCalled();
+    expect(result.current.status).toBe('inactive');
+  });
+
   it('onError callback sets status to error with the error message', async () => {
     let capturedOnError: ((error: Error) => void) | undefined;
     const service = makeService({
