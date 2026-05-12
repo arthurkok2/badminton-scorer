@@ -382,6 +382,42 @@ button {
   color: #473e1b;
 }
 
+@media (max-width: 480px) {
+  .court-score-button span {
+    min-width: clamp(52px, 16vw, 84px);
+    min-height: clamp(34px, 10vw, 48px);
+    padding: 0 10px;
+    font-size: clamp(2.4rem, 15vw, 4.4rem);
+  }
+
+  .court-slot {
+    width: 18%;
+  }
+
+  .court-lane-top {
+    top: 20%;
+  }
+
+  .court-lane-bottom {
+    top: 80%;
+  }
+
+  .player-chip {
+    gap: 2px;
+    min-height: 34px;
+    padding: 4px;
+    border-radius: 6px;
+  }
+
+  .player-chip span {
+    font-size: 0.68rem;
+  }
+
+  .player-chip small {
+    font-size: 0.58rem;
+  }
+}
+
 .controls {
   display: grid;
   gap: 12px;
