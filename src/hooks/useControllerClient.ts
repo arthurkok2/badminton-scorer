@@ -37,7 +37,7 @@ const defaultService: ControllerService = {
 
 type ControllerStatus = 'disconnected' | 'joining' | 'active' | 'error';
 
-export function useControllerClient(service: ControllerService = defaultService): {
+export function useControllerClient(service?: ControllerService): {
   readonly status: ControllerStatus;
   readonly matchDoc: WatchRemoteMatchDocument | undefined;
   readonly error: string | undefined;
@@ -47,6 +47,8 @@ export function useControllerClient(service: ControllerService = defaultService)
   readonly leave: () => void;
   readonly sendCommand: (type: WatchRemoteCommandType, teamId?: TeamId) => Promise<void>;
 } {
+  const resolvedService = service ?? defaultService;
+
   const [status, setStatus] = useState<ControllerStatus>('disconnected');
   const [matchDoc, setMatchDoc] = useState<WatchRemoteMatchDocument | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
@@ -69,7 +71,7 @@ export function useControllerClient(service: ControllerService = defaultService)
       localStorage.setItem(CODE_KEY, normalised);
       setLastCode(normalised);
 
-      unsubscribeRef.current = service.subscribeToRoomState({
+      unsubscribeRef.current = resolvedService.subscribeToRoomState({
         code: normalised,
         onState: (doc) => {
           setMatchDoc(doc);
@@ -83,7 +85,7 @@ export function useControllerClient(service: ControllerService = defaultService)
         },
       });
     },
-    [service],
+    [resolvedService],
   );
 
   const leave = useCallback(() => {
@@ -100,7 +102,7 @@ export function useControllerClient(service: ControllerService = defaultService)
     async (type: WatchRemoteCommandType, teamId?: TeamId) => {
       setCommandError(undefined);
       try {
-        await service.sendCommand({
+        await resolvedService.sendCommand({
           code: codeRef.current,
           type,
           teamId,
@@ -110,7 +112,7 @@ export function useControllerClient(service: ControllerService = defaultService)
         setCommandError(err instanceof Error ? err.message : String(err));
       }
     },
-    [service],
+    [resolvedService],
   );
 
   return { status, matchDoc, error, commandError, lastCode, join, leave, sendCommand };
