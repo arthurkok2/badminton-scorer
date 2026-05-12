@@ -1,18 +1,25 @@
 import { useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../auth';
+import { SignInButton } from '../components/SignInButton';
 import { useControllerClient } from '../hooks/useControllerClient';
 
 export function ControllerPage() {
   const { status, matchDoc, error, commandError, lastCode, join, leave, sendCommand } =
     useControllerClient();
+  const { loading: authLoading, authUnavailable } = useAuth();
   const codeInputRef = useRef<HTMLInputElement>(null);
+  const joinDisabled = status === 'joining' || authLoading || authUnavailable;
 
   if (status === 'disconnected' || status === 'joining') {
     return (
       <main className="app-shell">
         <div className="app-layout">
           <section className="controller-panel">
-            <h1 className="controller-title">Controller</h1>
+            <div className="controller-page-header">
+              <h1 className="controller-title">Controller</h1>
+              <SignInButton />
+            </div>
             <div className="controller-join-form">
               <label htmlFor="room-code-input">Room code</label>
               <input
@@ -29,13 +36,16 @@ export function ControllerPage() {
               />
               <button
                 className="connect-button"
-                disabled={status === 'joining'}
+                disabled={joinDisabled}
                 onClick={() => {
                   if (codeInputRef.current) join(codeInputRef.current.value);
                 }}
               >
                 {status === 'joining' ? 'Joining…' : 'Join'}
               </button>
+              {authUnavailable && (
+                <p className="controller-auth-unavailable">Sign-in unavailable offline — controller disabled</p>
+              )}
             </div>
             <Link to="/" className="controller-back-link">← Back to scorer</Link>
           </section>

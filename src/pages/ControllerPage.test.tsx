@@ -6,6 +6,18 @@ import { ControllerPage } from './ControllerPage';
 import type { WatchRemoteMatchDocument } from '../remote/firestoreRemoteTypes';
 import { createMatch } from '../domain/matchEngine';
 
+const authMock = vi.hoisted(() => ({
+  useAuth: vi.fn(() => ({
+    user: { uid: 'anon', isAnonymous: true },
+    loading: false,
+    isAnonymous: true,
+    authUnavailable: false,
+    signInWithGoogle: vi.fn(),
+    signOut: vi.fn(),
+  })),
+}));
+vi.mock('../auth', () => ({ useAuth: authMock.useAuth }));
+
 const mockHookState = {
   status: 'disconnected' as const,
   matchDoc: undefined,
@@ -80,6 +92,24 @@ describe('ControllerPage', () => {
       render(<MemoryRouter><ControllerPage /></MemoryRouter>);
 
       expect(screen.getByRole('link', { name: /back to scorer/i })).toHaveAttribute('href', '/');
+    });
+
+    it('renders a sign-in button', () => {
+      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
+
+      expect(screen.getByRole('button', { name: /sign in with google/i })).toBeInTheDocument();
+    });
+
+    it('disables the Join button when authUnavailable is true', () => {
+      authMock.useAuth.mockReturnValueOnce({
+        user: null as unknown as { uid: string; isAnonymous: boolean },
+        loading: false, isAnonymous: false, authUnavailable: true,
+        signInWithGoogle: vi.fn(), signOut: vi.fn(),
+      });
+      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
+
+      expect(screen.getByRole('button', { name: /join/i })).toBeDisabled();
+      expect(screen.getByText(/unavailable offline/i)).toBeInTheDocument();
     });
   });
 
