@@ -99,9 +99,11 @@ function CourtScoreOverlay({
   const scoringDisabled = match.winnerTeamId !== undefined;
 
   return (
-    <div className="court-score-overlay" aria-label="Score controls">
-      <CourtScoreButton match={match} teamId="teamA" disabled={scoringDisabled} onPointTeam={onPointTeam} />
-      <CourtScoreButton match={match} teamId="teamB" disabled={scoringDisabled} onPointTeam={onPointTeam} />
+    <div className="court-score-overlay">
+      <div className="court-score-box" aria-label="Score controls">
+        <CourtScoreButton match={match} teamId="teamA" disabled={scoringDisabled} onPointTeam={onPointTeam} />
+        <CourtScoreButton match={match} teamId="teamB" disabled={scoringDisabled} onPointTeam={onPointTeam} />
+      </div>
     </div>
   );
 }

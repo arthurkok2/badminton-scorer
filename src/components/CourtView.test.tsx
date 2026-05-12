@@ -60,7 +60,7 @@ describe('CourtView', () => {
     expect(screen.getByText('Player 4').closest('.court-slot')).toHaveClass('court-lane-bottom');
   });
 
-  it('renders score-only buttons centered in each team court half', () => {
+  it('renders score-only buttons joined in one center score box', () => {
     render(
       <CourtView
         match={createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' })}
@@ -68,9 +68,13 @@ describe('CourtView', () => {
       />,
     );
 
+    const scoreBox = screen.getByLabelText(/score controls/i);
     const teamAScore = screen.getByRole('button', { name: /award point to team a, score 0/i });
     const teamBScore = screen.getByRole('button', { name: /award point to team b, score 0/i });
 
+    expect(scoreBox).toHaveClass('court-score-box');
+    expect(scoreBox).toContainElement(teamAScore);
+    expect(scoreBox).toContainElement(teamBScore);
     expect(teamAScore).toHaveClass('court-score-button', 'teamA', 'is-serving');
     expect(teamBScore).toHaveClass('court-score-button', 'teamB');
     expect(teamAScore).toHaveTextContent(/^0$/);
