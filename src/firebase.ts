@@ -1,5 +1,6 @@
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import { connectFirestoreEmulator, getFirestore, type Firestore } from 'firebase/firestore';
+import { connectAuthEmulator, getAuth, type Auth } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyD-Y-VmelbcTKMyTRrXfZ5fJEjVlRoatP4',
@@ -12,7 +13,9 @@ const firebaseConfig = {
 };
 
 let firestore: Firestore | undefined;
+let auth: Auth | undefined;
 let emulatorConnected = false;
+let authEmulatorConnected = false;
 
 export function getFirebaseApp(): FirebaseApp {
   return getApps().length ? getApps()[0]! : initializeApp(firebaseConfig);
@@ -25,6 +28,15 @@ export function getFirebaseDb(): Firestore {
   }
 
   return firestore;
+}
+
+export function getFirebaseAuth(): Auth {
+  if (auth === undefined) {
+    auth = getAuth(getFirebaseApp());
+    connectAuthEmulatorIfConfigured(auth);
+  }
+
+  return auth;
 }
 
 function connectEmulatorIfConfigured(db: Firestore): void {
@@ -42,6 +54,15 @@ function connectEmulatorIfConfigured(db: Firestore): void {
 
   connectFirestoreEmulator(db, host, port);
   emulatorConnected = true;
+}
+
+function connectAuthEmulatorIfConfigured(authInstance: Auth): void {
+  if (authEmulatorConnected || import.meta.env.VITE_USE_FIRESTORE_EMULATOR !== 'true') {
+    return;
+  }
+
+  connectAuthEmulator(authInstance, 'http://localhost:9099', { disableWarnings: true });
+  authEmulatorConnected = true;
 }
 
 function isValidEmulatorPort(rawPort: string, port: number): boolean {
