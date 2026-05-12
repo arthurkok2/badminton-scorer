@@ -92,16 +92,17 @@ describe('App', () => {
     vi.restoreAllMocks();
   });
 
-  it('awards a point to Team A from the Team A score', async () => {
+  it('awards a point to Team A from the court score', async () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(screen.getByRole('button', { name: /Team A score/i }));
+    await user.click(screen.getByRole('button', { name: /award point to team a, score 0/i }));
 
     expect(screen.getByTestId('score-teamA')).toHaveTextContent('1');
     expect(screen.getByTestId('score-teamB')).toHaveTextContent('0');
-    expect(screen.getByText(/serving: Team A/i)).toBeInTheDocument();
-    expect(screen.getByText(/server: Player 1/i)).toBeInTheDocument();
+    expect(screen.queryByText(/serving: team a/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/server: player 1/i)).not.toBeInTheDocument();
+    expect(screen.getByText('Player 1').closest('.player-chip')).toHaveClass('active-server');
   });
 
   it('shows the session mode entry inside match controls', () => {
@@ -110,28 +111,29 @@ describe('App', () => {
     expect(within(screen.getByRole('region', { name: /match controls/i })).getByRole('button', { name: /session mode/i })).toBeInTheDocument();
   });
 
-  it('awards a point to Team B from the Team B score and changes server', async () => {
+  it('awards a point to Team B from the court score and changes server', async () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(screen.getByRole('button', { name: /Team B score/i }));
+    await user.click(screen.getByRole('button', { name: /award point to team b, score 0/i }));
 
     expect(screen.getByTestId('score-teamA')).toHaveTextContent('0');
     expect(screen.getByTestId('score-teamB')).toHaveTextContent('1');
-    expect(screen.getByText(/serving: Team B/i)).toBeInTheDocument();
-    expect(screen.getByText(/server: Player 4/i)).toBeInTheDocument();
+    expect(screen.queryByText(/serving: team b/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/server: player 4/i)).not.toBeInTheDocument();
+    expect(screen.getByText('Player 4').closest('.player-chip')).toHaveClass('active-server');
   });
 
   it('undo restores the previous score', async () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(screen.getByRole('button', { name: /Team A score/i }));
+    await user.click(screen.getByRole('button', { name: /award point to team a, score \d+/i }));
     await user.click(screen.getByRole('button', { name: /undo last point/i }));
 
     expect(screen.getByTestId('score-teamA')).toHaveTextContent('0');
     expect(screen.getByTestId('score-teamB')).toHaveTextContent('0');
-    expect(screen.getByText(/serving: Team A/i)).toBeInTheDocument();
+    expect(screen.getByText('Player 1').closest('.player-chip')).toHaveClass('active-server');
   });
 
   it('connects keyboard remote input on mount and disconnects on unmount', () => {
@@ -184,13 +186,13 @@ describe('App', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(screen.getByRole('button', { name: /Team A score/i }));
+    await user.click(screen.getByRole('button', { name: /award point to team a, score \d+/i }));
     expect(mockedSpeakAnnouncement).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole('switch', { name: /auto announce/i }));
     expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '{}')).toMatchObject({ autoAnnounce: true });
 
-    await user.click(screen.getByRole('button', { name: /Team A score/i }));
+    await user.click(screen.getByRole('button', { name: /award point to team a, score \d+/i }));
 
     expect(mockedSpeakAnnouncement).toHaveBeenCalledTimes(1);
     expect(mockedSpeakAnnouncement.mock.calls[0][0].score).toEqual({ teamA: 2, teamB: 0 });
@@ -208,7 +210,7 @@ describe('App', () => {
     expect(mockedSpeakAnnouncement).toHaveBeenLastCalledWith(expect.anything(), 'short');
 
     await user.click(screen.getByRole('switch', { name: /auto announce/i }));
-    await user.click(screen.getByRole('button', { name: /Team A score/i }));
+    await user.click(screen.getByRole('button', { name: /award point to team a, score \d+/i }));
 
     expect(mockedSpeakAnnouncement).toHaveBeenLastCalledWith(expect.objectContaining({ score: { teamA: 1, teamB: 0 } }), 'short');
   });
@@ -223,7 +225,7 @@ describe('App', () => {
       </StrictMode>,
     );
 
-    await user.click(screen.getByRole('button', { name: /Team A score/i }));
+    await user.click(screen.getByRole('button', { name: /award point to team a, score \d+/i }));
 
     await waitFor(() => expect(mockedSpeakAnnouncement).toHaveBeenCalledTimes(1));
     expect(mockedSpeakAnnouncement.mock.calls[0][0].score).toEqual({ teamA: 1, teamB: 0 });
@@ -303,7 +305,7 @@ describe('App', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(screen.getByRole('button', { name: /Team A score/i }));
+    await user.click(screen.getByRole('button', { name: /award point to team a, score \d+/i }));
     await user.click(screen.getByRole('button', { name: /doubles/i }));
 
     expect(screen.getByTestId('score-teamA')).toHaveTextContent('1');
@@ -315,7 +317,7 @@ describe('App', () => {
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
     render(<App />);
 
-    await user.click(screen.getByRole('button', { name: /Team A score/i }));
+    await user.click(screen.getByRole('button', { name: /award point to team a, score \d+/i }));
     await user.click(screen.getByRole('button', { name: /singles/i }));
 
     expect(confirm).toHaveBeenCalledTimes(1);
@@ -328,7 +330,7 @@ describe('App', () => {
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
     render(<App />);
 
-    await user.click(screen.getByRole('button', { name: /Team A score/i }));
+    await user.click(screen.getByRole('button', { name: /award point to team a, score \d+/i }));
     await user.click(screen.getByRole('button', { name: /new match/i }));
 
     expect(confirm).toHaveBeenCalledTimes(1);
@@ -342,8 +344,7 @@ describe('App', () => {
 
     await user.click(screen.getByRole('button', { name: /team b player 3 serves/i }));
 
-    expect(screen.getByText(/serving: Team B/i)).toBeInTheDocument();
-    expect(screen.getByText(/server: Player 3/i)).toBeInTheDocument();
+    expect(screen.getByText('Player 3').closest('.player-chip')).toHaveClass('active-server');
   });
 
   it('hides first server setup after scoring starts', async () => {
@@ -352,7 +353,7 @@ describe('App', () => {
 
     expect(screen.getByRole('group', { name: /first server setup/i })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /Team A score/i }));
+    await user.click(screen.getByRole('button', { name: /award point to team a, score \d+/i }));
 
     expect(screen.queryByRole('group', { name: /first server setup/i })).not.toBeInTheDocument();
   });
@@ -362,11 +363,11 @@ describe('App', () => {
     render(<App />);
 
     for (let point = 0; point < 21; point += 1) {
-      await user.click(screen.getByRole('button', { name: /Team A score/i }));
+      await user.click(screen.getByRole('button', { name: /award point to team a, score \d+/i }));
     }
 
-    expect(screen.getByRole('button', { name: /Team A score/i })).toBeDisabled();
-    expect(screen.getByRole('button', { name: /Team B score/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /award point to team a, score 21/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /award point to team b, score 0/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /undo last point/i })).toBeEnabled();
   });
 
@@ -450,16 +451,16 @@ describe('App', () => {
     expect(screen.getByRole('textbox', { name: /team b player 2 name/i })).toHaveValue('Dave');
   });
 
-  it('reflects an edited player name in the match serve summary immediately', () => {
+  it('reflects an edited player name in the court player chip immediately', () => {
     render(<App />);
 
-    expect(screen.getByText(/server: Player 1/i)).toBeInTheDocument();
+    expect(screen.getByText('Player 1').closest('.player-chip')).toHaveClass('active-server');
 
     fireEvent.change(screen.getByRole('textbox', { name: /team a player 1 name/i }), {
       target: { value: 'Alice' },
     });
 
-    expect(screen.getByText(/server: Alice/i)).toBeInTheDocument();
+    expect(screen.getByText('Alice').closest('.player-chip')).toHaveClass('active-server');
   });
 
   it('uses player names from storage when starting a new match', async () => {
@@ -469,12 +470,12 @@ describe('App', () => {
 
     render(<App />);
 
-    await user.click(screen.getByRole('button', { name: /Team A score/i }));
+    await user.click(screen.getByRole('button', { name: /award point to team a, score \d+/i }));
     await user.click(screen.getByRole('button', { name: /new match/i }));
 
     expect(confirm).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('textbox', { name: /team a player 1 name/i })).toHaveValue('Alice');
-    expect(screen.getByText(/server: Alice/i)).toBeInTheDocument();
+    expect(screen.getByText('Alice').closest('.player-chip')).toHaveClass('active-server');
   });
 
   // Watch remote hosting
@@ -482,7 +483,7 @@ describe('App', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(screen.getByRole('button', { name: /Team A score/i }));
+    await user.click(screen.getByRole('button', { name: /award point to team a, score \d+/i }));
 
     expect(screen.getByTestId('score-teamA')).toHaveTextContent('1');
     expect(screen.getByTestId('score-teamB')).toHaveTextContent('0');
