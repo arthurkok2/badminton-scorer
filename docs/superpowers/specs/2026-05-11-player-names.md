@@ -22,7 +22,8 @@ Allow the user to set player names before a match and have those names persist a
 - Doubles shows four inputs (A1, A2, B1, B2); singles shows two (A1, B1).
 - Inputs are grouped by team in a two-column layout.
 - Each input has a maximum length of 20 characters.
-- Editing a name before scoring immediately updates the current match (court view, serve summary).
+- Editing a name before scoring immediately updates the current match court view.
+- Court player chips show only the player name, using large readable text with the active server indicated visually by the chip highlight.
 - Names are persisted to `localStorage`. They are reloaded on app startup and applied to every new match.
 - A blank or whitespace-only name falls back to the default on load.
 - Missing `playerNames` in old stored preferences defaults the whole field to defaults.
@@ -50,5 +51,5 @@ The first-server setup buttons ("Team A X serves", "Team B Y serves") use the li
 - App level: default names shown on fresh load.
 - App level: edited name persisted to localStorage.
 - App level: saved names loaded from storage and shown in inputs on startup.
-- App level: edited name reflected in serve summary immediately.
+- App level: edited name reflected in the court player chip immediately.
 - App level: persisted names used in new match after current match ends.

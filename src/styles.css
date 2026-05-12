@@ -350,10 +350,9 @@ button {
 
 .player-chip {
   display: grid;
-  gap: 4px;
   width: 100%;
-  min-height: 58px;
-  padding: 8px;
+  min-height: 78px;
+  padding: 10px 12px;
   border-radius: 8px;
   justify-items: center;
   align-content: center;
@@ -365,16 +364,11 @@ button {
 .player-chip span {
   display: block;
   width: 100%;
+  font-size: clamp(1.55rem, 3.7vw, 3rem);
   font-weight: 900;
+  line-height: 1;
   text-align: center;
-}
-
-.player-chip small {
-  display: block;
-  width: 100%;
-  color: #b6c9cf;
-  font-weight: 800;
-  text-align: center;
+  overflow-wrap: anywhere;
 }
 
 .player-chip.active-server {
@@ -382,20 +376,16 @@ button {
   color: #151513;
 }
 
-.player-chip.active-server small {
-  color: #473e1b;
-}
-
 @media (max-width: 480px) {
   .court-score-button span {
     min-width: clamp(52px, 16vw, 84px);
     min-height: clamp(34px, 10vw, 48px);
     padding: 0 10px;
-    font-size: clamp(2.4rem, 15vw, 4.4rem);
+    font-size: clamp(2rem, 12vw, 3.4rem);
   }
 
   .court-slot {
-    width: 18%;
+    width: 23%;
   }
 
   .court-lane-top {
@@ -407,18 +397,13 @@ button {
   }
 
   .player-chip {
-    gap: 2px;
-    min-height: 34px;
-    padding: 4px;
+    min-height: 42px;
+    padding: 5px;
     border-radius: 6px;
   }
 
   .player-chip span {
-    font-size: 0.68rem;
-  }
-
-  .player-chip small {
-    font-size: 0.58rem;
+    font-size: 1rem;
   }
 }
 

@@ -46,6 +46,20 @@ describe('CourtView', () => {
     }
   });
 
+  it('shows only the player name in each court chip', () => {
+    render(
+      <CourtView
+        match={createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' })}
+        onPointTeam={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText('Server')).not.toBeInTheDocument();
+    expect(screen.queryByText('Receiver')).not.toBeInTheDocument();
+    expect(screen.queryByText(/right court/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/left court/i)).not.toBeInTheDocument();
+  });
+
   it('mirrors visual court lanes for the team on the right side of the net', () => {
     render(
       <CourtView

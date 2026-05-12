@@ -16,7 +16,7 @@ The current standalone scoreboard panel is removed from the match-playing layout
 
 The first visual priority is a single regulation-proportioned badminton court. Team A remains on the left half and Team B remains on the right half. Both scores are joined in one compact center box that straddles the net, with Team A's score on the left side of the box and Team B's score on the right side.
 
-The score overlay displays only the score numbers. It does not show team names, serving details, server names, receiver names, or explanatory text. Existing player chips remain on the court in their service lanes, and the active server remains visually highlighted through the player chip.
+The score overlay displays only the score numbers. It does not show team names, serving details, server names, receiver names, or explanatory text. Existing player chips remain on the court in their service lanes, and the active server remains visually highlighted through the player chip. Player chips show only the player name; they do not show server, receiver, or court-side labels.
 
 The joined score box contains two adjacent tap targets. Tapping the left score awards Team A a point, and tapping the right score awards Team B a point. After the game has a winner, both score tap targets are disabled.
 
@@ -60,11 +60,11 @@ The court section remains labelled as the match court or court positions. The SV
 
 ## Styling
 
-The score overlay should feel integrated with the court instead of like a separate scoreboard laid on top. Use one centered joined box over the net with oversized numerals on each side and enough contrast to read over court lines.
+The score overlay should feel integrated with the court instead of like a separate scoreboard laid on top. Use one centered joined box over the net with oversized numerals on each side and enough contrast to read over court lines. On phone-sized screens, the score numerals should use a smaller responsive clamp so they do not dominate the court or crowd the player chips.
 
 Use a translucent backing or text treatment if needed to keep the score readable. The backing should be compact enough not to obscure the player chips or make the regulation court unreadable.
 
-Player chips remain readable and centered in their service lanes. Layering must ensure that score tap targets are usable while player chips still display above the court surface. The implementation can use z-index and pointer-event rules to make only the score halves interactive.
+Player chips remain readable and centered in their service lanes. Name text should be large, especially on wide displays where it may scale up to about `3rem`, while the mobile layout keeps player names around `1rem` and provides enough chip width for default names to fit cleanly. Layering must ensure that score tap targets are usable while player chips still display above the court surface. The implementation can use z-index and pointer-event rules to make only the score halves interactive.
 
 ## Testing
 
@@ -75,7 +75,8 @@ Update `CourtView` tests to verify:
 - clicking Team A's score area calls `onPointTeam('teamA')`;
 - clicking Team B's score area calls `onPointTeam('teamB')`;
 - score buttons are disabled when `match.winnerTeamId` is set;
-- player lane mirroring remains unchanged.
+- player lane mirroring remains unchanged;
+- player chips show names only, without server, receiver, or court-side text.
 
 Update app-level tests only where they assert the old separate scoreboard layout.
 

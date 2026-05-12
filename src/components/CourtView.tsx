@@ -1,4 +1,4 @@
-import type { CourtSide, MatchState, Player, PlayerId, TeamId } from '../domain/matchTypes';
+import type { CourtSide, MatchState, Player, TeamId } from '../domain/matchTypes';
 
 interface CourtViewProps {
   readonly match: MatchState;
@@ -159,7 +159,6 @@ function CourtSlot({
 }) {
   const player = players.find((candidate) => match.courtPositions[candidate.id] === side);
   const isServer = player?.id === match.serverId;
-  const isReceiver = player?.id === match.receiverId;
   const visualLane = player === undefined ? laneForCourtSide(players[0]?.teamId, side) : laneForCourtSide(player.teamId, side);
 
   return (
@@ -167,7 +166,6 @@ function CourtSlot({
       {player ? (
         <div className={isServer ? 'player-chip active-server' : 'player-chip'} aria-current={isServer ? 'true' : undefined}>
           <span>{player.name}</span>
-          <small>{labelForPlayer(match, player.id, isServer, isReceiver)}</small>
         </div>
       ) : null}
     </div>
@@ -180,16 +178,4 @@ function laneForCourtSide(teamId: TeamId | undefined, side: CourtSide): 'top' | 
   }
 
   return side === 'left' ? 'top' : 'bottom';
-}
-
-function labelForPlayer(match: MatchState, playerId: PlayerId, isServer: boolean, isReceiver: boolean): string {
-  if (isServer) {
-    return 'Server';
-  }
-
-  if (isReceiver) {
-    return 'Receiver';
-  }
-
-  return match.courtPositions[playerId] === 'right' ? 'Right court' : 'Left court';
 }
