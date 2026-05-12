@@ -51,7 +51,7 @@ After each match ends, the next 4 players are selected:
 1. **Players on break come on first** — anyone who sat out the last match is guaranteed a spot.
 2. **If more than 4 players are returning from break**, prioritise those with the fewest total games played this session.
 3. **Fill remaining spots from on-court players**, prioritising those with the longest consecutive game streak (most consecutive = sits out first).
-4. **Ties** are broken randomly. When multiple players have equal priority (same games played among break players, or same consecutive streak among on-court players), the order is randomised so the sit-out rotation does not become predictable over time.
+4. **Ties** are broken randomly using a Fisher-Yates shuffle applied before the priority sort. When multiple players have equal priority (same games played among break players, or same consecutive streak among on-court players), the shuffle guarantees a uniform distribution so the sit-out rotation does not become predictable over time.
 
 The UI enforces a minimum of 4 players before starting. The pure scheduler functions assume they receive at least 4 players.
 
@@ -78,7 +78,7 @@ Given the 4 selected players, there are exactly 3 ways to split them into 2 team
 
 Partner repeats are weighted more than opponent repeats — playing with the same person repeatedly is more noticeable than facing them again.
 
-The split with the **lowest repeat score** is suggested. When all three splits score equally (which occurs once every pairing in the session is balanced), ties are broken randomly. This prevents the algorithm from cycling back to the same fixed team compositions every N rounds.
+The split with the **lowest repeat score** is suggested. When all three splits score equally (which occurs once every pairing in the session is balanced), ties are broken randomly using a Fisher-Yates shuffle before the stable score sort. This guarantees each of the 3 possible splits is equally likely (~33%) when scores are tied, preventing the algorithm from cycling back to the same fixed team compositions every N rounds.
 
 The app maintains a running pairing matrix across all matches in the session: `togetherCount[playerA][playerB]` and `againstCount[playerA][playerB]`.
 
