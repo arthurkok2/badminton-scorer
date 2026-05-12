@@ -113,6 +113,21 @@ describe('preferences', () => {
     });
   });
 
+  it('ignores saved match state with missing root snapshot fields', () => {
+    window.localStorage.setItem(MATCH_STORAGE_KEY, JSON.stringify({ mode: 'doubles', history: [] }));
+
+    expect(loadMatchState()).toBeUndefined();
+  });
+
+  it('ignores saved match state with invalid nested root snapshot fields', () => {
+    const match = awardPointToServingTeam(
+      createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' }),
+    );
+    window.localStorage.setItem(MATCH_STORAGE_KEY, JSON.stringify({ ...match, score: { teamA: '1', teamB: 0 } }));
+
+    expect(loadMatchState()).toBeUndefined();
+  });
+
   it('normalizes legacy saved match previous snapshot into history', () => {
     const match = awardPointToServingTeam(
       createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' }),

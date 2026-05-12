@@ -101,11 +101,11 @@ export function clearMatchState(): void {
 }
 
 function parseMatchState(value: unknown): MatchState | undefined {
-  if (!isRecord(value) || !isMatchMode(value.mode)) {
+  if (!isMatchSnapshot(value)) {
     return undefined;
   }
 
-  const { previous, history, ...rest } = value;
+  const { previous, history, ...rest } = value as MatchSnapshot & { previous?: unknown; history?: unknown };
   const normalizedHistory = Array.isArray(history)
     ? parseMatchHistory(history)
     : isMatchSnapshot(previous)
