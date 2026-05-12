@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Controls } from './components/Controls';
 import { CourtView } from './components/CourtView';
-import { Scoreboard } from './components/Scoreboard';
 import { StatusBar } from './components/StatusBar';
 import { createMatch } from './domain/matchEngine';
 import type { MatchMode, MatchState, PlayerId, TeamId } from './domain/matchTypes';
@@ -395,8 +394,7 @@ export default function App() {
   return (
     <main className="app-shell">
       <div className="app-layout">
-        <Scoreboard match={match} onPointTeam={(teamId) => dispatch({ type: 'POINT_TEAM', teamId })} />
-        <CourtView match={match} />
+        <CourtView match={match} onPointTeam={(teamId) => dispatch({ type: 'POINT_TEAM', teamId })} />
         <Controls
           match={match}
           autoAnnounce={preferences.autoAnnounce}

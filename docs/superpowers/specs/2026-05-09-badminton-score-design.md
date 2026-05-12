@@ -163,14 +163,14 @@ The interface should be dense, clear, and courtside-friendly. It should not have
 The visual hierarchy should prioritize:
 
 1. The regulation court display.
-2. Score, centered within each team's court half.
+2. Score, joined in one center box over the net.
 3. Player court positions and active server highlight.
 4. Utility controls.
 5. Secondary actions.
 
 The court diagram should make player positions, score, and court sides clear at a glance. It should use a top-down SVG layout scaled to the real doubles court dimensions: `13.40m x 6.10m`, with 40mm lines represented proportionally enough for display, singles sidelines, short service lines, doubles long service lines, center service lines, and the net. The diagram should be rotated horizontally so the net runs vertically in the middle of the screen. Team A appears on the left and Team B on the right. Because the teams face each other, Team B's visual lanes must be mirrored: Team B's right service court appears in the upper-right box and Team B's left service court appears in the lower-right box.
 
-Each team's score should be overlaid as a large numeric tap target centered in that team's half of the court. The score overlay should not show team names, serving details, server names, receiver names, or explanatory text. The active server should be highlighted through the player chip on the court. A non-text serving-team treatment, such as a subtle glow around the relevant score backing, is acceptable if it does not clutter the display.
+Both teams' scores should be overlaid as one joined numeric score box centered over the net. Team A's score appears on the left side of the joined box and Team B's score appears on the right side. Each side remains a separate tap target for awarding that team a point. The score overlay should not show team names, serving details, server names, receiver names, or explanatory text. The active server should be highlighted through the player chip on the court. A non-text serving-team treatment, such as a subtle glow around the relevant score backing, is acceptable if it does not clutter the display.
 
 ### Responsive Layout
 

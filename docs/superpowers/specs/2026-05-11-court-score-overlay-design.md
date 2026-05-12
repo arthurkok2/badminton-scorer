@@ -4,7 +4,7 @@ Date: 2026-05-11
 
 ## Goal
 
-Redesign the live match screen around one large court display. The court should be the primary visual object in both phone and wide responsive layouts, with each team's score overlaid in the center of that team's court half. The overlay should show only the numeric scores; player positions on the court provide the surrounding context.
+Redesign the live match screen around one large court display. The court should be the primary visual object in both phone and wide responsive layouts, with both teams' scores joined in one center score box over the net. The overlay should show only the numeric scores; player positions on the court provide the surrounding context.
 
 ## Scope
 
@@ -14,11 +14,11 @@ The current standalone scoreboard panel is removed from the match-playing layout
 
 ## User Experience
 
-The first visual priority is a single regulation-proportioned badminton court. Team A remains on the left half and Team B remains on the right half. Each score is centered within its team's half of the court.
+The first visual priority is a single regulation-proportioned badminton court. Team A remains on the left half and Team B remains on the right half. Both scores are joined in one compact center box that straddles the net, with Team A's score on the left side of the box and Team B's score on the right side.
 
 The score overlay displays only the score numbers. It does not show team names, serving details, server names, receiver names, or explanatory text. Existing player chips remain on the court in their service lanes, and the active server remains visually highlighted through the player chip.
 
-Each team score area is a large tap target. Tapping the score area for a team awards a point to that team. After the game has a winner, the score tap targets are disabled.
+The joined score box contains two adjacent tap targets. Tapping the left score awards Team A a point, and tapping the right score awards Team B a point. After the game has a winner, both score tap targets are disabled.
 
 The serving team may receive a non-text visual treatment, such as a subtle outline or glow around that team's score backing. This indicator must not add labels or clutter to the score overlay.
 
@@ -37,7 +37,7 @@ On wide screens, the court expands across the layout width instead of sharing a 
 Inside the `.court` container, `CourtView` renders:
 
 - the existing regulation SVG court diagram;
-- a score overlay with one button for Team A's half and one button for Team B's half;
+- a centered joined score box with one button for Team A's score and one button for Team B's score;
 - the existing player position layer;
 - winner-disabled behavior for score buttons.
 
@@ -60,9 +60,9 @@ The court section remains labelled as the match court or court positions. The SV
 
 ## Styling
 
-The score overlay should feel integrated with the court instead of like a separate scoreboard laid on top. Use centered, oversized numerals in each half, with enough contrast to read over court lines.
+The score overlay should feel integrated with the court instead of like a separate scoreboard laid on top. Use one centered joined box over the net with oversized numerals on each side and enough contrast to read over court lines.
 
-Use a translucent backing or text treatment if needed to keep the score readable. The backing should not obscure the player chips or make the regulation court unreadable.
+Use a translucent backing or text treatment if needed to keep the score readable. The backing should be compact enough not to obscure the player chips or make the regulation court unreadable.
 
 Player chips remain readable and centered in their service lanes. Layering must ensure that score tap targets are usable while player chips still display above the court surface. The implementation can use z-index and pointer-event rules to make only the score halves interactive.
 
@@ -71,7 +71,7 @@ Player chips remain readable and centered in their service lanes. Layering must 
 Update `CourtView` tests to verify:
 
 - the regulation SVG court still renders with the same viewBox and court lines;
-- both numeric scores render in the court overlay;
+- both numeric scores render in one joined center score box;
 - clicking Team A's score area calls `onPointTeam('teamA')`;
 - clicking Team B's score area calls `onPointTeam('teamB')`;
 - score buttons are disabled when `match.winnerTeamId` is set;

@@ -2,6 +2,7 @@ import type { CourtSide, MatchState, Player, PlayerId, TeamId } from '../domain/
 
 interface CourtViewProps {
   readonly match: MatchState;
+  readonly onPointTeam: (teamId: TeamId) => void;
 }
 
 const COURT_LENGTH_CM = 1340;
@@ -12,11 +13,12 @@ const NET_X_CM = COURT_LENGTH_CM / 2;
 const SHORT_SERVICE_FROM_NET_CM = 198;
 const DOUBLES_LONG_SERVICE_FROM_BACK_CM = 76;
 
-export function CourtView({ match }: CourtViewProps) {
+export function CourtView({ match, onPointTeam }: CourtViewProps) {
   return (
-    <section className="court-section" aria-label="Court positions">
+    <section className="court-section" aria-label="Match court">
       <div className="court">
         <CourtDiagram />
+        <CourtScoreOverlay match={match} onPointTeam={onPointTeam} />
         <div className="court-players" aria-label="Player positions">
           <CourtHalf match={match} teamId="teamA" />
           <CourtHalf match={match} teamId="teamB" />
@@ -84,6 +86,54 @@ function CourtDiagram() {
         vectorEffect="non-scaling-stroke"
       />
     </svg>
+  );
+}
+
+function CourtScoreOverlay({
+  match,
+  onPointTeam,
+}: {
+  readonly match: MatchState;
+  readonly onPointTeam: (teamId: TeamId) => void;
+}) {
+  const scoringDisabled = match.winnerTeamId !== undefined;
+
+  return (
+    <div className="court-score-overlay">
+      <div className="court-score-box" aria-label="Score controls">
+        <CourtScoreButton match={match} teamId="teamA" disabled={scoringDisabled} onPointTeam={onPointTeam} />
+        <CourtScoreButton match={match} teamId="teamB" disabled={scoringDisabled} onPointTeam={onPointTeam} />
+      </div>
+    </div>
+  );
+}
+
+function CourtScoreButton({
+  match,
+  teamId,
+  disabled,
+  onPointTeam,
+}: {
+  readonly match: MatchState;
+  readonly teamId: TeamId;
+  readonly disabled: boolean;
+  readonly onPointTeam: (teamId: TeamId) => void;
+}) {
+  const isServing = match.servingTeamId === teamId;
+  const score = match.score[teamId];
+  const teamName = match.teams[teamId].name;
+
+  return (
+    <button
+      className={isServing ? `court-score-button ${teamId} is-serving` : `court-score-button ${teamId}`}
+      type="button"
+      aria-label={`Award point to ${teamName}, score ${score}`}
+      disabled={disabled}
+      data-testid={`score-${teamId}`}
+      onClick={() => onPointTeam(teamId)}
+    >
+      <span aria-hidden="true">{score}</span>
+    </button>
   );
 }
 
