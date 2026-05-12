@@ -55,6 +55,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
+  // Calling signOut on a Google-linked account causes Firebase to fire onAuthStateChanged(null),
+  // which triggers this provider to re-sign-in anonymously — the user reverts to anonymous mode.
   const signOut = useCallback(async () => {
     await firebaseSignOut(getFirebaseAuth());
   }, []);

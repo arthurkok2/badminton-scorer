@@ -102,9 +102,21 @@ describe('AuthProvider', () => {
     expect(screen.getByText('Arthur')).toBeInTheDocument();
   });
 
+  it('reverts to anonymous sign-in after signOut (signOut triggers onAuthStateChanged with null)', async () => {
+    // First render with a Google user
+    await renderProvider((trigger) => trigger(makeGoogleUser()));
+
+    // Simulate sign-out: Firebase fires onAuthStateChanged(null)
+    await renderProvider((trigger) => trigger(null));
+
+    // signInAnonymously should have been called (the re-anonymous path)
+    expect(authMocks.signInAnonymously).toHaveBeenCalledWith({ kind: 'auth' });
+  });
+
   it('sets authUnavailable=true and loading=false when signInAnonymously throws', async () => {
     authMocks.signInAnonymously.mockRejectedValue(new Error('network error'));
     await renderProvider((trigger) => trigger(null));
+    // findByText already handles the async state flush from the rejected promise
     expect(await screen.findByText('unavailable')).toBeInTheDocument();
   });
 

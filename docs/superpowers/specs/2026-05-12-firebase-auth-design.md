@@ -123,7 +123,8 @@ All existing field validation, type checks, immutability rules, and `hasOnly` co
 
 ## 6. Testing
 
-- `AuthProvider` is tested with a mock `onAuthStateChanged` that exercises: loading state, anonymous sign-in trigger, signed-in state, sign-out, and offline/error path (`authUnavailable: true`).
+- `AuthProvider` is tested with a mock `onAuthStateChanged` that exercises: loading state, anonymous sign-in trigger, signed-in state, sign-out (revert-to-anonymous path), and offline/error path (`authUnavailable: true`).
+- **signOut revert behaviour:** calling `signOut` on a Google-linked account causes Firebase to fire `onAuthStateChanged(null)`, which leads `AuthProvider` to call `signInAnonymously` — the user reverts to anonymous mode rather than being fully signed out. This is the intended design and is covered by a dedicated test.
 - `useWatchRemoteHost` tests are updated to provide a mock `useAuth` returning a fixed `uid`.
 - Firestore emulator tests covering room create/update are updated to use authenticated contexts (`signInAnonymously` via the Auth emulator).
 - `SignInButton` and `RequiresAuth` are unit-tested with mocked `useAuth`.
