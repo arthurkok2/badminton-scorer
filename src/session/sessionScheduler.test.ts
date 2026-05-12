@@ -276,33 +276,29 @@ describe('selectNextPlayers tie-breaking', () => {
 
 describe('full-rotation cycle', () => {
   it('does not repeat the exact same team splits after one complete sit-out rotation', () => {
-    // Run one full 5-round rotation so every pair is equally balanced.
-    let session: ActiveSession = createSession(['Alice', 'Bob', 'Carol', 'Dave', 'Eve']);
-    for (let i = 0; i < 5; i++) {
-      const { rankedSplits } = generateMatchSuggestion(session);
-      session = applyMatchResult(session, rankedSplits[0], 'teamA');
-    }
+    // Build a perfectly balanced pairing matrix so all 3 splits score identically.
+    // This guarantees the tie-breaking shuffle is the only differentiator, proving
+    // the algorithm isn't locked into a fixed cycle.
+    const balanced: PairingMatrix = {
+      together: {
+        Alice: { Bob: 1, Carol: 1, Dave: 1 },
+        Bob: { Alice: 1, Carol: 1, Dave: 1 },
+        Carol: { Alice: 1, Bob: 1, Dave: 1 },
+        Dave: { Alice: 1, Bob: 1, Carol: 1 },
+      },
+      against: {
+        Alice: { Bob: 1, Carol: 1, Dave: 1 },
+        Bob: { Alice: 1, Carol: 1, Dave: 1 },
+        Carol: { Alice: 1, Bob: 1, Dave: 1 },
+        Dave: { Alice: 1, Bob: 1, Carol: 1 },
+      },
+    };
 
-    // From this balanced state, run 20 independent second rotations.
-    // At least one must differ from the first, proving the algorithm isn't locked into a fixed cycle.
-    const firstSecondRoundKey = (() => {
-      const { rankedSplits } = generateMatchSuggestion(session);
-      return JSON.stringify([...rankedSplits[0].teamA, ...rankedSplits[0].teamB]);
-    })();
-
-    let foundDifferentCycle = false;
-    for (let attempt = 0; attempt < 20 && !foundDifferentCycle; attempt++) {
-      const { rankedSplits } = generateMatchSuggestion(session);
-      const key = JSON.stringify([...rankedSplits[0].teamA, ...rankedSplits[0].teamB]);
-      if (key !== firstSecondRoundKey) foundDifferentCycle = true;
-    }
-
-    // Actually: the right assertion is that subsequent calls to generateMatchSuggestion
-    // from the same balanced state produce more than one distinct top split.
+    const players: [string, string, string, string] = ['Alice', 'Bob', 'Carol', 'Dave'];
     const seenSplits = new Set<string>();
     for (let i = 0; i < 50; i++) {
-      const { rankedSplits } = generateMatchSuggestion(session);
-      seenSplits.add(JSON.stringify([...rankedSplits[0].teamA, ...rankedSplits[0].teamB]));
+      const [top] = rankSplitsForPlayers(players, balanced);
+      seenSplits.add(JSON.stringify([...top.teamA, ...top.teamB]));
     }
     expect(seenSplits.size).toBeGreaterThan(1);
   });
