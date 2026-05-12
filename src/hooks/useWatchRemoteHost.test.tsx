@@ -5,6 +5,18 @@ import { createMatch } from '../domain/matchEngine';
 import type { MatchState } from '../domain/matchTypes';
 import type { PendingWatchRemoteCommand } from '../remote/firestoreRemoteTypes';
 
+// Mock useAuth so the hook gets a deterministic uid
+vi.mock('../auth', () => ({
+  useAuth: vi.fn(() => ({
+    user: { uid: 'test-host-uid', isAnonymous: true },
+    loading: false,
+    isAnonymous: true,
+    authUnavailable: false,
+    signInWithGoogle: vi.fn(),
+    signOut: vi.fn(),
+  })),
+}));
+
 function createTestMatch(): MatchState {
   return createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
 }
@@ -98,7 +110,9 @@ describe('useWatchRemoteHost', () => {
     });
 
     expect(service.createRoom).toHaveBeenCalledOnce();
+    expect(service.createRoom).toHaveBeenCalledWith(expect.objectContaining({ hostId: 'test-host-uid' }));
     expect(service.publishState).toHaveBeenCalledOnce();
+    expect(service.publishState).toHaveBeenCalledWith(expect.objectContaining({ hostId: 'test-host-uid' }));
     expect(service.subscribeToCommands).toHaveBeenCalledOnce();
     expect(result.current.status).toBe('active');
     expect(result.current.code).toBe('ABCD');
@@ -381,6 +395,32 @@ describe('useWatchRemoteHost', () => {
     expect(service.markRejected).toHaveBeenCalledWith(
       expect.objectContaining({ code: 'ABCD', commandId: 'cmd-unknown', reason: 'unsupported command type' }),
     );
+  });
+
+  it('does not start when authUnavailable is true', async () => {
+    const { useAuth } = await import('../auth');
+    (useAuth as ReturnType<typeof vi.fn>).mockReturnValueOnce({
+      user: null,
+      loading: false,
+      isAnonymous: false,
+      authUnavailable: true,
+      signInWithGoogle: vi.fn(),
+      signOut: vi.fn(),
+    });
+
+    const service = makeService();
+    const dispatch = vi.fn();
+    const announce = vi.fn();
+    const match = createTestMatch();
+
+    const { result } = renderHook(() =>
+      useWatchRemoteHost({ match, dispatch, announce, service }),
+    );
+
+    await act(async () => { await result.current.start(); });
+
+    expect(service.createRoom).not.toHaveBeenCalled();
+    expect(result.current.status).toBe('inactive');
   });
 
   it('onError callback sets status to error with the error message', async () => {

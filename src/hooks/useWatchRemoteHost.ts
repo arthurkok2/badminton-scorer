@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { useAuth } from '../auth';
 import type { MatchState } from '../domain/matchTypes';
 import type { AppCommand } from '../input/commands';
 import type { PendingWatchRemoteCommand, WatchRemoteHostStatus } from '../remote/firestoreRemoteTypes';
@@ -51,12 +52,13 @@ export function useWatchRemoteHost(options: {
 } {
   const { match, dispatch, announce, service = defaultService } = options;
 
+  const { user, loading, authUnavailable } = useAuth();
+
   const [status, setStatus] = useState<WatchRemoteHostStatus>('inactive');
   const [code, setCode] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
   const [lastCommandLabel, setLastCommandLabel] = useState<string | undefined>(undefined);
 
-  const hostIdRef = useRef<string>(crypto.randomUUID());
   const unsubscribeRef = useRef<(() => void) | undefined>(undefined);
   const codeRef = useRef<string | undefined>(undefined);
   // Keep a ref to the current match so the command handler always sees latest state
@@ -77,15 +79,16 @@ export function useWatchRemoteHost(options: {
   const processedCommandIds = useRef(new Set<string>());
 
   const start = useCallback(async () => {
-    // Guard against double-start
+    // Guard against double-start or missing auth
     if (statusRef.current !== 'inactive') return;
+    if (loading || authUnavailable || !user) return;
 
     cancelledRef.current = false;
     updateStatus('starting');
     setError(undefined);
 
     try {
-      const roomCode = await service.createRoom({ match: matchRef.current, hostId: hostIdRef.current });
+      const roomCode = await service.createRoom({ match: matchRef.current, hostId: user.uid });
 
       // If stop() was called while createRoom was in flight, clean up the room and bail
       if (cancelledRef.current) {
@@ -94,7 +97,7 @@ export function useWatchRemoteHost(options: {
         return;
       }
 
-      await service.publishState({ code: roomCode, match: matchRef.current, hostId: hostIdRef.current });
+      await service.publishState({ code: roomCode, match: matchRef.current, hostId: user.uid });
 
       const unsubscribe = service.subscribeToCommands({
         code: roomCode,
@@ -138,7 +141,7 @@ export function useWatchRemoteHost(options: {
       updateStatus('error');
       setError(err instanceof Error ? err.message : String(err));
     }
-  }, [service, dispatch, announce]);
+  }, [service, dispatch, announce, user, loading, authUnavailable]);
 
   const stop = useCallback(async () => {
     // Handle stop() called while start() is still in progress
