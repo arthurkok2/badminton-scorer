@@ -37,7 +37,7 @@ export function Controls({
   onRerollFirstServer,
   onPlayerNameChange,
 }: ControlsProps) {
-  const canSetInitialServer = match.score.teamA === 0 && match.score.teamB === 0 && match.previous === undefined;
+  const canSetInitialServer = match.score.teamA === 0 && match.score.teamB === 0 && match.history.length === 0;
 
   return (
     <section className="controls" aria-label="Match controls">
