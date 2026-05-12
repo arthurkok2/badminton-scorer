@@ -59,8 +59,10 @@ Two collections:
 8. **Command update restrictions** — identity fields immutable; only outcome fields may be added.
 9. **Explicit deny-all fallback** — all paths not matched are denied.
 
-### Known limitation
+### Auth integration
 
-The app has no Firebase Authentication. `hostId` is a client-generated UUID stored in the document, not a Firebase UID. Rules can enforce that `hostId` doesn't change after creation, but cannot cryptographically prove that only the original host is performing updates.
+Rooms require `request.auth != null && request.auth.uid == hostId` on create and update.
+Commands require `request.auth != null` on create (any signed-in user, including anonymous).
+Command updates (mark applied/rejected) require the caller's uid to match the room's `hostId` via a `get()` lookup.
 
-**Future improvement:** add Firebase Anonymous Auth and change the host create/update rules to require `request.auth.uid == resource.data.hostId`.
+The app uses Firebase Anonymous Auth as a baseline — every client has a Firebase uid even without an explicit sign-in, so `request.auth` is always populated in practice.
