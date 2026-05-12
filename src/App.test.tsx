@@ -173,6 +173,23 @@ describe('App', () => {
 
     expect(mockedSpeakAnnouncement).toHaveBeenCalledTimes(1);
     expect(mockedSpeakAnnouncement.mock.calls[0][0].score).toEqual({ teamA: 2, teamB: 0 });
+    expect(mockedSpeakAnnouncement.mock.calls[0][1]).toBe('full');
+  });
+
+  it('persists short announcement mode and uses it for manual and auto announcements', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: /short announcement/i }));
+    expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '{}')).toMatchObject({ announcementMode: 'short' });
+
+    await user.click(screen.getByRole('button', { name: /announce score/i }));
+    expect(mockedSpeakAnnouncement).toHaveBeenLastCalledWith(expect.anything(), 'short');
+
+    await user.click(screen.getByRole('switch', { name: /auto announce/i }));
+    await user.click(screen.getByRole('button', { name: /Team A score/i }));
+
+    expect(mockedSpeakAnnouncement).toHaveBeenLastCalledWith(expect.objectContaining({ score: { teamA: 1, teamB: 0 } }), 'short');
   });
 
   it('auto announces once for one scoring action under StrictMode', async () => {

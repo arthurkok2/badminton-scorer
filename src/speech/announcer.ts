@@ -1,6 +1,7 @@
 import type { MatchState, PlayerId, TeamId } from '../domain/matchTypes';
 
 export type SpeechStatus = 'available' | 'unsupported';
+export type AnnouncementMode = 'full' | 'short';
 
 export function getSpeechStatus(): SpeechStatus {
   return typeof window !== 'undefined' && window.speechSynthesis && window.SpeechSynthesisUtterance
@@ -8,7 +9,7 @@ export function getSpeechStatus(): SpeechStatus {
     : 'unsupported';
 }
 
-export function buildAnnouncement(match: MatchState): string {
+export function buildAnnouncement(match: MatchState, mode: AnnouncementMode = 'full'): string {
   if (match.winnerTeamId) {
     const winner = teamNameForSpeech(match.teams[match.winnerTeamId].name);
     return `Game. ${winner} wins, ${scoreForTeam(match, match.winnerTeamId)}-${scoreForTeam(match, otherTeam(match.winnerTeamId))}.`;
@@ -17,22 +18,27 @@ export function buildAnnouncement(match: MatchState): string {
   const server = findPlayerName(match, match.serverId);
   const servingTeam = teamNameForSpeech(match.teams[match.servingTeamId].name);
   const receivingTeamId = otherTeam(match.servingTeamId);
+  const score = `${scoreForTeam(match, match.servingTeamId)}-${scoreForTeam(match, receivingTeamId)}`;
 
-  return `${servingTeam}, ${server} serving, ${scoreForTeam(match, match.servingTeamId)}-${scoreForTeam(match, receivingTeamId)}.`;
+  if (mode === 'short') {
+    return `${score}, ${server} serving.`;
+  }
+
+  return `${servingTeam}, ${server} serving, ${score}.`;
 }
 
 function teamNameForSpeech(name: string): string {
   return name.replace(/ ([A-Z])$/, (_, letter: string) => ` "${letter}"`);
 }
 
-export function speakAnnouncement(match: MatchState): boolean {
+export function speakAnnouncement(match: MatchState, mode: AnnouncementMode = 'full'): boolean {
   if (getSpeechStatus() === 'unsupported') {
     return false;
   }
 
   try {
     window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(new window.SpeechSynthesisUtterance(buildAnnouncement(match)));
+    window.speechSynthesis.speak(new window.SpeechSynthesisUtterance(buildAnnouncement(match, mode)));
     return true;
   } catch {
     return false;

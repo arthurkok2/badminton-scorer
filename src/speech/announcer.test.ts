@@ -24,6 +24,14 @@ describe('announcer', () => {
     expect(buildAnnouncement(match)).toBe('Team "A", Player 1 serving, 1-0.');
   });
 
+  it('announces only score and server in short mode', () => {
+    const match = awardPointToServingTeam(
+      createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' }),
+    );
+
+    expect(buildAnnouncement(match, 'short')).toBe('1-0, Player 1 serving.');
+  });
+
   it('announces game point after a winner exists', () => {
     const match = createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
     const winner = {
@@ -56,10 +64,10 @@ describe('announcer', () => {
     setWindowValue('speechSynthesis', { cancel, speak });
     setWindowValue('SpeechSynthesisUtterance', SpeechSynthesisUtterance);
 
-    expect(speakAnnouncement(match)).toBe(true);
+    expect(speakAnnouncement(match, 'short')).toBe(true);
     expect(cancel).toHaveBeenCalledOnce();
-    expect(SpeechSynthesisUtterance).toHaveBeenCalledWith('Team "A", Player 1 serving, 0-0.');
-    expect(speak).toHaveBeenCalledWith({ text: 'Team "A", Player 1 serving, 0-0.' });
+    expect(SpeechSynthesisUtterance).toHaveBeenCalledWith('0-0, Player 1 serving.');
+    expect(speak).toHaveBeenCalledWith({ text: '0-0, Player 1 serving.' });
   });
 
   it('returns false if speech APIs throw', () => {

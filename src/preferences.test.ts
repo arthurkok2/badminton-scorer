@@ -45,10 +45,17 @@ describe('preferences', () => {
 
     expect(loadPreferences()).toEqual({
       autoAnnounce: true,
+      announcementMode: 'full',
       matchMode: 'singles',
       remoteMapping: 'server-receiver-default',
       playerNames: DEFAULT_PLAYER_NAMES,
     });
+  });
+
+  it('saves and loads the selected announcement mode', () => {
+    savePreferences({ ...DEFAULT_PREFERENCES, announcementMode: 'short' });
+
+    expect(loadPreferences().announcementMode).toBe('short');
   });
 
   it('saves and loads custom player names', () => {

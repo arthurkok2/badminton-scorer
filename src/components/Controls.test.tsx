@@ -15,15 +15,19 @@ function renderControls(overrides?: {
   onPlayerNameChange?: (playerId: PlayerId, name: string) => void;
   onSetInitialServer?: (teamId: TeamId, playerId: PlayerId) => void;
   onStartSessionMode?: () => void;
+  announcementMode?: 'full' | 'short';
+  onAnnouncementModeChange?: (mode: 'full' | 'short') => void;
 }) {
   const props = {
     match: overrides?.match ?? defaultMatch,
     autoAnnounce: false,
+    announcementMode: overrides?.announcementMode ?? 'full',
     matchMode: overrides?.matchMode ?? 'doubles',
     playerNames: overrides?.playerNames ?? { ...DEFAULT_PLAYER_NAMES },
     onUndo: vi.fn(),
     onAnnounce: vi.fn(),
     onAutoAnnounceChange: vi.fn(),
+    onAnnouncementModeChange: overrides?.onAnnouncementModeChange ?? vi.fn(),
     onMatchModeChange: vi.fn(),
     onNewMatch: vi.fn(),
     onSetInitialServer: overrides?.onSetInitialServer ?? vi.fn(),
@@ -98,5 +102,15 @@ describe('Controls > player name editor', () => {
 
     expect(screen.getByRole('button', { name: /team a alice serves/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /team b bob serves/i })).toBeInTheDocument();
+  });
+
+  it('calls onAnnouncementModeChange when short announcement is selected', async () => {
+    const user = userEvent.setup();
+    const onAnnouncementModeChange = vi.fn();
+    renderControls({ onAnnouncementModeChange });
+
+    await user.click(screen.getByRole('button', { name: /short announcement/i }));
+
+    expect(onAnnouncementModeChange).toHaveBeenCalledWith('short');
   });
 });

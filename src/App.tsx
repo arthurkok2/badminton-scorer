@@ -50,6 +50,7 @@ interface MatchViewState {
   readonly pendingAutoAnnouncement?: {
     readonly id: number;
     readonly match: MatchState;
+    readonly announcementMode: AppPreferences['announcementMode'];
   };
 }
 
@@ -58,6 +59,7 @@ type MatchViewAction =
       readonly type: 'APPLY_COMMAND';
       readonly command: AppCommand;
       readonly autoAnnounce: boolean;
+      readonly announcementMode: AppPreferences['announcementMode'];
       readonly announcementId: number;
     }
   | { readonly type: 'RESET_MODE'; readonly mode: MatchMode; readonly playerNames: Record<PlayerId, string> };
@@ -124,6 +126,7 @@ export default function App() {
       type: 'APPLY_COMMAND',
       command,
       autoAnnounce: preferencesRef.current.autoAnnounce,
+      announcementMode: preferencesRef.current.announcementMode,
       announcementId: announcementIdRef.current,
     };
     setMatchView((current) => applyMatchViewAction(current, action));
@@ -171,7 +174,7 @@ export default function App() {
     }
 
     lastSpokenAnnouncementIdRef.current = pending.id;
-    speakAnnouncement(pending.match);
+    speakAnnouncement(pending.match, pending.announcementMode);
   }, [matchView.pendingAutoAnnouncement]);
 
   const updatePreferences = useCallback((updater: (current: AppPreferences) => AppPreferences) => {
@@ -389,11 +392,13 @@ export default function App() {
         <Controls
           match={match}
           autoAnnounce={preferences.autoAnnounce}
+          announcementMode={preferences.announcementMode}
           matchMode={preferences.matchMode}
           playerNames={sessionPlayerNames ?? preferences.playerNames}
           onUndo={() => dispatch({ type: 'UNDO' })}
-          onAnnounce={() => speakAnnouncement(match)}
+          onAnnounce={() => speakAnnouncement(match, preferencesRef.current.announcementMode)}
           onAutoAnnounceChange={(autoAnnounce) => updatePreferences((current) => ({ ...current, autoAnnounce }))}
+          onAnnouncementModeChange={(announcementMode) => updatePreferences((current) => ({ ...current, announcementMode }))}
           onMatchModeChange={handleMatchModeChange}
           onNewMatch={handleNewMatch}
           onStartSessionMode={handleSwitchToSession}
@@ -475,7 +480,7 @@ function applyMatchViewAction(current: MatchViewState, action: MatchViewAction):
   const scored = action.command.type === 'POINT_TEAM';
   const pendingAutoAnnouncement =
     scored && action.autoAnnounce && nextMatch !== current.match
-      ? { id: action.announcementId, match: nextMatch }
+      ? { id: action.announcementId, match: nextMatch, announcementMode: action.announcementMode }
       : current.pendingAutoAnnouncement;
 
   return {

@@ -1,14 +1,17 @@
 import { Megaphone, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import type { MatchMode, MatchState, PlayerId, TeamId } from '../domain/matchTypes';
+import type { AnnouncementMode } from '../speech/announcer';
 
 interface ControlsProps {
   readonly match: MatchState;
   readonly autoAnnounce: boolean;
+  readonly announcementMode: AnnouncementMode;
   readonly matchMode: MatchMode;
   readonly playerNames: Record<PlayerId, string>;
   readonly onUndo: () => void;
   readonly onAnnounce: () => void;
   readonly onAutoAnnounceChange: (enabled: boolean) => void;
+  readonly onAnnouncementModeChange: (mode: AnnouncementMode) => void;
   readonly onMatchModeChange: (mode: MatchMode) => void;
   readonly onNewMatch: () => void;
   readonly onStartSessionMode: () => void;
@@ -20,11 +23,13 @@ interface ControlsProps {
 export function Controls({
   match,
   autoAnnounce,
+  announcementMode,
   matchMode,
   playerNames,
   onUndo,
   onAnnounce,
   onAutoAnnounceChange,
+  onAnnouncementModeChange,
   onMatchModeChange,
   onNewMatch,
   onStartSessionMode,
@@ -74,6 +79,27 @@ export function Controls({
           onClick={() => onMatchModeChange('singles')}
         >
           Singles
+        </button>
+      </div>
+
+      <div className="mode-toggle" aria-label="Announcement mode">
+        <button
+          type="button"
+          className={announcementMode === 'full' ? 'mode-option is-selected' : 'mode-option'}
+          aria-pressed={announcementMode === 'full'}
+          disabled={announcementMode === 'full'}
+          onClick={() => onAnnouncementModeChange('full')}
+        >
+          Full announcement
+        </button>
+        <button
+          type="button"
+          className={announcementMode === 'short' ? 'mode-option is-selected' : 'mode-option'}
+          aria-pressed={announcementMode === 'short'}
+          disabled={announcementMode === 'short'}
+          onClick={() => onAnnouncementModeChange('short')}
+        >
+          Short announcement
         </button>
       </div>
 

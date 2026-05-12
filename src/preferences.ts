@@ -1,4 +1,5 @@
 import type { MatchState, PlayerId } from './domain/matchTypes';
+import type { AnnouncementMode } from './speech/announcer';
 
 export const DEFAULT_PLAYER_NAMES: Record<PlayerId, string> = {
   A1: 'Player 1',
@@ -9,6 +10,7 @@ export const DEFAULT_PLAYER_NAMES: Record<PlayerId, string> = {
 
 export interface AppPreferences {
   autoAnnounce: boolean;
+  announcementMode: AnnouncementMode;
   matchMode: 'singles' | 'doubles';
   remoteMapping: 'server-receiver-default';
   playerNames: Record<PlayerId, string>;
@@ -18,6 +20,7 @@ const STORAGE_KEY = 'badminton-scorer-preferences';
 
 export const DEFAULT_PREFERENCES: AppPreferences = {
   autoAnnounce: false,
+  announcementMode: 'full',
   matchMode: 'doubles',
   remoteMapping: 'server-receiver-default',
   playerNames: { ...DEFAULT_PLAYER_NAMES },
@@ -47,6 +50,7 @@ function parsePreferences(value: unknown): AppPreferences {
 
   return {
     autoAnnounce: typeof value.autoAnnounce === 'boolean' ? value.autoAnnounce : DEFAULT_PREFERENCES.autoAnnounce,
+    announcementMode: isAnnouncementMode(value.announcementMode) ? value.announcementMode : DEFAULT_PREFERENCES.announcementMode,
     matchMode: isMatchMode(value.matchMode) ? value.matchMode : DEFAULT_PREFERENCES.matchMode,
     remoteMapping: value.remoteMapping === 'server-receiver-default'
       ? value.remoteMapping
@@ -104,4 +108,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isMatchMode(value: unknown): value is AppPreferences['matchMode'] {
   return value === 'singles' || value === 'doubles';
+}
+
+function isAnnouncementMode(value: unknown): value is AnnouncementMode {
+  return value === 'full' || value === 'short';
 }
