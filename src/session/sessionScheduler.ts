@@ -35,10 +35,13 @@ export function selectNextPlayers(players: readonly SessionPlayer[]): {
     };
   }
 
-  const breakPlayers = [...players]
+  // Pre-shuffle each group so that ties in gamesPlayed / consecutiveStreak resolve
+  // randomly rather than by insertion order, preventing a fixed sit-out cycle.
+  const shuffled = [...players].sort(() => Math.random() - 0.5);
+  const breakPlayers = shuffled
     .filter(p => p.onBreak)
     .sort((a, b) => a.gamesPlayed - b.gamesPlayed);
-  const onCourtPlayers = [...players]
+  const onCourtPlayers = shuffled
     .filter(p => !p.onBreak)
     .sort((a, b) => a.consecutiveStreak - b.consecutiveStreak);
 
@@ -83,6 +86,9 @@ export function rankSplitsForPlayers(
     { teamA: [p0, p2], teamB: [p1, p3] },
     { teamA: [p0, p3], teamB: [p1, p2] },
   ];
+  // Pre-shuffle so equal-score ties resolve randomly rather than by construction order,
+  // preventing deterministic cycles when the pairing matrix is fully balanced.
+  splits.sort(() => Math.random() - 0.5);
   splits.sort((a, b) => scoreTeamSplit(a, matrix) - scoreTeamSplit(b, matrix));
   return splits;
 }
