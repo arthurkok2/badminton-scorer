@@ -20,15 +20,20 @@ describe('command reducer', () => {
     expect(next.servingTeamId).toBe('teamB');
   });
 
-  it('restores the last point for UNDO', () => {
+  it('walks back multiple points for repeated UNDO commands', () => {
     const match = createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
-    const scored = applyCommand(match, { type: 'POINT_TEAM', teamId: 'teamA' });
+    const firstPoint = applyCommand(match, { type: 'POINT_TEAM', teamId: 'teamA' });
+    const secondPoint = applyCommand(firstPoint, { type: 'POINT_TEAM', teamId: 'teamB' });
 
-    const undone = applyCommand(scored, { type: 'UNDO' });
+    const afterOneUndo = applyCommand(secondPoint, { type: 'UNDO' });
+    const afterTwoUndos = applyCommand(afterOneUndo, { type: 'UNDO' });
 
-    expect(undone.score).toEqual(match.score);
-    expect(undone.servingTeamId).toBe(match.servingTeamId);
-    expect(undone.previous).toBeUndefined();
+    expect(afterOneUndo.score).toEqual(firstPoint.score);
+    expect(afterOneUndo.servingTeamId).toBe(firstPoint.servingTeamId);
+    expect(afterOneUndo.history).toHaveLength(1);
+    expect(afterTwoUndos.score).toEqual(match.score);
+    expect(afterTwoUndos.servingTeamId).toBe(match.servingTeamId);
+    expect(afterTwoUndos.history).toHaveLength(0);
   });
 
   it('propagates domain errors for invalid SET_INITIAL_SERVER commands', () => {

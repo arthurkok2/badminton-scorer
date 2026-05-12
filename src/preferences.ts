@@ -1,4 +1,4 @@
-import type { MatchState, PlayerId } from './domain/matchTypes';
+import type { MatchSnapshot, MatchState, PlayerId } from './domain/matchTypes';
 import type { AnnouncementMode } from './speech/announcer';
 
 export const DEFAULT_PLAYER_NAMES: Record<PlayerId, string> = {
@@ -78,9 +78,7 @@ export function loadMatchState(): MatchState | undefined {
   try {
     const raw = window.localStorage.getItem(MATCH_STORAGE_KEY);
     if (!raw) return undefined;
-    const parsed = JSON.parse(raw);
-    if (!isRecord(parsed) || (parsed.mode !== 'singles' && parsed.mode !== 'doubles')) return undefined;
-    return parsed as unknown as MatchState;
+    return parseMatchState(JSON.parse(raw));
   } catch {
     return undefined;
   }
@@ -100,6 +98,87 @@ export function clearMatchState(): void {
   } catch {
     // ignore
   }
+}
+
+function parseMatchState(value: unknown): MatchState | undefined {
+  if (!isMatchSnapshot(value)) {
+    return undefined;
+  }
+
+  const { previous, history, ...rest } = value as MatchSnapshot & { previous?: unknown; history?: unknown };
+  const normalizedHistory = Array.isArray(history)
+    ? parseMatchHistory(history)
+    : isMatchSnapshot(previous)
+      ? [previous]
+      : [];
+
+  return {
+    ...(rest as unknown as Omit<MatchState, 'history'>),
+    mode: value.mode,
+    history: normalizedHistory,
+  };
+}
+
+function parseMatchHistory(value: unknown[]): MatchSnapshot[] {
+  return value.every(isMatchSnapshot) ? value : [];
+}
+
+function isMatchSnapshot(value: unknown): value is MatchSnapshot {
+  return (
+    isRecord(value) &&
+    isMatchMode(value.mode) &&
+    isTeams(value.teams) &&
+    isScore(value.score) &&
+    isTeamId(value.servingTeamId) &&
+    isPlayerId(value.serverId) &&
+    isPlayerId(value.receiverId) &&
+    isCourtPositions(value.courtPositions) &&
+    (value.winnerTeamId === undefined || isTeamId(value.winnerTeamId))
+  );
+}
+
+function isTeams(value: unknown): value is MatchSnapshot['teams'] {
+  return isRecord(value) && isTeam(value.teamA, 'teamA') && isTeam(value.teamB, 'teamB');
+}
+
+function isTeam(value: unknown, teamId: 'teamA' | 'teamB'): boolean {
+  return (
+    isRecord(value) &&
+    value.id === teamId &&
+    typeof value.name === 'string' &&
+    Array.isArray(value.players) &&
+    value.players.every((player) => isPlayer(player, teamId))
+  );
+}
+
+function isPlayer(value: unknown, teamId: 'teamA' | 'teamB'): boolean {
+  return isRecord(value) && isPlayerId(value.id) && typeof value.name === 'string' && value.teamId === teamId;
+}
+
+function isScore(value: unknown): value is MatchSnapshot['score'] {
+  return isRecord(value) && typeof value.teamA === 'number' && typeof value.teamB === 'number';
+}
+
+function isCourtPositions(value: unknown): value is MatchSnapshot['courtPositions'] {
+  return (
+    isRecord(value) &&
+    isCourtSide(value.A1) &&
+    isCourtSide(value.A2) &&
+    isCourtSide(value.B1) &&
+    isCourtSide(value.B2)
+  );
+}
+
+function isTeamId(value: unknown): value is 'teamA' | 'teamB' {
+  return value === 'teamA' || value === 'teamB';
+}
+
+function isPlayerId(value: unknown): value is PlayerId {
+  return value === 'A1' || value === 'A2' || value === 'B1' || value === 'B2';
+}
+
+function isCourtSide(value: unknown): value is 'left' | 'right' {
+  return value === 'left' || value === 'right';
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -62,6 +62,7 @@ export function createMatch(options: CreateMatchOptions): MatchState {
     serverId: options.initialServingPlayerId,
     receiverId: 'B1',
     courtPositions,
+    history: [],
   };
 
   return deriveServerAndReceiver(base);
@@ -78,7 +79,8 @@ export function setInitialServer(match: MatchState, teamId: TeamId, playerId: Pl
   const courtPositions = swapTeamToPutPlayerOnSide(match.courtPositions, teamId, playerId, servingSide);
 
   return deriveServerAndReceiver({
-    ...withoutPrevious(match),
+    ...withoutHistory(match),
+    history: match.history,
     servingTeamId: teamId,
     serverId: playerId,
     courtPositions: match.mode === 'singles' ? positionSinglesForServingSide(courtPositions, servingSide) : courtPositions,
@@ -101,8 +103,8 @@ export function awardPointToServingTeam(match: MatchState): MatchState {
   const courtPositions =
     match.mode === 'singles' ? positionSinglesForServingSide(doublesPositions, servingSide) : doublesPositions;
   const next = deriveServerAndReceiver({
-    ...withoutPrevious(match),
-    previous: cloneMatchSnapshot(match),
+    ...withoutHistory(match),
+    history: appendHistory(match),
     score,
     courtPositions,
   });
@@ -119,8 +121,8 @@ export function awardPointToReceivingTeam(match: MatchState): MatchState {
   const score = addPoint(match.score, newServingTeamId);
   const servingSide = servingSideForScore(score[newServingTeamId]);
   const next = deriveServerAndReceiver({
-    ...withoutPrevious(match),
-    previous: cloneMatchSnapshot(match),
+    ...withoutHistory(match),
+    history: appendHistory(match),
     score,
     servingTeamId: newServingTeamId,
     courtPositions:
@@ -135,7 +137,14 @@ export function awardPointToTeam(match: MatchState, teamId: TeamId): MatchState 
 }
 
 export function undoLastPoint(match: MatchState): MatchState {
-  return match.previous ? restoreSnapshot(match.previous) : match;
+  if (match.history.length === 0) {
+    return match;
+  }
+
+  const snapshotToRestore = match.history[match.history.length - 1];
+  const remainingHistory = match.history.slice(0, -1);
+
+  return restoreSnapshot(snapshotToRestore, remainingHistory);
 }
 
 function deriveServerAndReceiver(match: MatchState): MatchState {
@@ -206,14 +215,22 @@ function getWinner(score: Score): TeamId | undefined {
   return undefined;
 }
 
-function withoutPrevious(match: MatchState): MatchSnapshot {
-  const { previous, ...rest } = match;
+function withoutHistory(match: MatchState): MatchSnapshot {
+  const { history, ...rest } = match;
   return rest;
 }
 
 function cloneMatchSnapshot(match: MatchState): MatchSnapshot {
-  const snapshot = withoutPrevious(match);
+  const snapshot = withoutHistory(match);
 
+  return cloneSnapshot(snapshot);
+}
+
+function appendHistory(match: MatchState): MatchSnapshot[] {
+  return [...match.history.map(cloneSnapshot), cloneMatchSnapshot(match)];
+}
+
+function cloneSnapshot(snapshot: MatchSnapshot): MatchSnapshot {
   return {
     ...snapshot,
     teams: {
@@ -231,21 +248,10 @@ function cloneMatchSnapshot(match: MatchState): MatchSnapshot {
   };
 }
 
-function restoreSnapshot(snapshot: MatchSnapshot): MatchState {
+function restoreSnapshot(snapshot: MatchSnapshot, history: readonly MatchSnapshot[] = []): MatchState {
   return {
-    ...snapshot,
-    teams: {
-      teamA: {
-        ...snapshot.teams.teamA,
-        players: snapshot.teams.teamA.players.map((player) => ({ ...player })),
-      },
-      teamB: {
-        ...snapshot.teams.teamB,
-        players: snapshot.teams.teamB.players.map((player) => ({ ...player })),
-      },
-    },
-    score: { ...snapshot.score },
-    courtPositions: { ...snapshot.courtPositions },
+    ...cloneSnapshot(snapshot),
+    history: history.map(cloneSnapshot),
   };
 }
 

@@ -480,7 +480,7 @@ function createInitialMatch(mode: MatchMode, playerNames: Record<PlayerId, strin
 }
 
 function hasStarted(match: MatchState): boolean {
-  return match.score.teamA !== 0 || match.score.teamB !== 0 || match.previous !== undefined || match.winnerTeamId !== undefined;
+  return match.score.teamA !== 0 || match.score.teamB !== 0 || match.history.length > 0 || match.winnerTeamId !== undefined;
 }
 
 function applyMatchViewAction(current: MatchViewState, action: MatchViewAction): MatchViewState {

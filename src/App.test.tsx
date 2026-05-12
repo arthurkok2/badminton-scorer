@@ -124,11 +124,17 @@ describe('App', () => {
     expect(screen.getByText('Player 4').closest('.player-chip')).toHaveClass('active-server');
   });
 
-  it('undo restores the previous score', async () => {
+  it('undo can restore multiple previous scores', async () => {
     const user = userEvent.setup();
     render(<App />);
 
     await user.click(screen.getByRole('button', { name: /award point to team a, score \d+/i }));
+    await user.click(screen.getByRole('button', { name: /award point to team b, score 0/i }));
+    await user.click(screen.getByRole('button', { name: /undo last point/i }));
+
+    expect(screen.getByTestId('score-teamA')).toHaveTextContent('1');
+    expect(screen.getByTestId('score-teamB')).toHaveTextContent('0');
+
     await user.click(screen.getByRole('button', { name: /undo last point/i }));
 
     expect(screen.getByTestId('score-teamA')).toHaveTextContent('0');
