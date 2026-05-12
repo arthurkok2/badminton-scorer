@@ -32,9 +32,10 @@ Creates the React context and exports `useAuth()`.
 
 ```ts
 interface AuthState {
-  user: User | null;       // null only while loading
-  loading: boolean;        // true until onAuthStateChanged fires once
+  user: User | null;          // null while loading or auth unavailable
+  loading: boolean;           // true until onAuthStateChanged fires once
   isAnonymous: boolean;
+  authUnavailable: boolean;   // true = offline/network error, auth couldn't start
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -46,8 +47,11 @@ interface AuthState {
 
 - Calls `getFirebaseAuth()` and subscribes to `onAuthStateChanged`
 - Calls `signInAnonymously()` if the callback fires with `user === null`
+- If `signInAnonymously()` throws (device offline, network error), sets `user: null, loading: false, authUnavailable: true` — the app renders normally, only auth-dependent features are affected
 - Provides `AuthContext` to its children
 - Placed in `main.tsx` wrapping `<RouterProvider>` so every route has access
+
+**Offline behaviour:** If the user was previously signed in, Firebase restores the session from `localStorage` even offline — `authUnavailable` stays false. Only first-time visitors with no network will see `authUnavailable: true`. All non-Firestore features (scoring engine, BLE/keyboard/gamepad remotes, session scheduler) are unaffected in all cases.
 
 ---
 
@@ -59,10 +63,10 @@ const hostIdRef = useRef<string>(crypto.randomUUID());
 ```
 With:
 ```ts
-const { user, loading } = useAuth();
+const { user, loading, authUnavailable } = useAuth();
 ```
 
-`user.uid` is passed as `hostId` wherever `hostIdRef.current` was used. While `loading` is true, the host panel remains in its existing idle/disconnected state — no visible behaviour change.
+`user.uid` is passed as `hostId` wherever `hostIdRef.current` was used. While `loading` is true or `authUnavailable` is true, the host panel remains in its existing idle/disconnected state — no visible behaviour change for features that don't need Firestore.
 
 ---
 
@@ -75,6 +79,7 @@ Renders based on auth state:
 | State | Renders |
 |---|---|
 | `loading` | nothing (avoids flash) |
+| `authUnavailable` | "Unavailable offline" (muted, non-interactive) |
 | `isAnonymous` | "Sign in with Google" button |
 | signed in | user display name/avatar + "Sign out" |
 
@@ -118,7 +123,7 @@ All existing field validation, type checks, immutability rules, and `hasOnly` co
 
 ## 6. Testing
 
-- `AuthProvider` is tested with a mock `onAuthStateChanged` that exercises: loading state, anonymous sign-in trigger, signed-in state, and sign-out.
+- `AuthProvider` is tested with a mock `onAuthStateChanged` that exercises: loading state, anonymous sign-in trigger, signed-in state, sign-out, and offline/error path (`authUnavailable: true`).
 - `useWatchRemoteHost` tests are updated to provide a mock `useAuth` returning a fixed `uid`.
 - Firestore emulator tests covering room create/update are updated to use authenticated contexts (`signInAnonymously` via the Auth emulator).
 - `SignInButton` and `RequiresAuth` are unit-tested with mocked `useAuth`.
