@@ -15,6 +15,12 @@ function renderControls(overrides?: {
   onPlayerNameChange?: (playerId: PlayerId, name: string) => void;
   onSetInitialServer?: (teamId: TeamId, playerId: PlayerId) => void;
   onStartSessionMode?: () => void;
+  showMatchSetupControls?: boolean;
+  showNewMatchControl?: boolean;
+  showSessionModeControl?: boolean;
+  showBackToSessionSuggestion?: boolean;
+  onBackToSessionSuggestion?: () => void;
+  onEndSession?: () => void;
   announcementMode?: 'full' | 'short';
   onAnnouncementModeChange?: (mode: 'full' | 'short') => void;
 }) {
@@ -34,6 +40,12 @@ function renderControls(overrides?: {
     onRerollFirstServer: vi.fn(),
     onPlayerNameChange: overrides?.onPlayerNameChange ?? vi.fn(),
     onStartSessionMode: overrides?.onStartSessionMode ?? vi.fn(),
+    showMatchSetupControls: overrides?.showMatchSetupControls,
+    showNewMatchControl: overrides?.showNewMatchControl,
+    showSessionModeControl: overrides?.showSessionModeControl,
+    showBackToSessionSuggestion: overrides?.showBackToSessionSuggestion,
+    onBackToSessionSuggestion: overrides?.onBackToSessionSuggestion,
+    onEndSession: overrides?.onEndSession,
   };
 
   return render(<Controls {...props} />);
@@ -112,5 +124,39 @@ describe('Controls > player name editor', () => {
     await user.click(screen.getByRole('button', { name: /short announcement/i }));
 
     expect(onAnnouncementModeChange).toHaveBeenCalledWith('short');
+  });
+
+  it('hides one-off match setup controls when disabled for a session match', () => {
+    renderControls({
+      showMatchSetupControls: false,
+      showNewMatchControl: false,
+      showSessionModeControl: false,
+    });
+
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: /first server setup/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: /match mode/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /new match/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /session mode/i })).not.toBeInTheDocument();
+  });
+
+  it('renders session match actions when requested', async () => {
+    const user = userEvent.setup();
+    const onBackToSessionSuggestion = vi.fn();
+    const onEndSession = vi.fn();
+    renderControls({
+      showMatchSetupControls: false,
+      showNewMatchControl: false,
+      showSessionModeControl: false,
+      showBackToSessionSuggestion: true,
+      onBackToSessionSuggestion,
+      onEndSession,
+    });
+
+    await user.click(screen.getByRole('button', { name: /back to suggestion/i }));
+    await user.click(screen.getByRole('button', { name: /end session/i }));
+
+    expect(onBackToSessionSuggestion).toHaveBeenCalledTimes(1);
+    expect(onEndSession).toHaveBeenCalledTimes(1);
   });
 });

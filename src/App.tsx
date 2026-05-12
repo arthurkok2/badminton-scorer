@@ -312,10 +312,20 @@ export default function App() {
 
   const handleEndSession = useCallback(() => {
     if (!activeSession) return;
+    if (!window.confirm('End the current session?')) return;
     appendToSessionArchive(archiveSession(activeSession, new Date().toISOString()));
     clearActiveSession();
+    clearMatchState();
     setActiveSession(undefined);
     setCurrentSuggestion(undefined);
+    setCurrentPlayedSplit(undefined);
+    setMatchView((current) =>
+      applyMatchViewAction(current, {
+        type: 'RESET_MODE',
+        mode: preferencesRef.current.matchMode,
+        playerNames: preferencesRef.current.playerNames,
+      }),
+    );
     setSessionPhase('setup');
     setAppMode('match');
   }, [activeSession]);
@@ -324,6 +334,11 @@ export default function App() {
     if (activeSession && activeSession.matches.length > 0 && !window.confirm('Editing players will reset the current session\'s match history. Continue?')) return;
     setSessionPhase('setup');
   }, [activeSession]);
+
+  const handleBackToSessionSuggestion = useCallback(() => {
+    if (appMode !== 'session' || sessionPhase !== 'playing' || hasStarted(matchView.match)) return;
+    setSessionPhase('suggestion');
+  }, [appMode, matchView.match, sessionPhase]);
 
   const handleConnectBluetooth = useCallback(async () => {
     connectionRef.current?.disconnect();
@@ -390,6 +405,8 @@ export default function App() {
         B2: [...match.teams.teamA.players, ...match.teams.teamB.players].find(p => p.id === 'B2')?.name ?? '',
       }
     : undefined;
+  const isSessionPlaying = appMode === 'session' && sessionPhase === 'playing';
+  const canReturnToSessionSuggestion = isSessionPlaying && !hasStarted(match);
 
   return (
     <main className="app-shell">
@@ -411,6 +428,12 @@ export default function App() {
           onSetInitialServer={handleSetInitialServer}
           onRerollFirstServer={handleRerollFirstServer}
           onPlayerNameChange={appMode === 'session' ? () => {} : handlePlayerNameChange}
+          showMatchSetupControls={!isSessionPlaying}
+          showNewMatchControl={!isSessionPlaying}
+          showSessionModeControl={!isSessionPlaying}
+          showBackToSessionSuggestion={canReturnToSessionSuggestion}
+          onBackToSessionSuggestion={handleBackToSessionSuggestion}
+          onEndSession={isSessionPlaying ? handleEndSession : undefined}
         />
         <StatusBar
           bluetoothStatus={bluetoothStatus}

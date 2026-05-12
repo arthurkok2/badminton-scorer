@@ -18,6 +18,12 @@ interface ControlsProps {
   readonly onSetInitialServer: (teamId: TeamId, playerId: PlayerId) => void;
   readonly onRerollFirstServer: () => void;
   readonly onPlayerNameChange: (playerId: PlayerId, name: string) => void;
+  readonly showMatchSetupControls?: boolean;
+  readonly showNewMatchControl?: boolean;
+  readonly showSessionModeControl?: boolean;
+  readonly showBackToSessionSuggestion?: boolean;
+  readonly onBackToSessionSuggestion?: () => void;
+  readonly onEndSession?: () => void;
 }
 
 export function Controls({
@@ -36,8 +42,20 @@ export function Controls({
   onSetInitialServer,
   onRerollFirstServer,
   onPlayerNameChange,
+  showMatchSetupControls = true,
+  showNewMatchControl = true,
+  showSessionModeControl = true,
+  showBackToSessionSuggestion = false,
+  onBackToSessionSuggestion,
+  onEndSession,
 }: ControlsProps) {
-  const canSetInitialServer = match.score.teamA === 0 && match.score.teamB === 0 && match.history.length === 0;
+  const canSetInitialServer =
+    showMatchSetupControls && match.score.teamA === 0 && match.score.teamB === 0 && match.history.length === 0;
+  const showMatchActions =
+    showNewMatchControl ||
+    showSessionModeControl ||
+    (showBackToSessionSuggestion && onBackToSessionSuggestion !== undefined) ||
+    onEndSession !== undefined;
 
   return (
     <section className="controls" aria-label="Match controls">
@@ -61,26 +79,28 @@ export function Controls({
         </button>
       </div>
 
-      <div className="mode-toggle" aria-label="Match mode">
-        <button
-          type="button"
-          className={matchMode === 'doubles' ? 'mode-option is-selected' : 'mode-option'}
-          aria-pressed={matchMode === 'doubles'}
-          disabled={matchMode === 'doubles'}
-          onClick={() => onMatchModeChange('doubles')}
-        >
-          Doubles
-        </button>
-        <button
-          type="button"
-          className={matchMode === 'singles' ? 'mode-option is-selected' : 'mode-option'}
-          aria-pressed={matchMode === 'singles'}
-          disabled={matchMode === 'singles'}
-          onClick={() => onMatchModeChange('singles')}
-        >
-          Singles
-        </button>
-      </div>
+      {showMatchSetupControls ? (
+        <div className="mode-toggle" aria-label="Match mode">
+          <button
+            type="button"
+            className={matchMode === 'doubles' ? 'mode-option is-selected' : 'mode-option'}
+            aria-pressed={matchMode === 'doubles'}
+            disabled={matchMode === 'doubles'}
+            onClick={() => onMatchModeChange('doubles')}
+          >
+            Doubles
+          </button>
+          <button
+            type="button"
+            className={matchMode === 'singles' ? 'mode-option is-selected' : 'mode-option'}
+            aria-pressed={matchMode === 'singles'}
+            disabled={matchMode === 'singles'}
+            onClick={() => onMatchModeChange('singles')}
+          >
+            Singles
+          </button>
+        </div>
+      ) : null}
 
       <div className="mode-toggle" aria-label="Announcement mode">
         <button
@@ -169,14 +189,30 @@ export function Controls({
         </div>
       ) : null}
 
-      <div className="match-action-controls">
-        <button className="new-match-button" type="button" onClick={onNewMatch}>
-          New match
-        </button>
-        <button className="session-mode-button" type="button" onClick={onStartSessionMode}>
-          Session mode
-        </button>
-      </div>
+      {showMatchActions ? (
+        <div className="match-action-controls">
+          {showBackToSessionSuggestion && onBackToSessionSuggestion !== undefined ? (
+            <button className="session-secondary-button" type="button" onClick={onBackToSessionSuggestion}>
+              Back to suggestion
+            </button>
+          ) : null}
+          {onEndSession !== undefined ? (
+            <button className="session-danger-button" type="button" onClick={onEndSession}>
+              End session
+            </button>
+          ) : null}
+          {showNewMatchControl ? (
+            <button className="new-match-button" type="button" onClick={onNewMatch}>
+              New match
+            </button>
+          ) : null}
+          {showSessionModeControl ? (
+            <button className="session-mode-button" type="button" onClick={onStartSessionMode}>
+              Session mode
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }

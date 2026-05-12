@@ -76,6 +76,19 @@ const inactiveWatchRemoteResult = {
   stop: vi.fn(),
 };
 
+async function startSessionMatch(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: /session mode/i }));
+
+  for (const name of ['Alice', 'Bob', 'Carol', 'Dave']) {
+    await user.clear(screen.getByLabelText(/player name/i));
+    await user.type(screen.getByLabelText(/player name/i), name);
+    await user.click(screen.getByRole('button', { name: /^add$/i }));
+  }
+
+  await user.click(screen.getByRole('button', { name: /start session/i }));
+  await user.click(screen.getByRole('button', { name: /start match/i }));
+}
+
 describe('App', () => {
   beforeEach(() => {
     window.localStorage.clear();
@@ -342,6 +355,72 @@ describe('App', () => {
     expect(confirm).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('score-teamA')).toHaveTextContent('0');
     expect(screen.getByTestId('score-teamB')).toHaveTextContent('0');
+  });
+
+  it('hides one-off match setup controls while playing a session match', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await startSessionMatch(user);
+
+    const controls = screen.getByRole('region', { name: /match controls/i });
+    expect(within(controls).queryByRole('textbox')).not.toBeInTheDocument();
+    expect(within(controls).queryByRole('group', { name: /match mode/i })).not.toBeInTheDocument();
+    expect(within(controls).queryByRole('button', { name: /new match/i })).not.toBeInTheDocument();
+    expect(within(controls).queryByRole('button', { name: /session mode/i })).not.toBeInTheDocument();
+  });
+
+  it('returns an unstarted session match to the suggestion screen', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await startSessionMatch(user);
+    await user.click(screen.getByRole('button', { name: /back to suggestion/i }));
+
+    expect(screen.getByRole('region', { name: /next match/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /start match/i })).toBeInTheDocument();
+  });
+
+  it('keeps end session but hides back to suggestion after a session rally starts', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await startSessionMatch(user);
+    await user.click(screen.getByRole('button', { name: /award point to team a, score \d+/i }));
+
+    const controls = screen.getByRole('region', { name: /match controls/i });
+    expect(within(controls).queryByRole('button', { name: /back to suggestion/i })).not.toBeInTheDocument();
+    expect(within(controls).getByRole('button', { name: /end session/i })).toBeInTheDocument();
+  });
+
+  it('stays in the session when ending a session is cancelled', async () => {
+    const user = userEvent.setup();
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    render(<App />);
+
+    await startSessionMatch(user);
+    await user.click(screen.getByRole('button', { name: /end session/i }));
+
+    expect(confirm).toHaveBeenCalledWith('End the current session?');
+    expect(screen.getByRole('button', { name: /back to suggestion/i })).toBeInTheDocument();
+    expect(screen.getByText('Alice').closest('.player-chip')).toBeInTheDocument();
+  });
+
+  it('confirms ending a session and resets to a fresh match', async () => {
+    const user = userEvent.setup();
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    render(<App />);
+
+    await startSessionMatch(user);
+    await user.click(screen.getByRole('button', { name: /award point to team a, score \d+/i }));
+    await user.click(screen.getByRole('button', { name: /end session/i }));
+
+    expect(confirm).toHaveBeenCalledWith('End the current session?');
+    expect(screen.getByTestId('score-teamA')).toHaveTextContent('0');
+    expect(screen.getByTestId('score-teamB')).toHaveTextContent('0');
+    expect(screen.getByRole('button', { name: /session mode/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /end session/i })).not.toBeInTheDocument();
+    expect(screen.getByText('Player 1').closest('.player-chip')).toHaveClass('active-server');
   });
 
   it('allows first server adjustment before scoring starts', async () => {

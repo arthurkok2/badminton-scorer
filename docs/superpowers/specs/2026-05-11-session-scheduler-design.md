@@ -99,6 +99,22 @@ After a match ends, the scorer returns to the rotation screen and the next sugge
 
 ---
 
+## Section 5.1: Session Match Controls
+
+When a suggested session match is being played, the scorer reuses the existing court, score, speech, undo, and remote input surfaces, but session mode owns match setup and progression. The live scorer must not expose normal one-off match setup controls that would conflict with the session:
+
+- Player name inputs are hidden on the scorer page. Session player names come from the current match suggestion.
+- Singles/doubles switching is hidden. Session matches are always doubles.
+- The normal "New match" action is hidden. Session rotation is controlled by the suggestion and match-result flow.
+- At 0-0 with no undo history, the user can return to the current match suggestion screen. This lets them adjust the pending session match before any rally has been played.
+- At 0-0 with no undo history, the user can also end the session.
+- After any rally has been played, the return-to-suggestion action is hidden because the session match has started. Ending the session remains available.
+- Ending a session always asks for confirmation. If confirmed, the active session is archived and cleared, the app exits session mode, and the live scorer resets to a fresh 0-0 match using the saved match-mode and player-name preferences.
+
+The standard match mode screen keeps the existing player-name editor, singles/doubles toggle, new-match action, and session-mode entry point.
+
+---
+
 ## Section 6: Data Persistence
 
 All session data is stored in `localStorage`.
