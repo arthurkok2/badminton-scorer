@@ -33,7 +33,7 @@ node --check public/sw.js
 
 All feature design specs live in [`docs/superpowers/specs/`](docs/superpowers/specs/), dated by session (e.g. `2026-05-12-multi-point-undo-design.md`).
 
-**Rule:** after any major change (new feature, UI overhaul, architecture shift), update or create the relevant spec file in `docs/superpowers/specs/` before or as part of the commit.
+**Rule:** every change — including bug fixes, implementation detail improvements, and refactors — must either update an existing spec or create a new one in `docs/superpowers/specs/` before or as part of the commit.
 
 ## Commit Style
 
