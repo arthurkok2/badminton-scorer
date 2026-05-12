@@ -1,7 +1,130 @@
+import { useRef } from 'react';
+import { useControllerClient } from '../hooks/useControllerClient';
+
 export function ControllerPage() {
+  const { status, matchDoc, error, commandError, lastCode, join, leave, sendCommand } =
+    useControllerClient();
+  const codeInputRef = useRef<HTMLInputElement>(null);
+
+  if (status === 'disconnected' || status === 'joining') {
+    return (
+      <main className="app-shell">
+        <div className="app-layout">
+          <section className="controller-panel">
+            <h1 className="controller-title">Controller</h1>
+            <div className="controller-join-form">
+              <label htmlFor="room-code-input">Room code</label>
+              <input
+                id="room-code-input"
+                ref={codeInputRef}
+                type="text"
+                defaultValue={lastCode}
+                maxLength={6}
+                autoCapitalize="characters"
+                placeholder="e.g. ABCD"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') join((e.target as HTMLInputElement).value);
+                }}
+              />
+              <button
+                className="connect-button"
+                disabled={status === 'joining'}
+                onClick={() => {
+                  if (codeInputRef.current) join(codeInputRef.current.value);
+                }}
+              >
+                {status === 'joining' ? 'Joining…' : 'Join'}
+              </button>
+            </div>
+            <a href="/" className="controller-back-link">← Back to scorer</a>
+          </section>
+        </div>
+      </main>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <main className="app-shell">
+        <div className="app-layout">
+          <section className="controller-panel">
+            <h1 className="controller-title">Controller</h1>
+            <p className="controller-error-message" role="alert">{error ?? 'An error occurred'}</p>
+            <button className="connect-button" onClick={leave}>Back</button>
+          </section>
+        </div>
+      </main>
+    );
+  }
+
+  const match = matchDoc!.matchState;
+  const teamAName = match.teams.teamA.name;
+  const teamBName = match.teams.teamB.name;
+  const isServingA = match.servingTeamId === 'teamA';
+
   return (
-    <main>
-      <h1>Controller</h1>
+    <main className="app-shell">
+      <div className="app-layout">
+        <section className="controller-panel">
+          <div className="controller-header">
+            <h1 className="controller-title">Controller</h1>
+            <span className="controller-code">{matchDoc!.code}</span>
+          </div>
+
+          <div className="controller-score">
+            <div className={`controller-team${isServingA ? ' controller-team--serving' : ''}`}>
+              <span className="controller-team-name">{teamAName}</span>
+              <span className="controller-team-score">{match.score.teamA}</span>
+              {isServingA && <span className="controller-serving-dot" aria-label="Serving" />}
+            </div>
+            <span className="controller-vs">vs</span>
+            <div className={`controller-team${!isServingA ? ' controller-team--serving' : ''}`}>
+              <span className="controller-team-name">{teamBName}</span>
+              <span className="controller-team-score">{match.score.teamB}</span>
+              {!isServingA && <span className="controller-serving-dot" aria-label="Serving" />}
+            </div>
+          </div>
+
+          {matchDoc!.winnerTeamId && (
+            <p className="controller-winner">
+              {match.teams[matchDoc!.winnerTeamId].name} wins!
+            </p>
+          )}
+
+          {commandError && (
+            <p className="controller-command-error" role="alert">{commandError}</p>
+          )}
+
+          <div className="controller-commands">
+            <button
+              className="controller-command-button controller-command-button--point"
+              onClick={() => sendCommand('POINT_TEAM', 'teamA')}
+            >
+              Point {teamAName}
+            </button>
+            <button
+              className="controller-command-button controller-command-button--point"
+              onClick={() => sendCommand('POINT_TEAM', 'teamB')}
+            >
+              Point {teamBName}
+            </button>
+            <button
+              className="controller-command-button"
+              onClick={() => sendCommand('UNDO', undefined)}
+            >
+              Undo
+            </button>
+            <button
+              className="controller-command-button"
+              onClick={() => sendCommand('ANNOUNCE', undefined)}
+            >
+              Announce
+            </button>
+          </div>
+
+          <button className="controller-leave-button" onClick={leave}>Leave</button>
+        </section>
+      </div>
     </main>
   );
 }
