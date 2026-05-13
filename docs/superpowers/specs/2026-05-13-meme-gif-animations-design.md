@@ -22,6 +22,7 @@ Events are detected by comparing the match state before and after each `POINT_TE
 | 8 | `comeback` | Team was trailing by ≥5 points at any point in the match, and just tied the score |
 | 9 | `streak_3` | Same team scored 3 consecutive (not already at 6) |
 | 10 | `first_to_11` | Scoring team just reached 11, opponent > 0 |
+| 11 | `score_6_7` | Score is exactly 6-7 or 7-6 (either team scoring into that state) |
 
 `shutout` supersedes `match_won` — it is the more specific event. Streak is computed by walking back `next.history` until a different team scored. Streak thresholds are exclusive: a 9-streak fires `streak_9` only (not also `streak_6` or `streak_3`).
 
@@ -72,6 +73,7 @@ Gifs live in `public/animations/` as committed static assets. Sourced from Giphy
 | `comeback` | "rocky balboa training" |
 | `streak_3` | "lets go fist pump" |
 | `first_to_11` | "halfway there bon jovi" |
+| `score_6_7` | "suspicious eyes" |
 
 ### `src/components/AnimationOverlay.tsx`
 
@@ -105,6 +107,7 @@ Event-to-label mapping (examples):
 | `streak_3` | "ON FIRE 🔥" |
 | `comeback` | "COMEBACK!" |
 | `first_to_11` | "HALFWAY THERE" |
+| `score_6_7` | "6 - 7 👀" |
 
 ### Wiring in `App.tsx`
 
