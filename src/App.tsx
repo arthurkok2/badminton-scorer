@@ -44,6 +44,9 @@ import { AccountBar } from './components/AccountBar';
 import { useWatchRemoteHost } from './hooks/useWatchRemoteHost';
 import { useAuth } from './auth';
 import type { ActiveSession, MatchSuggestion as MatchSuggestionData, TeamSplit } from './session/sessionTypes';
+import { detectAnimationEvent } from './animations/detectAnimationEvent';
+import { AnimationOverlay } from './components/AnimationOverlay';
+import type { AnimationEvent } from './animations/types';
 
 type AppMode = 'match' | 'session';
 type SessionPhase = 'setup' | 'suggestion' | 'playing';
@@ -103,6 +106,10 @@ export default function App() {
   const connectAttemptIdRef = useRef(0);
   const mountedRef = useRef(false);
   const match = matchView.match;
+  const [activeAnimation, setActiveAnimation] = useState<AnimationEvent | null>(null);
+  const prevMatchRef = useRef<MatchState>(matchView.match);
+
+  const handleAnimationDismiss = useCallback(() => setActiveAnimation(null), []);
 
   useEffect(() => {
     preferencesRef.current = preferences;
@@ -110,6 +117,19 @@ export default function App() {
 
   useEffect(() => {
     saveMatchState(matchView.match);
+  }, [matchView.match]);
+
+  useEffect(() => {
+    const prev = prevMatchRef.current;
+    const next = matchView.match;
+    prevMatchRef.current = next;
+
+    if (!preferencesRef.current.animationsEnabled) return;
+
+    const event = detectAnimationEvent(prev, next);
+    if (event) {
+      setActiveAnimation((current) => current ?? event);
+    }
   }, [matchView.match]);
 
   useEffect(() => {
@@ -464,6 +484,7 @@ export default function App() {
           </div>
         )}
       </div>
+      <AnimationOverlay event={activeAnimation} onDismiss={handleAnimationDismiss} />
     </main>
   );
 }
