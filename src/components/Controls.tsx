@@ -8,9 +8,11 @@ interface ControlsProps {
   readonly announcementMode: AnnouncementMode;
   readonly matchMode: MatchMode;
   readonly playerNames: Record<PlayerId, string>;
+  readonly animationsEnabled: boolean;
   readonly onUndo: () => void;
   readonly onAnnounce: () => void;
   readonly onAutoAnnounceChange: (enabled: boolean) => void;
+  readonly onAnimationsEnabledChange: (enabled: boolean) => void;
   readonly onAnnouncementModeChange: (mode: AnnouncementMode) => void;
   readonly onMatchModeChange: (mode: MatchMode) => void;
   readonly onNewMatch: () => void;
@@ -32,9 +34,11 @@ export function Controls({
   announcementMode,
   matchMode,
   playerNames,
+  animationsEnabled,
   onUndo,
   onAnnounce,
   onAutoAnnounceChange,
+  onAnimationsEnabledChange,
   onAnnouncementModeChange,
   onMatchModeChange,
   onNewMatch,
@@ -76,6 +80,16 @@ export function Controls({
         >
           {autoAnnounce ? <Volume2 size={20} aria-hidden="true" /> : <VolumeX size={20} aria-hidden="true" />}
           Auto
+        </button>
+        <button
+          type="button"
+          className={animationsEnabled ? 'toggle-button is-on' : 'toggle-button'}
+          role="switch"
+          aria-checked={animationsEnabled}
+          aria-label="Animations"
+          onClick={() => onAnimationsEnabledChange(!animationsEnabled)}
+        >
+          🎬
         </button>
       </div>
 

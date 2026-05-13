@@ -23,6 +23,8 @@ function renderControls(overrides?: {
   onEndSession?: () => void;
   announcementMode?: 'full' | 'short';
   onAnnouncementModeChange?: (mode: 'full' | 'short') => void;
+  animationsEnabled?: boolean;
+  onAnimationsEnabledChange?: (enabled: boolean) => void;
 }) {
   const props = {
     match: overrides?.match ?? defaultMatch,
@@ -30,9 +32,11 @@ function renderControls(overrides?: {
     announcementMode: overrides?.announcementMode ?? 'full',
     matchMode: overrides?.matchMode ?? 'doubles',
     playerNames: overrides?.playerNames ?? { ...DEFAULT_PLAYER_NAMES },
+    animationsEnabled: overrides?.animationsEnabled ?? true,
     onUndo: vi.fn(),
     onAnnounce: vi.fn(),
     onAutoAnnounceChange: vi.fn(),
+    onAnimationsEnabledChange: overrides?.onAnimationsEnabledChange ?? vi.fn(),
     onAnnouncementModeChange: overrides?.onAnnouncementModeChange ?? vi.fn(),
     onMatchModeChange: vi.fn(),
     onNewMatch: vi.fn(),

@@ -445,9 +445,13 @@ export default function App() {
           announcementMode={preferences.announcementMode}
           matchMode={preferences.matchMode}
           playerNames={sessionPlayerNames ?? preferences.playerNames}
+          animationsEnabled={preferences.animationsEnabled}
           onUndo={() => dispatch({ type: 'UNDO' })}
           onAnnounce={() => speakAnnouncement(match, preferencesRef.current.announcementMode)}
           onAutoAnnounceChange={(autoAnnounce) => updatePreferences((current) => ({ ...current, autoAnnounce }))}
+          onAnimationsEnabledChange={(animationsEnabled) =>
+            updatePreferences((current) => ({ ...current, animationsEnabled }))
+          }
           onAnnouncementModeChange={(announcementMode) => updatePreferences((current) => ({ ...current, announcementMode }))}
           onMatchModeChange={handleMatchModeChange}
           onNewMatch={handleNewMatch}
