@@ -50,6 +50,12 @@ export function detectAnimationEvent(prev: MatchState, next: MatchState): Animat
     return { type: 'first_to_11', teamId: scorer };
   }
 
+  // Priority 11: score_6_7
+  const scores = [next.score.teamA, next.score.teamB].sort((a, b) => a - b);
+  if (scores[0] === 6 && scores[1] === 7) {
+    return { type: 'score_6_7', teamId: scorer };
+  }
+
   return null;
 }
 

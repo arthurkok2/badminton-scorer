@@ -12,6 +12,7 @@ const GIF_MAP: Record<AnimationEventType, string[]> = {
   streak_3:    ['animations/streak_3_1.gif', 'animations/streak_3_2.gif'],
   comeback:    ['animations/comeback_1.gif', 'animations/comeback_2.gif'],
   first_to_11: ['animations/first_to_11_1.gif'],
+  score_6_7:   ['animations/score_6_7_1.gif'],
 };
 
 export function getGifUrl(type: AnimationEventType): string {

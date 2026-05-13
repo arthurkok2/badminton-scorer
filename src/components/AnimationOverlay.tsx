@@ -13,6 +13,7 @@ const EVENT_LABELS: Record<string, string> = {
   streak_3:    'ON FIRE 🔥',
   comeback:    'COMEBACK!',
   first_to_11: 'HALFWAY THERE',
+  score_6_7:   '6 - 7 👀',
 };
 
 interface Props {

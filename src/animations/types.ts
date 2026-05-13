@@ -10,7 +10,8 @@ export type AnimationEventType =
   | 'streak_6'
   | 'comeback'
   | 'streak_3'
-  | 'first_to_11';
+  | 'first_to_11'
+  | 'score_6_7';
 
 export interface AnimationEvent {
   readonly type: AnimationEventType;
