@@ -19,7 +19,7 @@ Events are detected by comparing the match state before and after each `POINT_TE
 | 5 | `deuce` | Score just became 20-20 |
 | 6 | `streak_9` | Same team scored 9 consecutive points (from history) |
 | 7 | `streak_6` | Same team scored 6 consecutive (not already at 9) |
-| 8 | `comeback` | Team was trailing by ≥5 points, now tied or ahead |
+| 8 | `comeback` | Team was trailing by ≥5 points at any point in the match, and just tied the score |
 | 9 | `streak_3` | Same team scored 3 consecutive (not already at 6) |
 | 10 | `first_to_11` | Scoring team just reached 11, opponent > 0 |
 
