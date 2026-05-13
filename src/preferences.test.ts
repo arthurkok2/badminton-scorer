@@ -57,6 +57,7 @@ describe('preferences', () => {
       announcementMode: 'full',
       matchMode: 'singles',
       remoteMapping: 'server-receiver-default',
+      animationsEnabled: true,
       playerNames: DEFAULT_PLAYER_NAMES,
     });
   });
@@ -167,6 +168,22 @@ describe('preferences', () => {
     window.localStorage.setItem(MATCH_STORAGE_KEY, JSON.stringify({ ...match, history: undefined, previous: {} }));
 
     expect(loadMatchState()?.history).toEqual([]);
+  });
+
+  it('defaults animationsEnabled to true', () => {
+    const preferences = loadPreferences();
+    expect(preferences.animationsEnabled).toBe(true);
+  });
+
+  it('persists and loads animationsEnabled: false', () => {
+    const prefs = { ...DEFAULT_PREFERENCES, animationsEnabled: false };
+    savePreferences(prefs);
+    expect(loadPreferences().animationsEnabled).toBe(false);
+  });
+
+  it('defaults animationsEnabled to true when stored value is invalid', () => {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ animationsEnabled: 'yes' }));
+    expect(loadPreferences().animationsEnabled).toBe(true);
   });
 
   it('does not throw when saving preferences fails', () => {

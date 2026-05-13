@@ -13,6 +13,7 @@ export interface AppPreferences {
   announcementMode: AnnouncementMode;
   matchMode: 'singles' | 'doubles';
   remoteMapping: 'server-receiver-default';
+  animationsEnabled: boolean;
   playerNames: Record<PlayerId, string>;
 }
 
@@ -23,6 +24,7 @@ export const DEFAULT_PREFERENCES: AppPreferences = {
   announcementMode: 'full',
   matchMode: 'doubles',
   remoteMapping: 'server-receiver-default',
+  animationsEnabled: true,
   playerNames: { ...DEFAULT_PLAYER_NAMES },
 };
 
@@ -55,6 +57,9 @@ function parsePreferences(value: unknown): AppPreferences {
     remoteMapping: value.remoteMapping === 'server-receiver-default'
       ? value.remoteMapping
       : DEFAULT_PREFERENCES.remoteMapping,
+    animationsEnabled: typeof value.animationsEnabled === 'boolean'
+      ? value.animationsEnabled
+      : DEFAULT_PREFERENCES.animationsEnabled,
     playerNames: parsePlayerNames(value.playerNames),
   };
 }
