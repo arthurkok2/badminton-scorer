@@ -40,6 +40,7 @@ import {
 import { SessionSetup } from './components/SessionSetup';
 import { MatchSuggestion } from './components/MatchSuggestion';
 import { WatchRemotePanel } from './components/WatchRemotePanel';
+import { AccountBar } from './components/AccountBar';
 import { useWatchRemoteHost } from './hooks/useWatchRemoteHost';
 import { useAuth } from './auth';
 import type { ActiveSession, MatchSuggestion as MatchSuggestionData, TeamSplit } from './session/sessionTypes';
@@ -374,6 +375,7 @@ export default function App() {
   if (appMode === 'session' && sessionPhase === 'setup') {
     return (
       <main className="app-shell">
+        <AccountBar />
         <div className="app-layout session-layout">
           <div className="app-mode-toggle">
             <button onClick={handleSwitchToMatch}>← Match mode</button>
@@ -387,6 +389,7 @@ export default function App() {
   if (appMode === 'session' && sessionPhase === 'suggestion' && currentSuggestion && activeSession) {
     return (
       <main className="app-shell">
+        <AccountBar />
         <div className="app-layout session-layout">
           <MatchSuggestion
             suggestion={currentSuggestion}
@@ -413,6 +416,7 @@ export default function App() {
 
   return (
     <main className="app-shell">
+      <AccountBar />
       <div className="app-layout">
         <CourtView match={match} onPointTeam={(teamId) => dispatch({ type: 'POINT_TEAM', teamId })} />
         <Controls

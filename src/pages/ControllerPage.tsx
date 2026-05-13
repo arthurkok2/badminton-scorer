@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth';
-import { SignInButton } from '../components/SignInButton';
+import { AccountBar } from '../components/AccountBar';
 import { useControllerClient } from '../hooks/useControllerClient';
 
 export function ControllerPage() {
@@ -14,11 +14,11 @@ export function ControllerPage() {
   if (status === 'disconnected' || status === 'joining') {
     return (
       <main className="app-shell">
+        <AccountBar />
         <div className="app-layout">
           <section className="controller-panel">
             <div className="controller-page-header">
               <h1 className="controller-title">Controller</h1>
-              <SignInButton />
             </div>
             <div className="controller-join-form">
               <label htmlFor="room-code-input">Room code</label>
@@ -57,6 +57,7 @@ export function ControllerPage() {
   if (status === 'error') {
     return (
       <main className="app-shell">
+        <AccountBar />
         <div className="app-layout">
           <section className="controller-panel">
             <h1 className="controller-title">Controller</h1>
@@ -75,6 +76,7 @@ export function ControllerPage() {
 
   return (
     <main className="app-shell">
+      <AccountBar />
       <div className="app-layout">
         <section className="controller-panel">
           <div className="controller-header">

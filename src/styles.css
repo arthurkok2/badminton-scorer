@@ -40,8 +40,176 @@ button {
   margin: 0 auto;
 }
 
+.app-account-bar {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  justify-content: flex-end;
+  width: min(100%, 760px);
+  min-height: 44px;
+  margin: 0 auto 10px;
+}
+
+.sign-in-button {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: #f5f7fa;
+  color: #111827;
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 900;
+}
+
+.sign-in-unavailable {
+  align-self: center;
+  color: #aabcc4;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.account-menu {
+  position: relative;
+}
+
+.account-avatar-button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  background: #1f766a;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+}
+
+.account-avatar-button:focus-visible,
+.sign-in-button:focus-visible,
+.account-menu-item:focus-visible {
+  outline: 2px solid #68d391;
+  outline-offset: 3px;
+}
+
+.account-avatar-image,
+.account-avatar-fallback {
+  width: 100%;
+  height: 100%;
+}
+
+.account-avatar-image {
+  display: block;
+  object-fit: cover;
+}
+
+.account-avatar-fallback {
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #2f855a, #3182ce);
+  font-size: 0.94rem;
+  font-weight: 900;
+}
+
+.account-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(260px, calc(100vw - 24px));
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: #172026;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45);
+}
+
+.account-dropdown-profile {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 4px 4px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.account-dropdown-avatar {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.account-dropdown-avatar--fallback {
+  display: grid;
+  place-items: center;
+  background: #1f766a;
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.account-dropdown-identity {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.account-dropdown-name,
+.account-dropdown-email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-dropdown-name {
+  color: #f5f7fa;
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.account-dropdown-email {
+  color: #aabcc4;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.account-menu-item {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  width: 100%;
+  min-height: 40px;
+  margin-top: 6px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #d7e1e6;
+  cursor: pointer;
+  font-size: 0.86rem;
+  font-weight: 800;
+  text-align: left;
+}
+
+.account-menu-item:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.account-menu-item:disabled {
+  color: #71838c;
+  cursor: default;
+}
+
 @media (min-width: 960px) {
   .app-layout {
+    width: min(100%, 1400px);
+  }
+
+  .app-account-bar {
     width: min(100%, 1400px);
   }
 

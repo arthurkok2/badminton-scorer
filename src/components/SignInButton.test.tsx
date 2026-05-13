@@ -57,31 +57,101 @@ describe('SignInButton', () => {
     expect(signInWithGoogle).toHaveBeenCalledTimes(1);
   });
 
-  it('renders display name and sign-out for a named user', async () => {
+  it('renders an avatar button for a named user', async () => {
     (authMock.useAuth as Mock).mockReturnValue(
       makeAuthState({
         isAnonymous: false,
-        user: { uid: 'g-uid', isAnonymous: false, displayName: 'Arthur', photoURL: null },
+        user: { uid: 'g-uid', isAnonymous: false, displayName: 'Arthur Dent', email: 'arthur@example.com', photoURL: null },
       }),
     );
     const { SignInButton } = await import('./SignInButton');
     render(<SignInButton />);
-    expect(screen.getByText('Arthur')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /sign out/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /account menu for arthur dent/i })).toHaveTextContent('AD');
+    expect(screen.queryByRole('button', { name: /sign out/i })).not.toBeInTheDocument();
   });
 
-  it('calls signOut when the sign-out button is clicked', async () => {
+  it('uses the Google profile photo when available', async () => {
+    (authMock.useAuth as Mock).mockReturnValue(
+      makeAuthState({
+        isAnonymous: false,
+        user: {
+          uid: 'g-uid',
+          isAnonymous: false,
+          displayName: 'Arthur Dent',
+          email: 'arthur@example.com',
+          photoURL: 'https://example.com/avatar.jpg',
+        },
+      }),
+    );
+    const { SignInButton } = await import('./SignInButton');
+    render(<SignInButton />);
+    expect(screen.getByRole('img', { name: /arthur dent/i })).toHaveAttribute('src', 'https://example.com/avatar.jpg');
+  });
+
+  it('opens an account menu with profile details and actions', async () => {
+    (authMock.useAuth as Mock).mockReturnValue(
+      makeAuthState({
+        isAnonymous: false,
+        user: { uid: 'g-uid', isAnonymous: false, displayName: 'Arthur Dent', email: 'arthur@example.com', photoURL: null },
+      }),
+    );
+    const { SignInButton } = await import('./SignInButton');
+    render(<SignInButton />);
+    await userEvent.click(screen.getByRole('button', { name: /account menu for arthur dent/i }));
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+    expect(screen.getByText('Arthur Dent')).toBeInTheDocument();
+    expect(screen.getByText('arthur@example.com')).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /settings/i })).toBeDisabled();
+    expect(screen.getByRole('menuitem', { name: /sign out/i })).toBeInTheDocument();
+  });
+
+  it('closes the account menu when Escape is pressed', async () => {
+    (authMock.useAuth as Mock).mockReturnValue(
+      makeAuthState({
+        isAnonymous: false,
+        user: { uid: 'g-uid', isAnonymous: false, displayName: 'Arthur Dent', photoURL: null },
+      }),
+    );
+    const { SignInButton } = await import('./SignInButton');
+    render(<SignInButton />);
+    await userEvent.click(screen.getByRole('button', { name: /account menu for arthur dent/i }));
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('closes the account menu when clicking outside', async () => {
+    (authMock.useAuth as Mock).mockReturnValue(
+      makeAuthState({
+        isAnonymous: false,
+        user: { uid: 'g-uid', isAnonymous: false, displayName: 'Arthur Dent', photoURL: null },
+      }),
+    );
+    const { SignInButton } = await import('./SignInButton');
+    render(
+      <>
+        <SignInButton />
+        <button type="button">Outside</button>
+      </>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: /account menu for arthur dent/i }));
+    await userEvent.click(screen.getByRole('button', { name: /outside/i }));
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('calls signOut and closes the menu when the sign-out item is clicked', async () => {
     const signOut = vi.fn().mockResolvedValue(undefined);
     (authMock.useAuth as Mock).mockReturnValue(
       makeAuthState({
         isAnonymous: false,
-        user: { uid: 'g-uid', isAnonymous: false, displayName: 'Arthur', photoURL: null },
+        user: { uid: 'g-uid', isAnonymous: false, displayName: 'Arthur Dent', photoURL: null },
         signOut,
       }),
     );
     const { SignInButton } = await import('./SignInButton');
     render(<SignInButton />);
-    await userEvent.click(screen.getByRole('button', { name: /sign out/i }));
+    await userEvent.click(screen.getByRole('button', { name: /account menu for arthur dent/i }));
+    await userEvent.click(screen.getByRole('menuitem', { name: /sign out/i }));
     expect(signOut).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 });

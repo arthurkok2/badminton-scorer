@@ -158,9 +158,9 @@ describe('WatchRemotePanel > authUnavailable', () => {
   });
 });
 
-describe('WatchRemotePanel > sign-in area', () => {
-  it('renders the sign-in button area', () => {
+describe('WatchRemotePanel > auth UI', () => {
+  it('does not render account controls inside the remote panel', () => {
     renderPanel({ status: 'inactive' });
-    expect(screen.getByRole('button', { name: /sign in with google/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /sign in with google/i })).not.toBeInTheDocument();
   });
 });

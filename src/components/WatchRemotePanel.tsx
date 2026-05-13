@@ -1,4 +1,3 @@
-import { SignInButton } from './SignInButton';
 import type { WatchRemoteHostStatus } from '../remote/firestoreRemoteTypes';
 
 interface WatchRemotePanelProps {
@@ -22,10 +21,6 @@ export function WatchRemotePanel({
 }: WatchRemotePanelProps) {
   return (
     <div className="watch-remote-panel" aria-label="Watch remote">
-      <div className="watch-remote-header">
-        <SignInButton />
-      </div>
-
       {status === 'inactive' && (
         <div className="watch-remote-actions">
           <button type="button" onClick={onStart} disabled={authUnavailable}>

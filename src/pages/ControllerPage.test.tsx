@@ -94,10 +94,12 @@ describe('ControllerPage', () => {
       expect(screen.getByRole('link', { name: /back to scorer/i })).toHaveAttribute('href', '/');
     });
 
-    it('renders a sign-in button', () => {
+    it('renders a sign-in button in the global account chrome', () => {
       render(<MemoryRouter><ControllerPage /></MemoryRouter>);
 
-      expect(screen.getByRole('button', { name: /sign in with google/i })).toBeInTheDocument();
+      expect(screen.getByRole('banner', { name: /app account/i })).toContainElement(
+        screen.getByRole('button', { name: /sign in with google/i }),
+      );
     });
 
     it('disables the Join button when authUnavailable is true', () => {

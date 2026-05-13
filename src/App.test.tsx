@@ -12,6 +12,19 @@ import type { BluetoothRemoteConnection } from './input/bluetoothRemote';
 import type { GamepadRemoteConnection, GamepadRemoteDiagnosticEvent } from './input/gamepadRemote';
 import type { KeyboardRemoteConnection, KeyboardRemoteDiagnosticEvent } from './input/keyboardRemote';
 
+const authMock = vi.hoisted(() => ({
+  useAuth: vi.fn(() => ({
+    user: { uid: 'anon', isAnonymous: true },
+    loading: false,
+    isAnonymous: true,
+    authUnavailable: false,
+    signInWithGoogle: vi.fn(),
+    signOut: vi.fn(),
+  })),
+}));
+
+vi.mock('./auth', () => ({ useAuth: authMock.useAuth }));
+
 vi.mock('./speech/announcer', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./speech/announcer')>();
 
@@ -92,6 +105,14 @@ async function startSessionMatch(user: ReturnType<typeof userEvent.setup>) {
 describe('App', () => {
   beforeEach(() => {
     window.localStorage.clear();
+    authMock.useAuth.mockReturnValue({
+      user: { uid: 'anon', isAnonymous: true },
+      loading: false,
+      isAnonymous: true,
+      authUnavailable: false,
+      signInWithGoogle: vi.fn(),
+      signOut: vi.fn(),
+    });
     mockedSpeakAnnouncement.mockClear();
     mockedGetBluetoothSupportStatus.mockReturnValue('unsupported');
     mockedConnectBluetoothRemote.mockReset();
@@ -122,6 +143,12 @@ describe('App', () => {
     render(<App />);
 
     expect(within(screen.getByRole('region', { name: /match controls/i })).getByRole('button', { name: /session mode/i })).toBeInTheDocument();
+  });
+
+  it('renders the account control in the global app chrome', () => {
+    render(<App />);
+
+    expect(within(screen.getByRole('banner', { name: /app account/i })).getByRole('button', { name: /sign in with google/i })).toBeInTheDocument();
   });
 
   it('awards a point to Team B from the court score and changes server', async () => {
