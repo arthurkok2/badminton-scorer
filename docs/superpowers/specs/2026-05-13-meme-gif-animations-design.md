@@ -45,19 +45,19 @@ Implements the priority table above. Returns `null` on undo, reset, or no qualif
 
 ### `src/animations/animationAssets.ts`
 
-Maps each event type to one or more bundled gif paths. On each trigger, one is selected at random for variety.
+Maps each event type to one or more bundled video paths. On each trigger, one is selected at random for variety.
 
 ```ts
-const GIF_MAP: Record<AnimationEventType, string[]> = {
-  match_won: ['/animations/match_won_1.gif', '/animations/match_won_2.gif'],
-  shutout:   ['/animations/shutout_1.gif'],
+const VIDEO_MAP: Record<AnimationEventType, string[]> = {
+  match_won: ['/animations/match_won_1.webm', '/animations/match_won_2.webm'],
+  shutout:   ['/animations/shutout_1.webm'],
   // ...
 };
 
-export function getGifUrl(type: AnimationEventType): string
+export function getVideoUrl(type: AnimationEventType): string
 ```
 
-Gifs live in `public/animations/` as committed static assets. Sourced from Giphy; each file should be under 2 MB. `.gif` or `.webp` format.
+Videos live in `public/animations/` as committed static assets in WebM format (VP9 codec, no audio). Sourced from Giphy and converted from GIF via ffmpeg. Placeholder events (`comeback`, `match_point`) use minimal valid 1×1 black WebM files.
 
 ### Gif curation
 
@@ -88,7 +88,7 @@ interface Props {
 
 - **Size:** 100vw × 100vh, fixed position, z-index above all other UI
 - **Backdrop:** `rgba(0, 0, 0, 0.85)`
-- **Gif:** `<img>` with `object-fit: cover`, fills the full overlay
+- **Video:** `<video autoPlay loop muted playsInline>` with `object-fit: cover`, fills the full overlay
 - **Label:** short text centered on top of gif in large bold white text (e.g. "ON FIRE 🔥"), derived from event type
 - **Dismiss:** auto-dismisses after 2500ms via `setTimeout`; calls `onDismiss` which clears event state in parent
 - **Animation:** CSS fade-in on mount; fade-out before dismiss
@@ -141,7 +141,7 @@ Add `animationsEnabled: boolean` (default `true`) to `AppPreferences` in `prefer
 | `src/animations/animationAssets.ts` | New — gif registry |
 | `src/components/AnimationOverlay.tsx` | New — overlay component |
 | `src/components/AnimationOverlay.test.tsx` | New — component tests |
-| `public/animations/*.gif` | New — bundled gif assets |
+| `public/animations/*.webm` | New — bundled WebM video assets (VP9, converted from GIF via ffmpeg) |
 | `src/App.tsx` | Wire detection + overlay |
 | `src/preferences.ts` | Add `animationsEnabled` |
 | `src/styles.css` | Overlay CSS (fade-in/out keyframes) |
