@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import type { AnimationEvent } from '../animations/types';
-import { getGifUrl } from '../animations/animationAssets';
+import { getVideoUrl } from '../animations/animationAssets';
 
 const EVENT_LABELS: Record<string, string> = {
   match_won:   'MATCH!',
@@ -30,12 +30,12 @@ export function AnimationOverlay({ event, onDismiss }: Props) {
 
   if (!event) return null;
 
-  const gifUrl = getGifUrl(event.type);
+  const videoUrl = getVideoUrl(event.type);
   const label = EVENT_LABELS[event.type] ?? '';
 
   return (
     <div className="animation-overlay" role="img" aria-label={label}>
-      <img className="animation-overlay-gif" src={gifUrl} alt="" />
+      <video key={event.type} className="animation-overlay-gif" src={videoUrl} autoPlay loop muted playsInline />
       <p className="animation-overlay-label">{label}</p>
     </div>
   );
