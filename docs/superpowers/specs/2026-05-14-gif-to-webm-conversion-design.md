@@ -29,7 +29,10 @@ The 14 real GIF assets total ~55 MB. WebM (VP9) typically achieves 80–95% redu
 
 ### `src/components/AnimationOverlay.tsx`
 
-- Replace `<img className="animation-overlay-gif" src={gifUrl} alt="" />` with `<video className="animation-overlay-gif" src={videoUrl} autoPlay loop muted playsInline />`
+- Replace `<img>` with `<video autoPlay loop muted playsInline>`.
+- Videos are fetched as blobs via `fetch()` and played via `URL.createObjectURL()`. Direct `src` URLs cause `net::ERR_FAILED` on Firebase Hosting because Chrome's media pipeline sends HTTP range requests, and Firebase Hosting does not respond with proper 206 Partial Content — it returns 200 with the full file, which Chrome's video pipeline rejects. A blob URL plays from memory with no range requests.
+- The label renders immediately; the `<video>` element appears once the blob fetch resolves.
+- Blob URLs are revoked when the event changes or the component unmounts.
 - Update import: `getGifUrl` → `getVideoUrl`
 
 ### `docs/superpowers/specs/2026-05-13-meme-gif-animations-design.md`
