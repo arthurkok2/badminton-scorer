@@ -14,7 +14,6 @@ export function DisplaySettingsModal({ animationsEnabled, onAnimationsEnabledCha
         aria-label="Animations"
         onClick={() => onAnimationsEnabledChange(!animationsEnabled)}
       >
-        🎬
         Animations
       </button>
     </div>

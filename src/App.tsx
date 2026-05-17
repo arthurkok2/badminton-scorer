@@ -415,6 +415,22 @@ export default function App() {
     connectionRef.current = connection;
   }, [dispatch]);
 
+  const handleAutoAnnounceChange = useCallback(
+    (autoAnnounce: boolean) => updatePreferences((current) => ({ ...current, autoAnnounce })),
+    [updatePreferences],
+  );
+
+  const handleAnnouncementModeChange = useCallback(
+    (announcementMode: AppPreferences['announcementMode']) =>
+      updatePreferences((current) => ({ ...current, announcementMode })),
+    [updatePreferences],
+  );
+
+  const handleAnimationsEnabledChange = useCallback(
+    (animationsEnabled: boolean) => updatePreferences((current) => ({ ...current, animationsEnabled })),
+    [updatePreferences],
+  );
+
   const handleAppMenuAction = useCallback(
     (action: AppMenuAction) => {
       if (action === 'sessionMode') {
@@ -464,13 +480,13 @@ export default function App() {
           autoAnnounce={preferences.autoAnnounce}
           announcementMode={preferences.announcementMode}
           speechStatus={getSpeechStatus()}
-          onAutoAnnounceChange={(autoAnnounce) => updatePreferences((current) => ({ ...current, autoAnnounce }))}
-          onAnnouncementModeChange={(announcementMode) => updatePreferences((current) => ({ ...current, announcementMode }))}
+          onAutoAnnounceChange={handleAutoAnnounceChange}
+          onAnnouncementModeChange={handleAnnouncementModeChange}
         />
       ) : activeModal === 'displaySettings' ? (
         <DisplaySettingsModal
           animationsEnabled={preferences.animationsEnabled}
-          onAnimationsEnabledChange={(animationsEnabled) => updatePreferences((current) => ({ ...current, animationsEnabled }))}
+          onAnimationsEnabledChange={handleAnimationsEnabledChange}
         />
       ) : (
         <p className="settings-note">These controls will appear in the focused modal.</p>
