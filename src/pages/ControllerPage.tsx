@@ -14,7 +14,7 @@ export function ControllerPage() {
   if (status === 'disconnected' || status === 'joining') {
     return (
       <main className="app-shell">
-        <AccountBar />
+        <AccountBar onAppMenuAction={() => undefined} />
         <div className="app-layout">
           <section className="controller-panel">
             <div className="controller-page-header">
@@ -57,7 +57,7 @@ export function ControllerPage() {
   if (status === 'error') {
     return (
       <main className="app-shell">
-        <AccountBar />
+        <AccountBar onAppMenuAction={() => undefined} />
         <div className="app-layout">
           <section className="controller-panel">
             <h1 className="controller-title">Controller</h1>
@@ -76,7 +76,7 @@ export function ControllerPage() {
 
   return (
     <main className="app-shell">
-      <AccountBar />
+      <AccountBar onAppMenuAction={() => undefined} />
       <div className="app-layout">
         <section className="controller-panel">
           <div className="controller-header">

@@ -395,7 +395,7 @@ export default function App() {
   if (appMode === 'session' && sessionPhase === 'setup') {
     return (
       <main className="app-shell">
-        <AccountBar />
+        <AccountBar onAppMenuAction={() => undefined} />
         <div className="app-layout session-layout">
           <div className="app-mode-toggle">
             <button onClick={handleSwitchToMatch}>← Match mode</button>
@@ -409,7 +409,7 @@ export default function App() {
   if (appMode === 'session' && sessionPhase === 'suggestion' && currentSuggestion && activeSession) {
     return (
       <main className="app-shell">
-        <AccountBar />
+        <AccountBar onAppMenuAction={() => undefined} />
         <div className="app-layout session-layout">
           <MatchSuggestion
             suggestion={currentSuggestion}
@@ -436,7 +436,7 @@ export default function App() {
 
   return (
     <main className="app-shell">
-      <AccountBar />
+      <AccountBar onAppMenuAction={() => undefined} />
       <div className="app-layout">
         <CourtView match={match} onPointTeam={(teamId) => dispatch({ type: 'POINT_TEAM', teamId })} />
         <Controls

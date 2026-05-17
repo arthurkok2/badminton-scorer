@@ -44,6 +44,8 @@ button {
   position: relative;
   z-index: 20;
   display: flex;
+  gap: 10px;
+  align-items: center;
   justify-content: flex-end;
   width: min(100%, 760px);
   min-height: 44px;
@@ -51,6 +53,10 @@ button {
 }
 
 .account-menu {
+  position: relative;
+}
+
+.app-menu {
   position: relative;
 }
 
@@ -69,8 +75,24 @@ button {
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
 }
 
+.app-menu-button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  border-radius: 50%;
+  background: #26343c;
+  color: #f5f7fa;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+}
+
 .account-avatar-button:focus-visible,
-.account-menu-item:focus-visible {
+.account-menu-item:focus-visible,
+.app-menu-button:focus-visible,
+.app-modal-close:focus-visible {
   outline: 2px solid #68d391;
   outline-offset: 3px;
 }
@@ -104,6 +126,10 @@ button {
   border-radius: 8px;
   background: #172026;
   box-shadow: 0 18px 44px rgba(0, 0, 0, 0.45);
+}
+
+.app-menu-dropdown {
+  width: min(280px, calc(100vw - 24px));
 }
 
 .account-dropdown-profile {
@@ -194,6 +220,60 @@ button {
   font-size: 0.82rem;
   font-weight: 800;
   line-height: 1.35;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 14px;
+  background: rgba(0, 0, 0, 0.62);
+}
+
+.app-modal {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(100%, 520px);
+  max-height: min(86vh, 720px);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: #172026;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.52);
+}
+
+.app-modal-header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.app-modal-header h2 {
+  min-width: 0;
+  margin: 0;
+  color: #f5f7fa;
+  font-size: 1.05rem;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.app-modal-close {
+  flex: 0 0 auto;
+  width: 40px;
+  min-height: 40px;
+}
+
+.app-modal-body {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  overflow: auto;
+  padding: 12px;
 }
 
 @media (min-width: 960px) {

@@ -45,6 +45,8 @@ The gear opens a settings-focused dropdown. Items either open a focused modal or
 
 Activating an item closes the dropdown first. Session mode switches to the existing full-screen session setup/suggestion flow. New match uses the existing discard confirmation behavior when the current match has started.
 
+Task 2 implementation adds the shared gear menu action contract and modal shell. Until later tasks wire real handlers, app-level call sites pass no-op gear actions.
+
 ## Main Screen Boundary
 
 Controls used during normal match play stay on the main scorer:

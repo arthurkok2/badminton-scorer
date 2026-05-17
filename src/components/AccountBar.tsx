@@ -1,9 +1,15 @@
 import { AccountMenu } from './AccountMenu';
+import { AppMenu, type AppMenuAction } from './AppMenu';
 
-export function AccountBar() {
+interface AccountBarProps {
+  readonly onAppMenuAction: (action: AppMenuAction) => void;
+}
+
+export function AccountBar({ onAppMenuAction }: AccountBarProps) {
   return (
-    <div className="app-account-bar">
+    <header className="app-account-bar" role="banner" aria-label="App account">
       <AccountMenu />
-    </div>
+      <AppMenu onAction={onAppMenuAction} />
+    </header>
   );
 }
