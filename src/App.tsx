@@ -390,6 +390,9 @@ export default function App() {
     setSessionPhase('suggestion');
   }, [appMode, matchView.match, sessionPhase]);
 
+  const handleStartWatchRemote = useCallback(() => { void watchRemote.start(); }, [watchRemote]);
+  const handleStopWatchRemote = useCallback(() => { void watchRemote.stop(); }, [watchRemote]);
+
   const handleConnectBluetooth = useCallback(async () => {
     connectionRef.current?.disconnect();
     connectionRef.current = undefined;
@@ -500,8 +503,8 @@ export default function App() {
           }}
           authUnavailable={authUnavailable}
           onConnectBluetooth={handleConnectBluetooth}
-          onStartWatchRemote={() => { void watchRemote.start(); }}
-          onStopWatchRemote={() => { void watchRemote.stop(); }}
+          onStartWatchRemote={handleStartWatchRemote}
+          onStopWatchRemote={handleStopWatchRemote}
         />
       ) : activeModal === 'diagnostics' ? (
         <DiagnosticsModal events={diagnostics} />

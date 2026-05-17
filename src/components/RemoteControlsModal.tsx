@@ -67,7 +67,7 @@ export function RemoteControlsModal({
           </>
         ) : null}
         {watchRemote.status === 'stopping' ? <button type="button" disabled>Stopping...</button> : null}
-        {watchRemote.error ? (
+        {watchRemote.status === 'error' && watchRemote.error ? (
           <div className="watch-remote-status" role="alert">{watchRemote.error}</div>
         ) : null}
         {authUnavailable ? <p className="settings-note">Watch remote unavailable offline.</p> : null}
