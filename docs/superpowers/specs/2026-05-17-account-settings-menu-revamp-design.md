@@ -171,3 +171,12 @@ Add or update tests to cover:
 - `sessionPlayerNames` is computed via `useMemo` (deps: `[appMode, match.teams]`) so the player-list scan runs once per render cycle rather than four times inline.
 - `matchSettings` menu item uses `Settings2` icon (not `Users`) so it is visually distinct from the `sessionMode` item.
 - The app tools dropdown has `role="menu"` and each item button has `role="menuitem"` per the accessibility spec.
+
+## Implementation Notes (Task 4, 2026-05-17)
+
+- `AnnouncementSettingsModal` renders an auto-announce toggle (`role="switch"`), a full/short mode selector (`role="group"` with two `role="button"` options), and a speech status note. It imports `AnnouncementMode` and `SpeechStatus` from `../speech/announcer`.
+- `DisplaySettingsModal` renders a single animations toggle (`role="switch"`).
+- Both modals receive all needed state and callbacks as props from `App`; no local state is needed.
+- `activeModalDialog` in `App` was updated to replace the placeholder `<p>` with proper modal components for `announcementSettings` and `displaySettings` cases.
+- `Controls` required no changes — auto-announce, mode, and animations toggles were never rendered inline there (they had been removed in an earlier cleanup).
+- The `StatusBar` also renders "Speech ready" text, so the App test for the announcement settings dialog scopes the assertion to `within(dialog)` to avoid an ambiguous match.

@@ -103,6 +103,16 @@ async function chooseSettingsAction(user: ReturnType<typeof userEvent.setup>, ac
   await user.click(within(screen.getByLabelText(/settings menu tools/i)).getByRole('menuitem', { name: actionName }));
 }
 
+async function openAnnouncementSettings(user: ReturnType<typeof userEvent.setup>) {
+  await openSettingsMenu(user);
+  await user.click(screen.getByRole('menuitem', { name: /announcement settings/i }));
+}
+
+async function openDisplaySettings(user: ReturnType<typeof userEvent.setup>) {
+  await openSettingsMenu(user);
+  await user.click(screen.getByRole('menuitem', { name: /display settings/i }));
+}
+
 async function startSessionMatch(user: ReturnType<typeof userEvent.setup>) {
   await chooseSettingsAction(user, /session mode/i);
 
@@ -723,5 +733,74 @@ describe('App', () => {
     render(<App />);
 
     expect(screen.getByText('ABC123')).toBeInTheDocument();
+  });
+
+  // Announcement settings modal
+  it('does not show auto announce toggle on the main screen', () => {
+    render(<App />);
+
+    expect(screen.queryByRole('switch', { name: /auto announce/i })).not.toBeInTheDocument();
+  });
+
+  it('opens announcement settings modal from the app settings menu', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await openAnnouncementSettings(user);
+
+    const dialog = screen.getByRole('dialog', { name: /announcement settings/i });
+    expect(dialog).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: /auto announce/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /full announcement/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /short announcement/i })).toBeInTheDocument();
+    expect(within(dialog).getByText(/speech ready/i)).toBeInTheDocument();
+  });
+
+  it('toggles auto announce from the announcement settings modal', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await openAnnouncementSettings(user);
+    await user.click(screen.getByRole('switch', { name: /auto announce/i }));
+
+    expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '{}')).toMatchObject({ autoAnnounce: true });
+  });
+
+  it('changes announcement mode to short from the announcement settings modal', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await openAnnouncementSettings(user);
+    await user.click(screen.getByRole('button', { name: /short announcement/i }));
+
+    expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '{}')).toMatchObject({ announcementMode: 'short' });
+  });
+
+  // Display settings modal
+  it('does not show animations toggle on the main screen', () => {
+    render(<App />);
+
+    expect(screen.queryByRole('switch', { name: /animations/i })).not.toBeInTheDocument();
+  });
+
+  it('opens display settings modal from the app settings menu', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await openDisplaySettings(user);
+
+    expect(screen.getByRole('dialog', { name: /display settings/i })).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: /animations/i })).toBeInTheDocument();
+  });
+
+  it('toggles animations from the display settings modal', async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ animationsEnabled: true }));
+    render(<App />);
+
+    await openDisplaySettings(user);
+    await user.click(screen.getByRole('switch', { name: /animations/i }));
+
+    expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '{}')).toMatchObject({ animationsEnabled: false });
   });
 });

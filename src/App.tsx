@@ -42,6 +42,8 @@ import { MatchSuggestion } from './components/MatchSuggestion';
 import { WatchRemotePanel } from './components/WatchRemotePanel';
 import { AccountBar } from './components/AccountBar';
 import { AppModal } from './components/AppModal';
+import { AnnouncementSettingsModal } from './components/AnnouncementSettingsModal';
+import { DisplaySettingsModal } from './components/DisplaySettingsModal';
 import { MatchSettingsModal } from './components/MatchSettingsModal';
 import { useWatchRemoteHost } from './hooks/useWatchRemoteHost';
 import { useAuth } from './auth';
@@ -456,6 +458,19 @@ export default function App() {
           onSetInitialServer={handleSetInitialServer}
           onRerollFirstServer={handleRerollFirstServer}
           onPlayerNameChange={appMode === 'session' ? () => undefined : handlePlayerNameChange}
+        />
+      ) : activeModal === 'announcementSettings' ? (
+        <AnnouncementSettingsModal
+          autoAnnounce={preferences.autoAnnounce}
+          announcementMode={preferences.announcementMode}
+          speechStatus={getSpeechStatus()}
+          onAutoAnnounceChange={(autoAnnounce) => updatePreferences((current) => ({ ...current, autoAnnounce }))}
+          onAnnouncementModeChange={(announcementMode) => updatePreferences((current) => ({ ...current, announcementMode }))}
+        />
+      ) : activeModal === 'displaySettings' ? (
+        <DisplaySettingsModal
+          animationsEnabled={preferences.animationsEnabled}
+          onAnimationsEnabledChange={(animationsEnabled) => updatePreferences((current) => ({ ...current, animationsEnabled }))}
         />
       ) : (
         <p className="settings-note">These controls will appear in the focused modal.</p>
