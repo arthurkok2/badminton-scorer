@@ -182,6 +182,22 @@ describe('applyMatchResult', () => {
     });
   });
 
+  it('stores optional final score metadata in history', () => {
+    const session = createSession(['Alice', 'Bob', 'Carol', 'Dave', 'Eve']);
+    const split: TeamSplit = { teamA: ['Alice', 'Bob'], teamB: ['Carol', 'Dave'] };
+
+    const next = applyMatchResult(session, split, 'teamA', {
+      finalScore: { teamA: 21, teamB: 18 },
+    });
+
+    expect(next.matches[0]).toEqual({
+      teamA: ['Alice', 'Bob'],
+      teamB: ['Carol', 'Dave'],
+      winnerTeam: 'teamA',
+      finalScore: { teamA: 21, teamB: 18 },
+    });
+  });
+
   it('increments partner together count symmetrically', () => {
     const session = createSession(['Alice', 'Bob', 'Carol', 'Dave', 'Eve']);
     const split: TeamSplit = { teamA: ['Alice', 'Bob'], teamB: ['Carol', 'Dave'] };

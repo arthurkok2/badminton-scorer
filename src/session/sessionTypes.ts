@@ -16,6 +16,10 @@ export interface MatchRecord {
   readonly teamA: readonly [string, string];
   readonly teamB: readonly [string, string];
   readonly winnerTeam: 'teamA' | 'teamB';
+  readonly finalScore?: {
+    readonly teamA: number;
+    readonly teamB: number;
+  };
   readonly startedAt?: string;
   readonly endedAt?: string;
 }

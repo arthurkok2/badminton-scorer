@@ -136,7 +136,7 @@ export function applyMatchResult(
   session: ActiveSession,
   split: TeamSplit,
   winnerTeam: 'teamA' | 'teamB',
-  timing?: Pick<MatchRecord, 'startedAt' | 'endedAt'>,
+  metadata?: Pick<MatchRecord, 'finalScore' | 'startedAt' | 'endedAt'>,
 ): ActiveSession {
   const playedNames = new Set([...split.teamA, ...split.teamB]);
   const newMatrix = updatePairingMatrix(session.pairingMatrix, split);
@@ -145,7 +145,7 @@ export function applyMatchResult(
       ? { ...player, gamesPlayed: player.gamesPlayed + 1, consecutiveStreak: player.consecutiveStreak + 1, onBreak: false }
       : { ...player, consecutiveStreak: 0, onBreak: true },
   );
-  const matchRecord: MatchRecord = { teamA: split.teamA, teamB: split.teamB, winnerTeam, ...timing };
+  const matchRecord: MatchRecord = { teamA: split.teamA, teamB: split.teamB, winnerTeam, ...metadata };
   return { ...session, players: newPlayers, matches: [...session.matches, matchRecord], pairingMatrix: newMatrix };
 }
 

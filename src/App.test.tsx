@@ -541,6 +541,7 @@ describe('App', () => {
 
     const suggestionHistory = screen.getByRole('region', { name: /session match history/i });
     expect(suggestionHistory).toHaveTextContent('Match 1');
+    expect(suggestionHistory).toHaveTextContent('21-0');
     expect(suggestionHistory).toHaveTextContent('12 min');
 
     await user.click(screen.getByRole('button', { name: /start match/i }));
@@ -548,6 +549,7 @@ describe('App', () => {
     const liveHistory = screen.getByRole('region', { name: /session match history/i });
     expect(liveHistory).toHaveTextContent('Match 1');
     expect(liveHistory).toHaveTextContent(/won/i);
+    expect(liveHistory).toHaveTextContent('21-0');
     expect(liveHistory).toHaveTextContent('12 min');
   });
 

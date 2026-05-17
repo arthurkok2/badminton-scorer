@@ -19,17 +19,18 @@ Each history row shows:
 - Match number.
 - Team A players versus Team B players.
 - Winner.
+- Final score.
 - Duration in minutes.
 
 Rows are ordered newest first so the last completed match is closest to the current context.
 
 ## Duration Tracking
 
-When a suggested session match starts, the app records a start timestamp for that in-progress session match. When the user confirms the completed match and advances to the next suggestion, the app records an end timestamp and stores both timestamps on the completed session match record.
+When a suggested session match starts, the app records a start timestamp for that in-progress session match. When the user confirms the completed match and advances to the next suggestion, the app records an end timestamp and stores both timestamps on the completed session match record. The same completion step stores the final Team A and Team B scores from the live scorer.
 
 Duration is derived from `endedAt - startedAt` and formatted as whole minutes. Durations under one minute display as "<1 min". If either timestamp is missing or invalid, the row renders with an unavailable duration rather than failing.
 
-Existing active sessions and archived sessions may contain legacy match records without timestamps. These records remain valid and render with unavailable duration text.
+Existing active sessions and archived sessions may contain legacy match records without timestamps or final scores. These records remain valid and render with unavailable duration text while omitting the final-score label.
 
 ## Data Model
 
@@ -40,6 +41,10 @@ interface MatchRecord {
   readonly teamA: readonly [string, string];
   readonly teamB: readonly [string, string];
   readonly winnerTeam: 'teamA' | 'teamB';
+  readonly finalScore?: {
+    readonly teamA: number;
+    readonly teamB: number;
+  };
   readonly startedAt?: string;
   readonly endedAt?: string;
 }
@@ -73,8 +78,9 @@ The Display settings modal adds a second switch for this preference next to the 
 Tests cover:
 
 - Applying a session match result stores `startedAt` and `endedAt` when supplied.
-- Match history renders teams, winner, match number, and formatted duration.
+- Match history renders teams, winner, match number, final score, and formatted duration.
 - Legacy match records without timestamps render without crashing.
+- Legacy match records without final scores render without crashing and omit score text.
 - The suggestion screen always shows completed session history.
 - The live session screen shows history by default.
 - The Display settings toggle hides live session history while leaving suggestion-screen history unaffected.
@@ -84,4 +90,3 @@ Tests cover:
 - Per-player statistics.
 - In-progress live match elapsed time.
 - Editing, deleting, filtering, or exporting match history.
-- Persisting match final scores in the session history.

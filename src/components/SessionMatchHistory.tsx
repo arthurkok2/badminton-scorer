@@ -22,6 +22,7 @@ export function SessionMatchHistory({ matches }: SessionMatchHistoryProps) {
               <span className="session-match-history-number">Match {matchNumber}</span>
               <strong>{formatTeam(match.teamA)} vs {formatTeam(match.teamB)}</strong>
               <span>{formatWinner(match)} won</span>
+              {match.finalScore ? <span>{formatFinalScore(match)}</span> : null}
             </div>
             <span className="session-match-history-duration">{formatDuration(match)}</span>
           </li>
@@ -37,6 +38,10 @@ function formatTeam(team: readonly [string, string]): string {
 
 function formatWinner(match: MatchRecord): string {
   return formatTeam(match[match.winnerTeam]);
+}
+
+function formatFinalScore(match: MatchRecord): string {
+  return match.finalScore ? `${match.finalScore.teamA}-${match.finalScore.teamB}` : '';
 }
 
 function formatDuration(match: MatchRecord): string {

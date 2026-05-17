@@ -357,6 +357,7 @@ export default function App() {
     if (!activeSession || !currentPlayedSplit) return;
     const endedAt = new Date().toISOString();
     const updated = applyMatchResult(activeSession, currentPlayedSplit, winnerTeam, {
+      finalScore: match.score,
       startedAt: currentSessionMatchStartedAt ?? endedAt,
       endedAt,
     });
@@ -367,7 +368,7 @@ export default function App() {
     setCurrentPlayedSplit(undefined);
     setCurrentSessionMatchStartedAt(undefined);
     setSessionPhase('suggestion');
-  }, [activeSession, currentPlayedSplit, currentSessionMatchStartedAt]);
+  }, [activeSession, currentPlayedSplit, currentSessionMatchStartedAt, match.score]);
 
   const handleEndSession = useCallback(() => {
     if (!activeSession) return;
