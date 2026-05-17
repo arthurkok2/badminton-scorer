@@ -113,6 +113,16 @@ async function openDisplaySettings(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole('menuitem', { name: /display settings/i }));
 }
 
+async function openRemoteControls(user: ReturnType<typeof userEvent.setup>) {
+  await openSettingsMenu(user);
+  await user.click(screen.getByRole('menuitem', { name: /remote controls/i }));
+}
+
+async function openDiagnostics(user: ReturnType<typeof userEvent.setup>) {
+  await openSettingsMenu(user);
+  await user.click(screen.getByRole('menuitem', { name: /diagnostics/i }));
+}
+
 async function startSessionMatch(user: ReturnType<typeof userEvent.setup>) {
   await chooseSettingsAction(user, /session mode/i);
 
@@ -264,7 +274,8 @@ describe('App', () => {
     expect(connection.disconnect).toHaveBeenCalledTimes(1);
   });
 
-  it('shows the latest keyboard remote diagnostic events', () => {
+  it('shows the latest keyboard remote diagnostic events', async () => {
+    const user = userEvent.setup();
     let emitDiagnosticEvent: (event: KeyboardRemoteDiagnosticEvent) => void = () => undefined;
     mockedConnectKeyboardRemote.mockImplementation((options) => {
       emitDiagnosticEvent = options.onDiagnosticEvent ?? (() => undefined);
@@ -272,6 +283,7 @@ describe('App', () => {
     });
 
     render(<App />);
+    await openDiagnostics(user);
 
     expect(screen.getByText(/no events seen yet/i)).toBeInTheDocument();
 
@@ -292,8 +304,10 @@ describe('App', () => {
     expect(screen.getByText(/keycode 135/i)).toBeInTheDocument();
   });
 
-  it('shows Bluetooth unsupported fallback and disables connect', () => {
+  it('shows Bluetooth unsupported fallback and disables connect', async () => {
+    const user = userEvent.setup();
     render(<App />);
+    await openRemoteControls(user);
 
     expect(screen.getByText(/android chrome required/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /connect bluetooth remote/i })).toBeDisabled();
@@ -355,6 +369,7 @@ describe('App', () => {
     });
 
     render(<App />);
+    await openRemoteControls(user);
 
     await user.click(screen.getByRole('button', { name: /connect bluetooth remote/i }));
 
@@ -375,6 +390,7 @@ describe('App', () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
     const { unmount } = render(<App />);
+    await openRemoteControls(user);
     await user.click(screen.getByRole('button', { name: /connect bluetooth remote/i }));
     unmount();
     resolveConnection(connection);
@@ -396,6 +412,7 @@ describe('App', () => {
     );
 
     render(<App />);
+    await openRemoteControls(user);
     const connectButton = screen.getByRole('button', { name: /connect bluetooth remote/i });
 
     await user.click(connectButton);
@@ -577,7 +594,8 @@ describe('App', () => {
   });
 
   // Remote input log
-  it('prefixes keyboard events with [key] in the remote input log', () => {
+  it('prefixes keyboard events with [key] in the remote input log', async () => {
+    const user = userEvent.setup();
     let emitDiagnosticEvent: (event: KeyboardRemoteDiagnosticEvent) => void = () => undefined;
     mockedConnectKeyboardRemote.mockImplementation((options) => {
       emitDiagnosticEvent = options.onDiagnosticEvent ?? (() => undefined);
@@ -585,6 +603,7 @@ describe('App', () => {
     });
 
     render(<App />);
+    await openDiagnostics(user);
 
     act(() => {
       emitDiagnosticEvent({ type: 'keydown', key: 'VolumeUp', code: 'VolumeUp', keyCode: 175, which: 175, repeat: false });
@@ -604,7 +623,8 @@ describe('App', () => {
     expect(connection.disconnect).toHaveBeenCalledTimes(1);
   });
 
-  it('shows gamepad diagnostic events with [gamepad] prefix, pad index, and button index', () => {
+  it('shows gamepad diagnostic events with [gamepad] prefix, pad index, and button index', async () => {
+    const user = userEvent.setup();
     let emitDiagnosticEvent: (event: GamepadRemoteDiagnosticEvent) => void = () => undefined;
     mockedConnectGamepadRemote.mockImplementation((options) => {
       emitDiagnosticEvent = options.onDiagnosticEvent ?? (() => undefined);
@@ -612,6 +632,7 @@ describe('App', () => {
     });
 
     render(<App />);
+    await openDiagnostics(user);
 
     act(() => {
       emitDiagnosticEvent({ source: 'gamepad', type: 'press', gamepadIndex: 0, gamepadId: 'Generic Controller', buttonIndex: 2 });
@@ -720,7 +741,38 @@ describe('App', () => {
     }
   });
 
-  it('shows the watch remote panel with a room code when the hook reports active', () => {
+  it('shows the watch remote panel with a room code when the hook reports active', async () => {
+    const user = userEvent.setup();
+    mockedUseWatchRemoteHost.mockReturnValue({
+      status: 'active',
+      code: 'ABC123',
+      error: undefined,
+      lastCommandLabel: undefined,
+      start: vi.fn(),
+      stop: vi.fn(),
+    });
+
+    render(<App />);
+    await openRemoteControls(user);
+
+    expect(screen.getByText('ABC123')).toBeInTheDocument();
+  });
+
+  // Remote controls and diagnostics are modal-only
+  it('does not show Bluetooth status or connect button on the main screen', () => {
+    render(<App />);
+
+    expect(screen.queryByRole('button', { name: /connect bluetooth remote/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/android chrome required/i)).not.toBeInTheDocument();
+  });
+
+  it('does not show the diagnostics log on the main screen', () => {
+    render(<App />);
+
+    expect(screen.queryByText(/no events seen yet/i)).not.toBeInTheDocument();
+  });
+
+  it('does not show the watch remote panel on the main screen', () => {
     mockedUseWatchRemoteHost.mockReturnValue({
       status: 'active',
       code: 'ABC123',
@@ -732,7 +784,7 @@ describe('App', () => {
 
     render(<App />);
 
-    expect(screen.getByText('ABC123')).toBeInTheDocument();
+    expect(screen.queryByText('ABC123')).not.toBeInTheDocument();
   });
 
   // Announcement settings modal

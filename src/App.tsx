@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Controls } from './components/Controls';
 import { CourtView } from './components/CourtView';
-import { StatusBar } from './components/StatusBar';
 import { createMatch } from './domain/matchEngine';
 import type { MatchMode, MatchState, PlayerId, TeamId } from './domain/matchTypes';
 import { applyCommand, type AppCommand } from './input/commands';
@@ -39,12 +38,14 @@ import {
 } from './session/sessionStorage';
 import { SessionSetup } from './components/SessionSetup';
 import { MatchSuggestion } from './components/MatchSuggestion';
-import { WatchRemotePanel } from './components/WatchRemotePanel';
 import { AccountBar } from './components/AccountBar';
 import { AppModal } from './components/AppModal';
 import { AnnouncementSettingsModal } from './components/AnnouncementSettingsModal';
 import { DisplaySettingsModal } from './components/DisplaySettingsModal';
 import { MatchSettingsModal } from './components/MatchSettingsModal';
+import { RemoteControlsModal } from './components/RemoteControlsModal';
+import { DiagnosticsModal } from './components/DiagnosticsModal';
+import type { DiagnosticEvent } from './components/DiagnosticsModal';
 import { useWatchRemoteHost } from './hooks/useWatchRemoteHost';
 import { useAuth } from './auth';
 import type { ActiveSession, MatchSuggestion as MatchSuggestionData, TeamSplit } from './session/sessionTypes';
@@ -488,9 +489,23 @@ export default function App() {
           animationsEnabled={preferences.animationsEnabled}
           onAnimationsEnabledChange={handleAnimationsEnabledChange}
         />
-      ) : (
-        <p className="settings-note">These controls will appear in the focused modal.</p>
-      )}
+      ) : activeModal === 'remoteControls' ? (
+        <RemoteControlsModal
+          bluetoothStatus={bluetoothStatus}
+          watchRemote={{
+            status: watchRemote.status,
+            code: watchRemote.code,
+            error: watchRemote.error,
+            lastCommandLabel: watchRemote.lastCommandLabel,
+          }}
+          authUnavailable={authUnavailable}
+          onConnectBluetooth={handleConnectBluetooth}
+          onStartWatchRemote={() => { void watchRemote.start(); }}
+          onStopWatchRemote={() => { void watchRemote.stop(); }}
+        />
+      ) : activeModal === 'diagnostics' ? (
+        <DiagnosticsModal events={diagnostics} />
+      ) : null}
     </AppModal>
   ) : null;
 
@@ -542,21 +557,6 @@ export default function App() {
           onBackToSessionSuggestion={handleBackToSessionSuggestion}
           onEndSession={isSessionPlaying ? handleEndSession : undefined}
         />
-        <StatusBar
-          bluetoothStatus={bluetoothStatus}
-          speechStatus={getSpeechStatus()}
-          onConnectBluetooth={handleConnectBluetooth}
-        />
-        <RemoteDiagnostics events={diagnostics} />
-        <WatchRemotePanel
-          status={watchRemote.status}
-          code={watchRemote.code}
-          error={watchRemote.error}
-          lastCommandLabel={watchRemote.lastCommandLabel}
-          authUnavailable={authUnavailable}
-          onStart={() => { void watchRemote.start(); }}
-          onStop={() => { void watchRemote.stop(); }}
-        />
         {appMode === 'session' && sessionPhase === 'playing' && matchWinner && (
           <div className="session-match-over" role="dialog" aria-label="Match over">
             <p>{match.teams[matchWinner].name} wins!</p>
@@ -567,44 +567,6 @@ export default function App() {
       {activeModalDialog}
       <AnimationOverlay event={activeAnimation} onDismiss={handleAnimationDismiss} />
     </main>
-  );
-}
-
-type DiagnosticEvent = ({ source: 'keyboard' } & KeyboardRemoteDiagnosticEvent) | GamepadRemoteDiagnosticEvent;
-
-function RemoteDiagnostics({ events }: { readonly events: DiagnosticEvent[] }) {
-  return (
-    <details className="remote-diagnostics" aria-label="Remote input log">
-      <summary className="remote-diagnostics-header">
-        <h2>Remote input log</h2>
-        <span>{events.length === 0 ? 'Listening' : `${events.length} shown`}</span>
-      </summary>
-      {events.length === 0 ? (
-        <p className="remote-diagnostics-empty">No events seen yet</p>
-      ) : (
-        <ol className="remote-diagnostics-list">
-          {events.map((event, index) =>
-            event.source === 'gamepad' ? (
-              <li key={`gamepad-${event.type}-${event.gamepadIndex}-${event.buttonIndex}-${index}`}>
-                <strong>[gamepad] {event.type}</strong>
-                <span>Pad {event.gamepadIndex}</span>
-                <span>Btn {event.buttonIndex}</span>
-                <span title={event.gamepadId}>{event.gamepadId.slice(0, 30)}</span>
-              </li>
-            ) : (
-              <li key={`keyboard-${event.type}-${event.key}-${event.code}-${event.keyCode}-${index}`}>
-                <strong>[key] {event.type}</strong>
-                <span>Key {event.key || 'Unidentified'}</span>
-                <span>Code {event.code || 'none'}</span>
-                <span>KeyCode {event.keyCode}</span>
-                <span>Which {event.which}</span>
-                <span>Repeat {event.repeat ? 'yes' : 'no'}</span>
-              </li>
-            ),
-          )}
-        </ol>
-      )}
-    </details>
   );
 }
 

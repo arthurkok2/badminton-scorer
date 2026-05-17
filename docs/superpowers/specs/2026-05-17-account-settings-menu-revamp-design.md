@@ -180,3 +180,12 @@ Add or update tests to cover:
 - `activeModalDialog` in `App` was updated to replace the placeholder `<p>` with proper modal components for `announcementSettings` and `displaySettings` cases.
 - `Controls` required no changes — auto-announce, mode, and animations toggles were never rendered inline there (they had been removed in an earlier cleanup).
 - The `StatusBar` also renders "Speech ready" text, so the App test for the announcement settings dialog scopes the assertion to `within(dialog)` to avoid an ambiguous match.
+
+## Implementation Notes (Task 5, 2026-05-17)
+
+- `RemoteControlsModal` receives `bluetoothStatus`, `watchRemote` (status/code/error/lastCommandLabel), `authUnavailable`, and three callbacks: `onConnectBluetooth`, `onStartWatchRemote`, `onStopWatchRemote`. It replicates `StatusBar` Bluetooth UI and `WatchRemotePanel` watch-remote UI inside a `settings-panel` layout.
+- `DiagnosticsModal` accepts a `readonly DiagnosticEvent[]` and renders either an empty-state paragraph or an ordered list of keyboard and gamepad events, matching the existing `RemoteDiagnostics` output format.
+- `DiagnosticEvent` type is defined and exported from `DiagnosticsModal.tsx`; `App.tsx` imports it from there instead of declaring it locally. The local `RemoteDiagnostics` function and local `DiagnosticEvent` type alias were removed from `App.tsx`.
+- `StatusBar` and `WatchRemotePanel` imports were removed from `App.tsx`; the components are no longer rendered in the main scorer layout. Their source files are unchanged.
+- `activeModalDialog` in `App` covers all five modal cases: `matchSettings`, `announcementSettings`, `displaySettings`, `remoteControls`, `diagnostics`. No placeholder `<p>` remains.
+- App tests for Bluetooth, watch-remote, and diagnostic events were updated to open the corresponding modal via `openRemoteControls` or `openDiagnostics` helpers before querying. Three new "not on main screen" tests assert that Bluetooth connect button, diagnostics log, and active watch-remote code are absent from the main scorer layout.
