@@ -202,6 +202,16 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: /session setup/i })).toBeInTheDocument();
   });
 
+  it('hides New match from the settings menu during a session match', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await startSessionMatch(user);
+    await openSettingsMenu(user);
+
+    expect(within(screen.getByLabelText(/settings menu tools/i)).queryByRole('button', { name: /new match/i })).not.toBeInTheDocument();
+  });
+
   it('awards a point to Team B from the court score and changes server', async () => {
     const user = userEvent.setup();
     render(<App />);
@@ -448,6 +458,21 @@ describe('App', () => {
     expect(within(controls).queryByRole('group', { name: /match mode/i })).not.toBeInTheDocument();
     expect(within(controls).queryByRole('button', { name: /new match/i })).not.toBeInTheDocument();
     expect(within(controls).queryByRole('button', { name: /session mode/i })).not.toBeInTheDocument();
+  });
+
+  it('locks match settings controls while playing a session match', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await startSessionMatch(user);
+    await openMatchSettings(user);
+
+    expect(screen.getByText(/session match settings are locked/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /doubles/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /singles/i })).toBeDisabled();
+    expect(screen.getByRole('textbox', { name: /team a player 1 name/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /reroll first server/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /team b .* serves/i })).toBeDisabled();
   });
 
   it('returns an unstarted session match to the suggestion screen', async () => {

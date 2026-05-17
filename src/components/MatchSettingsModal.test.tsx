@@ -57,4 +57,15 @@ describe('MatchSettingsModal', () => {
     expect(screen.queryByRole('group', { name: /first server setup/i })).not.toBeInTheDocument();
     expect(screen.getByText(/match setup is locked after the first rally/i)).toBeInTheDocument();
   });
+
+  it('disables match setup controls when session context locks settings', () => {
+    renderModal({ settingsLocked: true });
+
+    expect(screen.getByRole('button', { name: /doubles/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /singles/i })).toBeDisabled();
+    expect(screen.getByRole('textbox', { name: /team a player 1 name/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /reroll first server/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /team b player 3 serves/i })).toBeDisabled();
+    expect(screen.getByText(/session match settings are locked/i)).toBeInTheDocument();
+  });
 });

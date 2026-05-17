@@ -63,6 +63,15 @@ const appSettingsModalTitles: Record<AppSettingsModal, string> = {
   diagnostics: 'Diagnostics',
 };
 
+const sessionAppMenuActions: readonly AppMenuAction[] = [
+  'matchSettings',
+  'announcementSettings',
+  'displaySettings',
+  'remoteControls',
+  'diagnostics',
+  'sessionMode',
+];
+
 interface MatchViewState {
   readonly match: MatchState;
   readonly pendingAutoAnnouncement?: {
@@ -423,6 +432,7 @@ export default function App() {
   );
 
   const matchWinner = match.winnerTeamId;
+  const availableAppMenuActions = appMode === 'session' ? sessionAppMenuActions : undefined;
   const sessionPlayerNames = appMode === 'session'
     ? {
         A1: [...match.teams.teamA.players, ...match.teams.teamB.players].find(p => p.id === 'A1')?.name ?? '',
@@ -438,6 +448,7 @@ export default function App() {
           match={match}
           matchMode={preferences.matchMode}
           playerNames={sessionPlayerNames ?? preferences.playerNames}
+          settingsLocked={appMode === 'session'}
           onMatchModeChange={handleMatchModeChange}
           onSetInitialServer={handleSetInitialServer}
           onRerollFirstServer={handleRerollFirstServer}
@@ -452,7 +463,7 @@ export default function App() {
   if (appMode === 'session' && sessionPhase === 'setup') {
     return (
       <main className="app-shell">
-        <AccountBar onAppMenuAction={handleAppMenuAction} />
+        <AccountBar onAppMenuAction={handleAppMenuAction} availableAppMenuActions={availableAppMenuActions} />
         <div className="app-layout session-layout">
           <div className="app-mode-toggle">
             <button onClick={handleSwitchToMatch}>← Match mode</button>
@@ -467,7 +478,7 @@ export default function App() {
   if (appMode === 'session' && sessionPhase === 'suggestion' && currentSuggestion && activeSession) {
     return (
       <main className="app-shell">
-        <AccountBar onAppMenuAction={handleAppMenuAction} />
+        <AccountBar onAppMenuAction={handleAppMenuAction} availableAppMenuActions={availableAppMenuActions} />
         <div className="app-layout session-layout">
           <MatchSuggestion
             suggestion={currentSuggestion}
@@ -487,7 +498,7 @@ export default function App() {
 
   return (
     <main className="app-shell">
-      <AccountBar onAppMenuAction={handleAppMenuAction} />
+      <AccountBar onAppMenuAction={handleAppMenuAction} availableAppMenuActions={availableAppMenuActions} />
       <div className="app-layout">
         <CourtView match={match} onPointTeam={(teamId) => dispatch({ type: 'POINT_TEAM', teamId })} />
         <Controls
