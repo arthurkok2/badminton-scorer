@@ -276,6 +276,14 @@ button {
   padding: 12px;
 }
 
+.settings-note {
+  margin: 0;
+  color: #c4d2d8;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
 @media (min-width: 960px) {
   .app-layout {
     width: min(100%, 1400px);

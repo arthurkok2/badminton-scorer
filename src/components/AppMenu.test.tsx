@@ -42,4 +42,20 @@ describe('AppMenu', () => {
     expect(handlers.remoteControls).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('button', { name: /remote controls/i })).not.toBeInTheDocument();
   });
+
+  it('hides actions that are not available in the current surface', async () => {
+    render(
+      <AppMenu
+        onAction={() => undefined}
+        availableActions={['announcementSettings', 'displaySettings', 'remoteControls', 'diagnostics']}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: /settings menu/i }));
+
+    expect(screen.queryByRole('button', { name: /match settings/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /session mode/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /new match/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /announcement settings/i })).toBeInTheDocument();
+  });
 });

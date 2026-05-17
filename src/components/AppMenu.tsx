@@ -13,6 +13,7 @@ export type AppMenuAction =
 
 interface AppMenuProps {
   readonly onAction: (action: AppMenuAction) => void;
+  readonly availableActions?: readonly AppMenuAction[];
 }
 
 const items: ReadonlyArray<{ action: AppMenuAction; label: string; icon: LucideIcon }> = [
@@ -25,9 +26,12 @@ const items: ReadonlyArray<{ action: AppMenuAction; label: string; icon: LucideI
   { action: 'newMatch', label: 'New match', icon: RotateCcw },
 ];
 
-export function AppMenu({ onAction }: AppMenuProps) {
+export function AppMenu({ onAction, availableActions }: AppMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const visibleItems = availableActions === undefined
+    ? items
+    : items.filter((item) => availableActions.includes(item.action));
 
   useEffect(() => {
     if (!isOpen) return;
@@ -64,7 +68,7 @@ export function AppMenu({ onAction }: AppMenuProps) {
 
       {isOpen ? (
         <div id="app-menu-dropdown" className="account-dropdown app-menu-dropdown" aria-label="Settings menu tools">
-          {items.map(({ action, label, icon: Icon }) => (
+          {visibleItems.map(({ action, label, icon: Icon }) => (
             <button
               key={action}
               type="button"

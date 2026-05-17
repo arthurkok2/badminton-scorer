@@ -1,20 +1,52 @@
-import { useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth';
 import { AccountBar } from '../components/AccountBar';
+import { AppModal } from '../components/AppModal';
+import type { AppMenuAction } from '../components/AppMenu';
 import { useControllerClient } from '../hooks/useControllerClient';
+
+type ControllerSettingsAction = Extract<
+  AppMenuAction,
+  'announcementSettings' | 'displaySettings' | 'remoteControls' | 'diagnostics'
+>;
+
+const controllerSettingsActions: readonly ControllerSettingsAction[] = [
+  'announcementSettings',
+  'displaySettings',
+  'remoteControls',
+  'diagnostics',
+];
+
+const controllerSettingsTitles: Record<ControllerSettingsAction, string> = {
+  announcementSettings: 'Announcement settings',
+  displaySettings: 'Display settings',
+  remoteControls: 'Remote controls',
+  diagnostics: 'Diagnostics',
+};
 
 export function ControllerPage() {
   const { status, matchDoc, error, commandError, lastCode, join, leave, sendCommand } =
     useControllerClient();
   const { loading: authLoading, authUnavailable } = useAuth();
   const codeInputRef = useRef<HTMLInputElement>(null);
+  const [activeModal, setActiveModal] = useState<ControllerSettingsAction | undefined>(undefined);
   const joinDisabled = status === 'joining' || authLoading || authUnavailable;
+  const handleAppMenuAction = useCallback((action: AppMenuAction) => {
+    if (isControllerSettingsAction(action)) {
+      setActiveModal(action);
+    }
+  }, []);
+  const activeModalDialog = activeModal ? (
+    <AppModal title={controllerSettingsTitles[activeModal]} onClose={() => setActiveModal(undefined)}>
+      <p className="settings-note">These controls will appear in the focused modal.</p>
+    </AppModal>
+  ) : null;
 
   if (status === 'disconnected' || status === 'joining') {
     return (
       <main className="app-shell">
-        <AccountBar onAppMenuAction={() => undefined} />
+        <AccountBar onAppMenuAction={handleAppMenuAction} availableAppMenuActions={controllerSettingsActions} />
         <div className="app-layout">
           <section className="controller-panel">
             <div className="controller-page-header">
@@ -50,6 +82,7 @@ export function ControllerPage() {
             <Link to="/" className="controller-back-link">← Back to scorer</Link>
           </section>
         </div>
+        {activeModalDialog}
       </main>
     );
   }
@@ -57,7 +90,7 @@ export function ControllerPage() {
   if (status === 'error') {
     return (
       <main className="app-shell">
-        <AccountBar onAppMenuAction={() => undefined} />
+        <AccountBar onAppMenuAction={handleAppMenuAction} availableAppMenuActions={controllerSettingsActions} />
         <div className="app-layout">
           <section className="controller-panel">
             <h1 className="controller-title">Controller</h1>
@@ -65,6 +98,7 @@ export function ControllerPage() {
             <button className="connect-button" onClick={leave}>Back</button>
           </section>
         </div>
+        {activeModalDialog}
       </main>
     );
   }
@@ -76,7 +110,7 @@ export function ControllerPage() {
 
   return (
     <main className="app-shell">
-      <AccountBar onAppMenuAction={() => undefined} />
+      <AccountBar onAppMenuAction={handleAppMenuAction} availableAppMenuActions={controllerSettingsActions} />
       <div className="app-layout">
         <section className="controller-panel">
           <div className="controller-header">
@@ -138,6 +172,11 @@ export function ControllerPage() {
           <button className="controller-leave-button" onClick={leave}>Leave</button>
         </section>
       </div>
+      {activeModalDialog}
     </main>
   );
+}
+
+function isControllerSettingsAction(action: AppMenuAction): action is ControllerSettingsAction {
+  return controllerSettingsActions.some((availableAction) => availableAction === action);
 }

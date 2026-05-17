@@ -41,15 +41,26 @@ import { SessionSetup } from './components/SessionSetup';
 import { MatchSuggestion } from './components/MatchSuggestion';
 import { WatchRemotePanel } from './components/WatchRemotePanel';
 import { AccountBar } from './components/AccountBar';
+import { AppModal } from './components/AppModal';
 import { useWatchRemoteHost } from './hooks/useWatchRemoteHost';
 import { useAuth } from './auth';
 import type { ActiveSession, MatchSuggestion as MatchSuggestionData, TeamSplit } from './session/sessionTypes';
 import { detectAnimationEvent } from './animations/detectAnimationEvent';
 import { AnimationOverlay } from './components/AnimationOverlay';
 import type { AnimationEvent } from './animations/types';
+import type { AppMenuAction } from './components/AppMenu';
 
 type AppMode = 'match' | 'session';
 type SessionPhase = 'setup' | 'suggestion' | 'playing';
+type AppSettingsModal = Exclude<AppMenuAction, 'sessionMode' | 'newMatch'>;
+
+const appSettingsModalTitles: Record<AppSettingsModal, string> = {
+  matchSettings: 'Match settings',
+  announcementSettings: 'Announcement settings',
+  displaySettings: 'Display settings',
+  remoteControls: 'Remote controls',
+  diagnostics: 'Diagnostics',
+};
 
 interface MatchViewState {
   readonly match: MatchState;
@@ -97,6 +108,7 @@ export default function App() {
   const [savedPlayers, setSavedPlayers] = useState<string[]>(() => loadSavedPlayers());
   const [bluetoothStatus, setBluetoothStatus] = useState<BluetoothStatus>(() => getBluetoothSupportStatus());
   const [diagnostics, setDiagnostics] = useState<DiagnosticEvent[]>([]);
+  const [activeModal, setActiveModal] = useState<AppSettingsModal | undefined>(undefined);
   const connectionRef = useRef<BluetoothRemoteConnection | undefined>(undefined);
   const keyboardConnectionRef = useRef<KeyboardRemoteConnection | undefined>(undefined);
   const gamepadConnectionRef = useRef<GamepadRemoteConnection | undefined>(undefined);
@@ -288,6 +300,7 @@ export default function App() {
 
   const handleSwitchToSession = useCallback(() => {
     if (hasStarted(matchView.match) && !window.confirm('Leave this match and start a session?')) return;
+    setActiveModal(undefined);
     setAppMode('session');
   }, [matchView.match]);
 
@@ -390,18 +403,42 @@ export default function App() {
     connectionRef.current = connection;
   }, [dispatch]);
 
+  const handleAppMenuAction = useCallback(
+    (action: AppMenuAction) => {
+      if (action === 'sessionMode') {
+        handleSwitchToSession();
+        return;
+      }
+
+      if (action === 'newMatch') {
+        setActiveModal(undefined);
+        handleNewMatch();
+        return;
+      }
+
+      setActiveModal(action);
+    },
+    [handleNewMatch, handleSwitchToSession],
+  );
+
   const matchWinner = match.winnerTeamId;
+  const activeModalDialog = activeModal ? (
+    <AppModal title={appSettingsModalTitles[activeModal]} onClose={() => setActiveModal(undefined)}>
+      <p className="settings-note">These controls will appear in the focused modal.</p>
+    </AppModal>
+  ) : null;
 
   if (appMode === 'session' && sessionPhase === 'setup') {
     return (
       <main className="app-shell">
-        <AccountBar onAppMenuAction={() => undefined} />
+        <AccountBar onAppMenuAction={handleAppMenuAction} />
         <div className="app-layout session-layout">
           <div className="app-mode-toggle">
             <button onClick={handleSwitchToMatch}>← Match mode</button>
           </div>
           <SessionSetup savedPlayers={savedPlayers} onStartSession={handleStartSession} />
         </div>
+        {activeModalDialog}
       </main>
     );
   }
@@ -409,7 +446,7 @@ export default function App() {
   if (appMode === 'session' && sessionPhase === 'suggestion' && currentSuggestion && activeSession) {
     return (
       <main className="app-shell">
-        <AccountBar onAppMenuAction={() => undefined} />
+        <AccountBar onAppMenuAction={handleAppMenuAction} />
         <div className="app-layout session-layout">
           <MatchSuggestion
             suggestion={currentSuggestion}
@@ -419,6 +456,7 @@ export default function App() {
             onEndSession={handleEndSession}
           />
         </div>
+        {activeModalDialog}
       </main>
     );
   }
@@ -436,7 +474,7 @@ export default function App() {
 
   return (
     <main className="app-shell">
-      <AccountBar onAppMenuAction={() => undefined} />
+      <AccountBar onAppMenuAction={handleAppMenuAction} />
       <div className="app-layout">
         <CourtView match={match} onPointTeam={(teamId) => dispatch({ type: 'POINT_TEAM', teamId })} />
         <Controls
@@ -488,6 +526,7 @@ export default function App() {
           </div>
         )}
       </div>
+      {activeModalDialog}
       <AnimationOverlay event={activeAnimation} onDismiss={handleAnimationDismiss} />
     </main>
   );

@@ -100,6 +100,17 @@ describe('ControllerPage', () => {
       expect(screen.getByRole('button', { name: /account menu, sign in with google/i })).toBeInTheDocument();
     });
 
+    it('hides match and session actions from the controller settings menu', async () => {
+      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
+
+      await userEvent.click(screen.getByRole('button', { name: /settings menu/i }));
+
+      expect(screen.queryByRole('button', { name: /match settings/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /session mode/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /new match/i })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /announcement settings/i })).toBeInTheDocument();
+    });
+
     it('disables the Join button when authUnavailable is true', () => {
       authMock.useAuth.mockReturnValueOnce({
         user: null as unknown as { uid: string; isAnonymous: boolean },

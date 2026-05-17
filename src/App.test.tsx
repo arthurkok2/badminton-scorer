@@ -151,6 +151,27 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: /account menu, sign in with google/i })).toBeInTheDocument();
   });
 
+  it('opens match settings from the app settings menu', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: /settings menu/i }));
+    await user.click(screen.getByRole('button', { name: /match settings/i }));
+
+    expect(screen.getByRole('dialog', { name: /match settings/i })).toBeInTheDocument();
+    expect(screen.getByText(/these controls will appear in the focused modal/i)).toBeInTheDocument();
+  });
+
+  it('starts session setup from the app settings menu', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: /settings menu/i }));
+    await user.click(within(screen.getByLabelText(/settings menu tools/i)).getByRole('button', { name: /session mode/i }));
+
+    expect(screen.getByRole('heading', { name: /session setup/i })).toBeInTheDocument();
+  });
+
   it('awards a point to Team B from the court score and changes server', async () => {
     const user = userEvent.setup();
     render(<App />);
