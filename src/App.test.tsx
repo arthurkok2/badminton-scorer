@@ -95,12 +95,12 @@ async function openSettingsMenu(user: ReturnType<typeof userEvent.setup>) {
 
 async function openMatchSettings(user: ReturnType<typeof userEvent.setup>) {
   await openSettingsMenu(user);
-  await user.click(screen.getByRole('button', { name: /match settings/i }));
+  await user.click(screen.getByRole('menuitem', { name: /match settings/i }));
 }
 
 async function chooseSettingsAction(user: ReturnType<typeof userEvent.setup>, actionName: RegExp) {
   await openSettingsMenu(user);
-  await user.click(within(screen.getByLabelText(/settings menu tools/i)).getByRole('button', { name: actionName }));
+  await user.click(within(screen.getByLabelText(/settings menu tools/i)).getByRole('menuitem', { name: actionName }));
 }
 
 async function startSessionMatch(user: ReturnType<typeof userEvent.setup>) {
@@ -209,7 +209,7 @@ describe('App', () => {
     await startSessionMatch(user);
     await openSettingsMenu(user);
 
-    expect(within(screen.getByLabelText(/settings menu tools/i)).queryByRole('button', { name: /new match/i })).not.toBeInTheDocument();
+    expect(within(screen.getByLabelText(/settings menu tools/i)).queryByRole('menuitem', { name: /new match/i })).not.toBeInTheDocument();
   });
 
   it('awards a point to Team B from the court score and changes server', async () => {
@@ -524,7 +524,7 @@ describe('App', () => {
     expect(screen.getByTestId('score-teamA')).toHaveTextContent('0');
     expect(screen.getByTestId('score-teamB')).toHaveTextContent('0');
     await openSettingsMenu(user);
-    expect(within(screen.getByLabelText(/settings menu tools/i)).getByRole('button', { name: /session mode/i })).toBeInTheDocument();
+    expect(within(screen.getByLabelText(/settings menu tools/i)).getByRole('menuitem', { name: /session mode/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /end session/i })).not.toBeInTheDocument();
     expect(screen.getByText('Player 1').closest('.player-chip')).toHaveClass('active-server');
   });

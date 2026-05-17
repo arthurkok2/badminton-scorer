@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { Bell, Bluetooth, ClipboardList, MonitorPlay, RotateCcw, Settings, Users } from 'lucide-react';
+import { Bell, Bluetooth, ClipboardList, MonitorPlay, RotateCcw, Settings, Settings2, Users } from 'lucide-react';
 
 export type AppMenuAction =
   | 'matchSettings'
@@ -17,7 +17,7 @@ interface AppMenuProps {
 }
 
 const items: ReadonlyArray<{ action: AppMenuAction; label: string; icon: LucideIcon }> = [
-  { action: 'matchSettings', label: 'Match settings', icon: Users },
+  { action: 'matchSettings', label: 'Match settings', icon: Settings2 },
   { action: 'announcementSettings', label: 'Announcement settings', icon: Bell },
   { action: 'displaySettings', label: 'Display settings', icon: MonitorPlay },
   { action: 'remoteControls', label: 'Remote controls', icon: Bluetooth },
@@ -69,11 +69,12 @@ export function AppMenu({ onAction, availableActions }: AppMenuProps) {
       </button>
 
       {isOpen ? (
-        <div id="app-menu-dropdown" className="account-dropdown app-menu-dropdown" aria-label="Settings menu tools">
+        <div id="app-menu-dropdown" className="account-dropdown app-menu-dropdown" aria-label="Settings menu tools" role="menu">
           {visibleItems.map(({ action, label, icon: Icon }) => (
             <button
               key={action}
               type="button"
+              role="menuitem"
               className="account-menu-item"
               onClick={() => {
                 setIsOpen(false);

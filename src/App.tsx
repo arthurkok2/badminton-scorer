@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Controls } from './components/Controls';
 import { CourtView } from './components/CourtView';
 import { StatusBar } from './components/StatusBar';
@@ -433,14 +433,17 @@ export default function App() {
 
   const matchWinner = match.winnerTeamId;
   const availableAppMenuActions = appMode === 'session' ? sessionAppMenuActions : undefined;
-  const sessionPlayerNames = appMode === 'session'
-    ? {
-        A1: [...match.teams.teamA.players, ...match.teams.teamB.players].find(p => p.id === 'A1')?.name ?? '',
-        A2: [...match.teams.teamA.players, ...match.teams.teamB.players].find(p => p.id === 'A2')?.name ?? '',
-        B1: [...match.teams.teamA.players, ...match.teams.teamB.players].find(p => p.id === 'B1')?.name ?? '',
-        B2: [...match.teams.teamA.players, ...match.teams.teamB.players].find(p => p.id === 'B2')?.name ?? '',
-      }
-    : undefined;
+  const sessionPlayerNames = useMemo(() => {
+    if (appMode !== 'session') return undefined;
+    const allPlayers = [...match.teams.teamA.players, ...match.teams.teamB.players];
+    return {
+      A1: allPlayers.find(p => p.id === 'A1')?.name ?? '',
+      A2: allPlayers.find(p => p.id === 'A2')?.name ?? '',
+      B1: allPlayers.find(p => p.id === 'B1')?.name ?? '',
+      B2: allPlayers.find(p => p.id === 'B2')?.name ?? '',
+    };
+  }, [appMode, match.teams]);
+  const settingsLocked = appMode === 'session' && sessionPhase === 'playing';
   const activeModalDialog = activeModal ? (
     <AppModal title={appSettingsModalTitles[activeModal]} onClose={() => setActiveModal(undefined)}>
       {activeModal === 'matchSettings' ? (
@@ -448,7 +451,7 @@ export default function App() {
           match={match}
           matchMode={preferences.matchMode}
           playerNames={sessionPlayerNames ?? preferences.playerNames}
-          settingsLocked={appMode === 'session'}
+          settingsLocked={settingsLocked}
           onMatchModeChange={handleMatchModeChange}
           onSetInitialServer={handleSetInitialServer}
           onRerollFirstServer={handleRerollFirstServer}

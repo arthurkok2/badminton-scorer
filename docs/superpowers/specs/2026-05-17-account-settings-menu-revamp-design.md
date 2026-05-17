@@ -164,3 +164,10 @@ Add or update tests to cover:
 - A dedicated settings route.
 - Reworking the session scheduler flow.
 - Requiring account sign-in for local settings, local scoring, or local remotes.
+
+## Implementation Notes (code review fixes, 2026-05-17)
+
+- `settingsLocked` in `App.tsx` is `true` only when both `appMode === 'session'` AND `sessionPhase === 'playing'`, preventing spurious lock during setup and suggestion phases.
+- `sessionPlayerNames` is computed via `useMemo` (deps: `[appMode, match.teams]`) so the player-list scan runs once per render cycle rather than four times inline.
+- `matchSettings` menu item uses `Settings2` icon (not `Users`) so it is visually distinct from the `sessionMode` item.
+- The app tools dropdown has `role="menu"` and each item button has `role="menuitem"` per the accessibility spec.

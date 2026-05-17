@@ -105,10 +105,10 @@ describe('ControllerPage', () => {
 
       await userEvent.click(screen.getByRole('button', { name: /settings menu/i }));
 
-      expect(screen.queryByRole('button', { name: /match settings/i })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /session mode/i })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /new match/i })).not.toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /announcement settings/i })).toBeInTheDocument();
+      expect(screen.queryByRole('menuitem', { name: /match settings/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('menuitem', { name: /session mode/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('menuitem', { name: /new match/i })).not.toBeInTheDocument();
+      expect(screen.getByRole('menuitem', { name: /announcement settings/i })).toBeInTheDocument();
     });
 
     it('disables the Join button when authUnavailable is true', () => {
