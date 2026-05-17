@@ -89,8 +89,22 @@ const inactiveWatchRemoteResult = {
   stop: vi.fn(),
 };
 
+async function openSettingsMenu(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: /settings menu/i }));
+}
+
+async function openMatchSettings(user: ReturnType<typeof userEvent.setup>) {
+  await openSettingsMenu(user);
+  await user.click(screen.getByRole('button', { name: /match settings/i }));
+}
+
+async function chooseSettingsAction(user: ReturnType<typeof userEvent.setup>, actionName: RegExp) {
+  await openSettingsMenu(user);
+  await user.click(within(screen.getByLabelText(/settings menu tools/i)).getByRole('button', { name: actionName }));
+}
+
 async function startSessionMatch(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole('button', { name: /session mode/i }));
+  await chooseSettingsAction(user, /session mode/i);
 
   for (const name of ['Alice', 'Bob', 'Carol', 'Dave']) {
     await user.clear(screen.getByLabelText(/player name/i));
@@ -139,10 +153,16 @@ describe('App', () => {
     expect(screen.getByText('Player 1').closest('.player-chip')).toHaveClass('active-server');
   });
 
-  it('shows the session mode entry inside match controls', () => {
+  it('keeps setup and session controls out of the main match controls', () => {
     render(<App />);
 
-    expect(within(screen.getByRole('region', { name: /match controls/i })).getByRole('button', { name: /session mode/i })).toBeInTheDocument();
+    const controls = screen.getByRole('region', { name: /match controls/i });
+    expect(within(controls).getByRole('button', { name: /undo last point/i })).toBeInTheDocument();
+    expect(within(controls).getByRole('button', { name: /announce score/i })).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: /team a player 1 name/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: /match mode/i })).not.toBeInTheDocument();
+    expect(within(controls).queryByRole('button', { name: /new match/i })).not.toBeInTheDocument();
+    expect(within(controls).queryByRole('button', { name: /session mode/i })).not.toBeInTheDocument();
   });
 
   it('renders the account control in the global app chrome', () => {
@@ -155,11 +175,11 @@ describe('App', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(screen.getByRole('button', { name: /settings menu/i }));
-    await user.click(screen.getByRole('button', { name: /match settings/i }));
+    await openMatchSettings(user);
 
     expect(screen.getByRole('dialog', { name: /match settings/i })).toBeInTheDocument();
-    expect(screen.getByText(/these controls will appear in the focused modal/i)).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: /match mode/i })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /team a player 1 name/i })).toHaveValue('Player 1');
   });
 
   it('returns focus to the settings menu button after closing a settings modal', async () => {
@@ -167,8 +187,7 @@ describe('App', () => {
     render(<App />);
 
     const settingsButton = screen.getByRole('button', { name: /settings menu/i });
-    await user.click(settingsButton);
-    await user.click(screen.getByRole('button', { name: /match settings/i }));
+    await openMatchSettings(user);
     await user.click(screen.getByRole('button', { name: /close match settings/i }));
 
     expect(settingsButton).toHaveFocus();
@@ -178,8 +197,7 @@ describe('App', () => {
     const user = userEvent.setup();
     render(<App />);
 
-    await user.click(screen.getByRole('button', { name: /settings menu/i }));
-    await user.click(within(screen.getByLabelText(/settings menu tools/i)).getByRole('button', { name: /session mode/i }));
+    await chooseSettingsAction(user, /session mode/i);
 
     expect(screen.getByRole('heading', { name: /session setup/i })).toBeInTheDocument();
   });
@@ -261,34 +279,31 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: /connect bluetooth remote/i })).toBeDisabled();
   });
 
-  it('persists auto announce and speaks only after scoring when enabled', async () => {
+  it('speaks only after scoring when auto announce is enabled from saved preferences', async () => {
     const user = userEvent.setup();
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ autoAnnounce: true, matchMode: 'doubles' }));
     render(<App />);
 
-    await user.click(screen.getByRole('button', { name: /award point to team a, score \d+/i }));
-    expect(mockedSpeakAnnouncement).not.toHaveBeenCalled();
-
-    await user.click(screen.getByRole('switch', { name: /auto announce/i }));
-    expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '{}')).toMatchObject({ autoAnnounce: true });
+    mockedSpeakAnnouncement.mockClear();
 
     await user.click(screen.getByRole('button', { name: /award point to team a, score \d+/i }));
 
     expect(mockedSpeakAnnouncement).toHaveBeenCalledTimes(1);
-    expect(mockedSpeakAnnouncement.mock.calls[0][0].score).toEqual({ teamA: 2, teamB: 0 });
+    expect(mockedSpeakAnnouncement.mock.calls[0][0].score).toEqual({ teamA: 1, teamB: 0 });
     expect(mockedSpeakAnnouncement.mock.calls[0][1]).toBe('full');
   });
 
-  it('persists short announcement mode and uses it for manual and auto announcements', async () => {
+  it('uses saved short announcement mode for manual and auto announcements', async () => {
     const user = userEvent.setup();
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ autoAnnounce: true, announcementMode: 'short', matchMode: 'doubles' }),
+    );
     render(<App />);
-
-    await user.click(screen.getByRole('button', { name: /short announcement/i }));
-    expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '{}')).toMatchObject({ announcementMode: 'short' });
 
     await user.click(screen.getByRole('button', { name: /announce score/i }));
     expect(mockedSpeakAnnouncement).toHaveBeenLastCalledWith(expect.anything(), 'short');
 
-    await user.click(screen.getByRole('switch', { name: /auto announce/i }));
     await user.click(screen.getByRole('button', { name: /award point to team a, score \d+/i }));
 
     expect(mockedSpeakAnnouncement).toHaveBeenLastCalledWith(expect.objectContaining({ score: { teamA: 1, teamB: 0 } }), 'short');
@@ -372,8 +387,11 @@ describe('App', () => {
     expect(newConnection.disconnect).not.toHaveBeenCalled();
   });
 
-  it('marks the selected match mode for assistive technology', () => {
+  it('marks the selected match mode for assistive technology in match settings', async () => {
+    const user = userEvent.setup();
     render(<App />);
+
+    await openMatchSettings(user);
 
     expect(screen.getByRole('button', { name: /doubles/i })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: /doubles/i })).toBeDisabled();
@@ -385,6 +403,7 @@ describe('App', () => {
     render(<App />);
 
     await user.click(screen.getByRole('button', { name: /award point to team a, score \d+/i }));
+    await openMatchSettings(user);
     await user.click(screen.getByRole('button', { name: /doubles/i }));
 
     expect(screen.getByTestId('score-teamA')).toHaveTextContent('1');
@@ -397,6 +416,7 @@ describe('App', () => {
     render(<App />);
 
     await user.click(screen.getByRole('button', { name: /award point to team a, score \d+/i }));
+    await openMatchSettings(user);
     await user.click(screen.getByRole('button', { name: /singles/i }));
 
     expect(confirm).toHaveBeenCalledTimes(1);
@@ -410,7 +430,7 @@ describe('App', () => {
     render(<App />);
 
     await user.click(screen.getByRole('button', { name: /award point to team a, score \d+/i }));
-    await user.click(screen.getByRole('button', { name: /new match/i }));
+    await chooseSettingsAction(user, /new match/i);
 
     expect(confirm).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('score-teamA')).toHaveTextContent('0');
@@ -478,7 +498,8 @@ describe('App', () => {
     expect(confirm).toHaveBeenCalledWith('End the current session?');
     expect(screen.getByTestId('score-teamA')).toHaveTextContent('0');
     expect(screen.getByTestId('score-teamB')).toHaveTextContent('0');
-    expect(screen.getByRole('button', { name: /session mode/i })).toBeInTheDocument();
+    await openSettingsMenu(user);
+    expect(within(screen.getByLabelText(/settings menu tools/i)).getByRole('button', { name: /session mode/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /end session/i })).not.toBeInTheDocument();
     expect(screen.getByText('Player 1').closest('.player-chip')).toHaveClass('active-server');
   });
@@ -487,6 +508,7 @@ describe('App', () => {
     const user = userEvent.setup();
     render(<App />);
 
+    await openMatchSettings(user);
     await user.click(screen.getByRole('button', { name: /team b player 3 serves/i }));
 
     expect(screen.getByText('Player 3').closest('.player-chip')).toHaveClass('active-server');
@@ -496,9 +518,12 @@ describe('App', () => {
     const user = userEvent.setup();
     render(<App />);
 
+    await openMatchSettings(user);
     expect(screen.getByRole('group', { name: /first server setup/i })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /close match settings/i }));
 
     await user.click(screen.getByRole('button', { name: /award point to team a, score \d+/i }));
+    await openMatchSettings(user);
 
     expect(screen.queryByRole('group', { name: /first server setup/i })).not.toBeInTheDocument();
   });
@@ -563,16 +588,21 @@ describe('App', () => {
   });
 
   // Player names
-  it('shows default player names in the name inputs before a match starts', () => {
+  it('shows default player names in the match settings inputs before a match starts', async () => {
+    const user = userEvent.setup();
     render(<App />);
+
+    await openMatchSettings(user);
 
     expect(screen.getByRole('textbox', { name: /team a player 1 name/i })).toHaveValue('Player 1');
     expect(screen.getByRole('textbox', { name: /team b player 1 name/i })).toHaveValue('Player 3');
   });
 
-  it('persists an edited player name to local storage', () => {
+  it('persists an edited player name to local storage from match settings', async () => {
+    const user = userEvent.setup();
     render(<App />);
 
+    await openMatchSettings(user);
     fireEvent.change(screen.getByRole('textbox', { name: /team a player 1 name/i }), {
       target: { value: 'Alice' },
     });
@@ -582,7 +612,8 @@ describe('App', () => {
     });
   });
 
-  it('loads saved player names from storage and shows them in the inputs on startup', () => {
+  it('loads saved player names from storage and shows them in match settings on startup', async () => {
+    const user = userEvent.setup();
     window.localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({ playerNames: { A1: 'Alice', A2: 'Bob', B1: 'Carol', B2: 'Dave' } }),
@@ -590,17 +621,21 @@ describe('App', () => {
 
     render(<App />);
 
+    await openMatchSettings(user);
+
     expect(screen.getByRole('textbox', { name: /team a player 1 name/i })).toHaveValue('Alice');
     expect(screen.getByRole('textbox', { name: /team a player 2 name/i })).toHaveValue('Bob');
     expect(screen.getByRole('textbox', { name: /team b player 1 name/i })).toHaveValue('Carol');
     expect(screen.getByRole('textbox', { name: /team b player 2 name/i })).toHaveValue('Dave');
   });
 
-  it('reflects an edited player name in the court player chip immediately', () => {
+  it('reflects an edited player name in the court player chip immediately', async () => {
+    const user = userEvent.setup();
     render(<App />);
 
     expect(screen.getByText('Player 1').closest('.player-chip')).toHaveClass('active-server');
 
+    await openMatchSettings(user);
     fireEvent.change(screen.getByRole('textbox', { name: /team a player 1 name/i }), {
       target: { value: 'Alice' },
     });
@@ -616,9 +651,10 @@ describe('App', () => {
     render(<App />);
 
     await user.click(screen.getByRole('button', { name: /award point to team a, score \d+/i }));
-    await user.click(screen.getByRole('button', { name: /new match/i }));
+    await chooseSettingsAction(user, /new match/i);
 
     expect(confirm).toHaveBeenCalledTimes(1);
+    await openMatchSettings(user);
     expect(screen.getByRole('textbox', { name: /team a player 1 name/i })).toHaveValue('Alice');
     expect(screen.getByText('Alice').closest('.player-chip')).toHaveClass('active-server');
   });

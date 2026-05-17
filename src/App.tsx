@@ -42,6 +42,7 @@ import { MatchSuggestion } from './components/MatchSuggestion';
 import { WatchRemotePanel } from './components/WatchRemotePanel';
 import { AccountBar } from './components/AccountBar';
 import { AppModal } from './components/AppModal';
+import { MatchSettingsModal } from './components/MatchSettingsModal';
 import { useWatchRemoteHost } from './hooks/useWatchRemoteHost';
 import { useAuth } from './auth';
 import type { ActiveSession, MatchSuggestion as MatchSuggestionData, TeamSplit } from './session/sessionTypes';
@@ -422,9 +423,29 @@ export default function App() {
   );
 
   const matchWinner = match.winnerTeamId;
+  const sessionPlayerNames = appMode === 'session'
+    ? {
+        A1: [...match.teams.teamA.players, ...match.teams.teamB.players].find(p => p.id === 'A1')?.name ?? '',
+        A2: [...match.teams.teamA.players, ...match.teams.teamB.players].find(p => p.id === 'A2')?.name ?? '',
+        B1: [...match.teams.teamA.players, ...match.teams.teamB.players].find(p => p.id === 'B1')?.name ?? '',
+        B2: [...match.teams.teamA.players, ...match.teams.teamB.players].find(p => p.id === 'B2')?.name ?? '',
+      }
+    : undefined;
   const activeModalDialog = activeModal ? (
     <AppModal title={appSettingsModalTitles[activeModal]} onClose={() => setActiveModal(undefined)}>
-      <p className="settings-note">These controls will appear in the focused modal.</p>
+      {activeModal === 'matchSettings' ? (
+        <MatchSettingsModal
+          match={match}
+          matchMode={preferences.matchMode}
+          playerNames={sessionPlayerNames ?? preferences.playerNames}
+          onMatchModeChange={handleMatchModeChange}
+          onSetInitialServer={handleSetInitialServer}
+          onRerollFirstServer={handleRerollFirstServer}
+          onPlayerNameChange={appMode === 'session' ? () => undefined : handlePlayerNameChange}
+        />
+      ) : (
+        <p className="settings-note">These controls will appear in the focused modal.</p>
+      )}
     </AppModal>
   ) : null;
 
@@ -461,14 +482,6 @@ export default function App() {
     );
   }
 
-  const sessionPlayerNames = appMode === 'session'
-    ? {
-        A1: [...match.teams.teamA.players, ...match.teams.teamB.players].find(p => p.id === 'A1')?.name ?? '',
-        A2: [...match.teams.teamA.players, ...match.teams.teamB.players].find(p => p.id === 'A2')?.name ?? '',
-        B1: [...match.teams.teamA.players, ...match.teams.teamB.players].find(p => p.id === 'B1')?.name ?? '',
-        B2: [...match.teams.teamA.players, ...match.teams.teamB.players].find(p => p.id === 'B2')?.name ?? '',
-      }
-    : undefined;
   const isSessionPlaying = appMode === 'session' && sessionPhase === 'playing';
   const canReturnToSessionSuggestion = isSessionPlaying && !hasStarted(match);
 
@@ -478,28 +491,8 @@ export default function App() {
       <div className="app-layout">
         <CourtView match={match} onPointTeam={(teamId) => dispatch({ type: 'POINT_TEAM', teamId })} />
         <Controls
-          match={match}
-          autoAnnounce={preferences.autoAnnounce}
-          announcementMode={preferences.announcementMode}
-          matchMode={preferences.matchMode}
-          playerNames={sessionPlayerNames ?? preferences.playerNames}
-          animationsEnabled={preferences.animationsEnabled}
           onUndo={() => dispatch({ type: 'UNDO' })}
           onAnnounce={() => speakAnnouncement(match, preferencesRef.current.announcementMode)}
-          onAutoAnnounceChange={(autoAnnounce) => updatePreferences((current) => ({ ...current, autoAnnounce }))}
-          onAnimationsEnabledChange={(animationsEnabled) =>
-            updatePreferences((current) => ({ ...current, animationsEnabled }))
-          }
-          onAnnouncementModeChange={(announcementMode) => updatePreferences((current) => ({ ...current, announcementMode }))}
-          onMatchModeChange={handleMatchModeChange}
-          onNewMatch={handleNewMatch}
-          onStartSessionMode={handleSwitchToSession}
-          onSetInitialServer={handleSetInitialServer}
-          onRerollFirstServer={handleRerollFirstServer}
-          onPlayerNameChange={appMode === 'session' ? () => {} : handlePlayerNameChange}
-          showMatchSetupControls={!isSessionPlaying}
-          showNewMatchControl={!isSessionPlaying}
-          showSessionModeControl={!isSessionPlaying}
           showBackToSessionSuggestion={canReturnToSessionSuggestion}
           onBackToSessionSuggestion={handleBackToSessionSuggestion}
           onEndSession={isSessionPlaying ? handleEndSession : undefined}
