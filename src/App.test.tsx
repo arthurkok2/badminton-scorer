@@ -158,6 +158,7 @@ describe('App', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   it('awards a point to Team A from the court score', async () => {
@@ -523,6 +524,54 @@ describe('App', () => {
     const controls = screen.getByRole('region', { name: /match controls/i });
     expect(within(controls).queryByRole('button', { name: /back to suggestion/i })).not.toBeInTheDocument();
     expect(within(controls).getByRole('button', { name: /end session/i })).toBeInTheDocument();
+  });
+
+  it('shows completed session match history on suggestion and live screens by default', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-05-17T10:00:00.000Z'));
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(<App />);
+
+    await startSessionMatch(user);
+    vi.setSystemTime(new Date('2026-05-17T10:12:00.000Z'));
+    for (let i = 0; i < 21; i++) {
+      await user.click(screen.getByRole('button', { name: /award point to team a, score \d+/i }));
+    }
+    await user.click(screen.getByRole('button', { name: /next match/i }));
+
+    const suggestionHistory = screen.getByRole('region', { name: /session match history/i });
+    expect(suggestionHistory).toHaveTextContent('Match 1');
+    expect(suggestionHistory).toHaveTextContent('12 min');
+
+    await user.click(screen.getByRole('button', { name: /start match/i }));
+
+    const liveHistory = screen.getByRole('region', { name: /session match history/i });
+    expect(liveHistory).toHaveTextContent('Match 1');
+    expect(liveHistory).toHaveTextContent(/won/i);
+    expect(liveHistory).toHaveTextContent('12 min');
+  });
+
+  it('hides live session match history when disabled in display settings', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-05-17T10:00:00.000Z'));
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(<App />);
+
+    await startSessionMatch(user);
+    vi.setSystemTime(new Date('2026-05-17T10:12:00.000Z'));
+    for (let i = 0; i < 21; i++) {
+      await user.click(screen.getByRole('button', { name: /award point to team a, score \d+/i }));
+    }
+    await user.click(screen.getByRole('button', { name: /next match/i }));
+    expect(screen.getByRole('region', { name: /session match history/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /start match/i }));
+    expect(screen.getByRole('region', { name: /session match history/i })).toBeInTheDocument();
+
+    await openDisplaySettings(user);
+    await user.click(screen.getByRole('switch', { name: /show session match history/i }));
+
+    expect(screen.queryByRole('region', { name: /session match history/i })).not.toBeInTheDocument();
   });
 
   it('stays in the session when ending a session is cancelled', async () => {

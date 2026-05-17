@@ -164,6 +164,24 @@ describe('applyMatchResult', () => {
     expect(next.matches[0]).toEqual({ teamA: ['Alice', 'Bob'], teamB: ['Carol', 'Dave'], winnerTeam: 'teamB' });
   });
 
+  it('stores optional match timing metadata in history', () => {
+    const session = createSession(['Alice', 'Bob', 'Carol', 'Dave', 'Eve']);
+    const split: TeamSplit = { teamA: ['Alice', 'Bob'], teamB: ['Carol', 'Dave'] };
+
+    const next = applyMatchResult(session, split, 'teamB', {
+      startedAt: '2026-05-17T10:00:00.000Z',
+      endedAt: '2026-05-17T10:14:30.000Z',
+    });
+
+    expect(next.matches[0]).toEqual({
+      teamA: ['Alice', 'Bob'],
+      teamB: ['Carol', 'Dave'],
+      winnerTeam: 'teamB',
+      startedAt: '2026-05-17T10:00:00.000Z',
+      endedAt: '2026-05-17T10:14:30.000Z',
+    });
+  });
+
   it('increments partner together count symmetrically', () => {
     const session = createSession(['Alice', 'Bob', 'Carol', 'Dave', 'Eve']);
     const split: TeamSplit = { teamA: ['Alice', 'Bob'], teamB: ['Carol', 'Dave'] };

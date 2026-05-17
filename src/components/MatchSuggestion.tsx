@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { rankSplitsForPlayers } from '../session/sessionScheduler';
+import { SessionMatchHistory } from './SessionMatchHistory';
 import type {
+  MatchRecord,
   MatchSuggestion as MatchSuggestionData,
   PairingMatrix,
   TeamSplit,
@@ -9,6 +11,7 @@ import type {
 interface MatchSuggestionProps {
   readonly suggestion: MatchSuggestionData;
   readonly pairingMatrix: PairingMatrix;
+  readonly completedMatches?: readonly MatchRecord[];
   readonly onStartMatch: (split: TeamSplit) => void;
   readonly onEditPlayers: () => void;
   readonly onEndSession: () => void;
@@ -17,6 +20,7 @@ interface MatchSuggestionProps {
 export function MatchSuggestion({
   suggestion,
   pairingMatrix,
+  completedMatches = [],
   onStartMatch,
   onEditPlayers,
   onEndSession,
@@ -106,6 +110,8 @@ export function MatchSuggestion({
         <button className="session-secondary-button" onClick={onEditPlayers} aria-label="Edit players">Edit players</button>
         <button className="session-danger-button" onClick={onEndSession} aria-label="End session">End session</button>
       </div>
+
+      <SessionMatchHistory matches={completedMatches} />
     </section>
   );
 }

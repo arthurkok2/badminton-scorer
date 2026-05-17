@@ -16,6 +16,8 @@ export interface MatchRecord {
   readonly teamA: readonly [string, string];
   readonly teamB: readonly [string, string];
   readonly winnerTeam: 'teamA' | 'teamB';
+  readonly startedAt?: string;
+  readonly endedAt?: string;
 }
 
 export interface PairingMatrix {

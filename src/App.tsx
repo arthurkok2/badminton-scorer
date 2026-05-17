@@ -46,6 +46,7 @@ import { MatchSettingsModal } from './components/MatchSettingsModal';
 import { RemoteControlsModal } from './components/RemoteControlsModal';
 import { DiagnosticsModal } from './components/DiagnosticsModal';
 import type { DiagnosticEvent } from './components/DiagnosticsModal';
+import { SessionMatchHistory } from './components/SessionMatchHistory';
 import { useWatchRemoteHost } from './hooks/useWatchRemoteHost';
 import { useAuth } from './auth';
 import type { ActiveSession, MatchSuggestion as MatchSuggestionData, TeamSplit } from './session/sessionTypes';
@@ -118,6 +119,7 @@ export default function App() {
     return saved ? generateMatchSuggestion(saved) : undefined;
   });
   const [currentPlayedSplit, setCurrentPlayedSplit] = useState<TeamSplit | undefined>(undefined);
+  const [currentSessionMatchStartedAt, setCurrentSessionMatchStartedAt] = useState<string | undefined>(undefined);
   const [savedPlayers, setSavedPlayers] = useState<string[]>(() => loadSavedPlayers());
   const [bluetoothStatus, setBluetoothStatus] = useState<BluetoothStatus>(() => getBluetoothSupportStatus());
   const [diagnostics, setDiagnostics] = useState<DiagnosticEvent[]>([]);
@@ -324,6 +326,7 @@ export default function App() {
       clearActiveSession();
       setActiveSession(undefined);
       setCurrentSuggestion(undefined);
+      setCurrentSessionMatchStartedAt(undefined);
     }
     setAppMode('match');
     setSessionPhase('setup');
@@ -346,19 +349,25 @@ export default function App() {
     clearMatchState();
     setMatchView({ match: createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1', playerNames }) });
     setCurrentPlayedSplit(split);
+    setCurrentSessionMatchStartedAt(new Date().toISOString());
     setSessionPhase('playing');
   }, []);
 
   const handleMatchEnded = useCallback((winnerTeam: 'teamA' | 'teamB') => {
     if (!activeSession || !currentPlayedSplit) return;
-    const updated = applyMatchResult(activeSession, currentPlayedSplit, winnerTeam);
+    const endedAt = new Date().toISOString();
+    const updated = applyMatchResult(activeSession, currentPlayedSplit, winnerTeam, {
+      startedAt: currentSessionMatchStartedAt ?? endedAt,
+      endedAt,
+    });
     saveActiveSession(updated);
     const suggestion = generateMatchSuggestion(updated);
     setActiveSession(updated);
     setCurrentSuggestion(suggestion);
     setCurrentPlayedSplit(undefined);
+    setCurrentSessionMatchStartedAt(undefined);
     setSessionPhase('suggestion');
-  }, [activeSession, currentPlayedSplit]);
+  }, [activeSession, currentPlayedSplit, currentSessionMatchStartedAt]);
 
   const handleEndSession = useCallback(() => {
     if (!activeSession) return;
@@ -369,6 +378,7 @@ export default function App() {
     setActiveSession(undefined);
     setCurrentSuggestion(undefined);
     setCurrentPlayedSplit(undefined);
+    setCurrentSessionMatchStartedAt(undefined);
     setMatchView((current) =>
       applyMatchViewAction(current, {
         type: 'RESET_MODE',
@@ -435,6 +445,12 @@ export default function App() {
     [updatePreferences],
   );
 
+  const handleShowSessionHistoryDuringLiveMatchesChange = useCallback(
+    (showSessionHistoryDuringLiveMatches: boolean) =>
+      updatePreferences((current) => ({ ...current, showSessionHistoryDuringLiveMatches })),
+    [updatePreferences],
+  );
+
   const handleAppMenuAction = useCallback(
     (action: AppMenuAction) => {
       if (action === 'sessionMode') {
@@ -490,7 +506,9 @@ export default function App() {
       ) : activeModal === 'displaySettings' ? (
         <DisplaySettingsModal
           animationsEnabled={preferences.animationsEnabled}
+          showSessionHistoryDuringLiveMatches={preferences.showSessionHistoryDuringLiveMatches}
           onAnimationsEnabledChange={handleAnimationsEnabledChange}
+          onShowSessionHistoryDuringLiveMatchesChange={handleShowSessionHistoryDuringLiveMatchesChange}
         />
       ) : activeModal === 'remoteControls' ? (
         <RemoteControlsModal
@@ -535,6 +553,7 @@ export default function App() {
           <MatchSuggestion
             suggestion={currentSuggestion}
             pairingMatrix={activeSession.pairingMatrix}
+            completedMatches={activeSession.matches}
             onStartMatch={handleStartMatch}
             onEditPlayers={handleEditPlayers}
             onEndSession={handleEndSession}
@@ -560,6 +579,9 @@ export default function App() {
           onBackToSessionSuggestion={handleBackToSessionSuggestion}
           onEndSession={isSessionPlaying ? handleEndSession : undefined}
         />
+        {isSessionPlaying && preferences.showSessionHistoryDuringLiveMatches && activeSession ? (
+          <SessionMatchHistory matches={activeSession.matches} />
+        ) : null}
         {appMode === 'session' && sessionPhase === 'playing' && matchWinner && (
           <div className="session-match-over" role="dialog" aria-label="Match over">
             <p>{match.teams[matchWinner].name} wins!</p>

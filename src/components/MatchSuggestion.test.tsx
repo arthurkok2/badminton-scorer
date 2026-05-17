@@ -102,6 +102,23 @@ describe('MatchSuggestion', () => {
     expect(onEndSession).toHaveBeenCalled();
   });
 
+  it('shows completed session match history', () => {
+    renderSuggestion({
+      completedMatches: [
+        {
+          teamA: ['Alice', 'Bob'],
+          teamB: ['Carol', 'Dave'],
+          winnerTeam: 'teamA',
+          startedAt: '2026-05-17T10:00:00.000Z',
+          endedAt: '2026-05-17T10:12:00.000Z',
+        },
+      ],
+    });
+
+    expect(screen.getByRole('region', { name: /session match history/i })).toBeInTheDocument();
+    expect(screen.getByText(/alice & bob won/i)).toBeInTheDocument();
+  });
+
   it('shows break-swap selects when Change break is clicked', async () => {
     renderSuggestion();
 

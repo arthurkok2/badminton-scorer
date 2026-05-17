@@ -58,6 +58,7 @@ describe('preferences', () => {
       matchMode: 'singles',
       remoteMapping: 'server-receiver-default',
       animationsEnabled: true,
+      showSessionHistoryDuringLiveMatches: true,
       playerNames: DEFAULT_PLAYER_NAMES,
     });
   });
@@ -73,6 +74,14 @@ describe('preferences', () => {
     savePreferences({ ...DEFAULT_PREFERENCES, playerNames });
 
     expect(loadPreferences().playerNames).toEqual(playerNames);
+  });
+
+  it('saves and loads the live session history display preference', () => {
+    expect(DEFAULT_PREFERENCES.showSessionHistoryDuringLiveMatches).toBe(true);
+
+    savePreferences({ ...DEFAULT_PREFERENCES, showSessionHistoryDuringLiveMatches: false });
+
+    expect(loadPreferences().showSessionHistoryDuringLiveMatches).toBe(false);
   });
 
   it('falls back to default player name for any blank or missing entry', () => {

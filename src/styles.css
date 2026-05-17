@@ -1084,6 +1084,66 @@ button {
   border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 
+.session-match-history {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #101820;
+}
+
+.session-match-history h3 {
+  margin: 0;
+  color: #aabcc4;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.session-match-history-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.session-match-history-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 54px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #172026;
+}
+
+.session-match-history-list li > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.session-match-history-number,
+.session-match-history-duration,
+.session-match-history-list span {
+  color: #aabcc4;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.session-match-history-list strong {
+  min-width: 0;
+  color: #f5f7fa;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.session-match-history-duration {
+  white-space: nowrap;
+}
+
 .session-match-over {
   position: fixed;
   bottom: 12px;

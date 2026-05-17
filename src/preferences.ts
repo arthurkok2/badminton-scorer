@@ -14,6 +14,7 @@ export interface AppPreferences {
   matchMode: 'singles' | 'doubles';
   remoteMapping: 'server-receiver-default';
   animationsEnabled: boolean;
+  showSessionHistoryDuringLiveMatches: boolean;
   playerNames: Record<PlayerId, string>;
 }
 
@@ -25,6 +26,7 @@ export const DEFAULT_PREFERENCES: AppPreferences = {
   matchMode: 'doubles',
   remoteMapping: 'server-receiver-default',
   animationsEnabled: true,
+  showSessionHistoryDuringLiveMatches: true,
   playerNames: { ...DEFAULT_PLAYER_NAMES },
 };
 
@@ -60,6 +62,9 @@ function parsePreferences(value: unknown): AppPreferences {
     animationsEnabled: typeof value.animationsEnabled === 'boolean'
       ? value.animationsEnabled
       : DEFAULT_PREFERENCES.animationsEnabled,
+    showSessionHistoryDuringLiveMatches: typeof value.showSessionHistoryDuringLiveMatches === 'boolean'
+      ? value.showSessionHistoryDuringLiveMatches
+      : DEFAULT_PREFERENCES.showSessionHistoryDuringLiveMatches,
     playerNames: parsePlayerNames(value.playerNames),
   };
 }
