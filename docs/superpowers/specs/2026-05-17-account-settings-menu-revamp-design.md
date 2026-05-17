@@ -189,3 +189,9 @@ Add or update tests to cover:
 - `StatusBar` and `WatchRemotePanel` imports were removed from `App.tsx`; the components are no longer rendered in the main scorer layout. Their source files are unchanged.
 - `activeModalDialog` in `App` covers all five modal cases: `matchSettings`, `announcementSettings`, `displaySettings`, `remoteControls`, `diagnostics`. No placeholder `<p>` remains.
 - App tests for Bluetooth, watch-remote, and diagnostic events were updated to open the corresponding modal via `openRemoteControls` or `openDiagnostics` helpers before querying. Three new "not on main screen" tests assert that Bluetooth connect button, diagnostics log, and active watch-remote code are absent from the main scorer layout.
+
+## Implementation Notes (Task 6, 2026-05-17)
+
+- CSS utility classes added to `styles.css`: `.settings-panel` (grid layout for modal body content), `.settings-section` (bordered, dark-background grouping card with gap), `.settings-section h3` (muted uppercase section label), and `.live-utility-controls` (2-column icon-button layout override for non-session match controls).
+- The `.settings-note` rule already existed; it was not duplicated or modified.
+- All three integration tests specified for this task were already covered by pre-existing tests in `App.test.tsx` (anonymous match settings open, session mode start, new match with confirmation). No duplicate tests were added.
