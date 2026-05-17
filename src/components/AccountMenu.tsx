@@ -39,7 +39,6 @@ export function AccountMenu() {
         className="account-avatar-button"
         aria-label={getAccountButtonLabel({ isSignedIn, authUnavailable, accountName })}
         aria-expanded={isOpen}
-        aria-haspopup="menu"
         onClick={() => setIsOpen((current) => !current)}
       >
         {isSignedIn && user?.photoURL ? (
@@ -52,7 +51,7 @@ export function AccountMenu() {
       </button>
 
       {isOpen && (
-        <div className="account-dropdown" role="menu" aria-label="Account menu">
+        <div className="account-dropdown">
           {isSignedIn ? (
             <>
               <ProfileSummary
@@ -64,7 +63,6 @@ export function AccountMenu() {
               <button
                 type="button"
                 className="account-menu-item"
-                role="menuitem"
                 onClick={() => {
                   setIsOpen(false);
                   void signOut();
@@ -86,7 +84,6 @@ export function AccountMenu() {
                 <button
                   type="button"
                   className="account-menu-item"
-                  role="menuitem"
                   onClick={() => {
                     setIsOpen(false);
                     void signInWithGoogle();

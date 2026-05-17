@@ -44,11 +44,11 @@ describe('AccountMenu', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /account menu/i }));
 
-    expect(screen.getByRole('menu')).toBeInTheDocument();
+    expect(screen.getByText(/local scoring is available/i)).toBeInTheDocument();
     expect(screen.getByText(/not signed in/i)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('menuitem', { name: /sign in with google/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^sign in with google$/i }));
     expect(signInWithGoogle).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(screen.queryByText(/local scoring is available/i)).not.toBeInTheDocument();
   });
 
   it('opens a signed-in profile menu without Settings', async () => {
@@ -69,11 +69,10 @@ describe('AccountMenu', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /account menu for arthur dent/i }));
 
-    expect(screen.getByRole('menu')).toBeInTheDocument();
     expect(screen.getByText('Arthur Dent')).toBeInTheDocument();
     expect(screen.getByText('arthur@example.com')).toBeInTheDocument();
-    expect(screen.queryByRole('menuitem', { name: /settings/i })).not.toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: /sign out/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /settings/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /sign out/i })).toBeInTheDocument();
   });
 
   it('uses the Google profile photo when available', async () => {
@@ -101,9 +100,8 @@ describe('AccountMenu', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /account menu/i }));
 
-    expect(screen.getByRole('menu')).toBeInTheDocument();
     expect(screen.getByText(/sign-in is unavailable offline/i)).toBeInTheDocument();
-    expect(screen.queryByRole('menuitem', { name: /sign in with google/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /sign in with google/i })).not.toBeInTheDocument();
   });
 
   it('closes the account menu when Escape is pressed', async () => {
@@ -117,7 +115,7 @@ describe('AccountMenu', () => {
     render(<AccountMenu />);
     await userEvent.click(screen.getByRole('button', { name: /account menu for arthur dent/i }));
     await userEvent.keyboard('{Escape}');
-    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /sign out/i })).not.toBeInTheDocument();
   });
 
   it('closes the account menu when clicking outside', async () => {
@@ -136,7 +134,7 @@ describe('AccountMenu', () => {
     );
     await userEvent.click(screen.getByRole('button', { name: /account menu for arthur dent/i }));
     await userEvent.click(screen.getByRole('button', { name: /outside/i }));
-    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /sign out/i })).not.toBeInTheDocument();
   });
 
   it('calls signOut and closes the menu when the sign-out item is clicked', async () => {
@@ -151,8 +149,8 @@ describe('AccountMenu', () => {
     const { AccountMenu } = await import('./AccountMenu');
     render(<AccountMenu />);
     await userEvent.click(screen.getByRole('button', { name: /account menu for arthur dent/i }));
-    await userEvent.click(screen.getByRole('menuitem', { name: /sign out/i }));
+    await userEvent.click(screen.getByRole('button', { name: /sign out/i }));
     expect(signOut).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /sign out/i })).not.toBeInTheDocument();
   });
 });

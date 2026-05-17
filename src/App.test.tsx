@@ -148,7 +148,7 @@ describe('App', () => {
   it('renders the account control in the global app chrome', () => {
     render(<App />);
 
-    expect(within(screen.getByRole('banner', { name: /app account/i })).getByRole('button', { name: /sign in with google/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /account menu, sign in with google/i })).toBeInTheDocument();
   });
 
   it('awards a point to Team B from the court score and changes server', async () => {

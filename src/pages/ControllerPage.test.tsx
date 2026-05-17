@@ -97,9 +97,7 @@ describe('ControllerPage', () => {
     it('renders a sign-in button in the global account chrome', () => {
       render(<MemoryRouter><ControllerPage /></MemoryRouter>);
 
-      expect(screen.getByRole('banner', { name: /app account/i })).toContainElement(
-        screen.getByRole('button', { name: /sign in with google/i }),
-      );
+      expect(screen.getByRole('button', { name: /account menu, sign in with google/i })).toBeInTheDocument();
     });
 
     it('disables the Join button when authUnavailable is true', () => {
