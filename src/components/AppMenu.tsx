@@ -29,6 +29,7 @@ const items: ReadonlyArray<{ action: AppMenuAction; label: string; icon: LucideI
 export function AppMenu({ onAction, availableActions }: AppMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const visibleItems = availableActions === undefined
     ? items
     : items.filter((item) => availableActions.includes(item.action));
@@ -56,6 +57,7 @@ export function AppMenu({ onAction, availableActions }: AppMenuProps) {
   return (
     <div className="app-menu" ref={menuRef}>
       <button
+        ref={buttonRef}
         type="button"
         className="app-menu-button"
         aria-label="Settings menu"
@@ -75,6 +77,7 @@ export function AppMenu({ onAction, availableActions }: AppMenuProps) {
               className="account-menu-item"
               onClick={() => {
                 setIsOpen(false);
+                buttonRef.current?.focus();
                 onAction(action);
               }}
             >

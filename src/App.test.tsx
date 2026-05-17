@@ -162,6 +162,18 @@ describe('App', () => {
     expect(screen.getByText(/these controls will appear in the focused modal/i)).toBeInTheDocument();
   });
 
+  it('returns focus to the settings menu button after closing a settings modal', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const settingsButton = screen.getByRole('button', { name: /settings menu/i });
+    await user.click(settingsButton);
+    await user.click(screen.getByRole('button', { name: /match settings/i }));
+    await user.click(screen.getByRole('button', { name: /close match settings/i }));
+
+    expect(settingsButton).toHaveFocus();
+  });
+
   it('starts session setup from the app settings menu', async () => {
     const user = userEvent.setup();
     render(<App />);
