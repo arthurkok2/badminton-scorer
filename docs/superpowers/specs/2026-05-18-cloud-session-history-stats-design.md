@@ -127,6 +127,14 @@ Stores active and completed session metadata.
 
 The session document is enough to list sessions without reading every match.
 
+## Session Scheduler Domain Model
+
+Active session scheduling uses app-domain global player objects, not raw player name strings. `createSession` accepts `GlobalPlayer` records and stores active roster entries as `GlobalSessionPlayer` values containing the global player id, display name snapshot, games played, consecutive streak, and break state. The pairing matrix is keyed by global player id so repeated-partner and repeated-opponent counts remain stable when display names change.
+
+Team suggestions contain `TeamSplit` objects made of `GlobalSessionPlayer` values. UI controls render `displayName`, but swaps and match starts pass the global player objects back to the scheduler. Completing a match appends a session `MatchRecord` with a client id, session id, one-based match number, team player ids, team display-name snapshots, sorted pair ids, winner, optional score/timestamps, and optional global match id.
+
+Legacy local records stay explicitly marked as legacy compatibility data. Existing string-name setup flows may use a temporary `createLegacySessionFromPlayerNames` adapter until the global player picker replaces them. Archived local match history may still render legacy `teamA` and `teamB` name tuples, but current scheduler-created records use id and display-name snapshot fields.
+
 ### `users/{uid}/sessions/{sessionId}/matches/{matchId}`
 
 Stores completed session matches. A match document is immutable after creation except for future administrative repair paths, which are out of scope for this feature.

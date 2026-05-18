@@ -23,7 +23,7 @@ import {
 import { loadPreferences, loadMatchState, savePreferences, saveMatchState, clearMatchState, type AppPreferences } from './preferences';
 import { getSpeechStatus, speakAnnouncement } from './speech/announcer';
 import {
-  createSession,
+  createLegacySessionFromPlayerNames,
   generateMatchSuggestion,
   applyMatchResult,
   archiveSession,
@@ -348,7 +348,7 @@ export default function App() {
     const merged = Array.from(new Set([...savedPlayers, ...playerNames]));
     saveSavedPlayers(merged);
     setSavedPlayers(merged);
-    const session = createSession(playerNames);
+    const session = createLegacySessionFromPlayerNames(playerNames);
     saveActiveSession(session);
     const suggestion = generateMatchSuggestion(session);
     setActiveSession(session);
@@ -357,7 +357,12 @@ export default function App() {
   }, [savedPlayers]);
 
   const handleStartMatch = useCallback((split: TeamSplit) => {
-    const playerNames = { A1: split.teamA[0], A2: split.teamA[1], B1: split.teamB[0], B2: split.teamB[1] };
+    const playerNames = {
+      A1: split.teamA[0].displayName,
+      A2: split.teamA[1].displayName,
+      B1: split.teamB[0].displayName,
+      B2: split.teamB[1].displayName,
+    };
     clearMatchState();
     setMatchView({ match: createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1', playerNames }) });
     setCurrentPlayedSplit(split);

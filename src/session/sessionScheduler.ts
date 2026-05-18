@@ -2,35 +2,44 @@
 import type {
   ActiveSession,
   ArchivedSession,
+  GlobalPlayer,
+  GlobalSessionPlayer,
   MatchRecord,
   MatchSuggestion,
   PairingMatrix,
-  SessionPlayer,
   TeamSplit,
 } from './sessionTypes';
+import { createGlobalPlayer, createPairId, toSessionPlayer } from './playerIdentity';
 
-export function createSession(playerNames: readonly string[]): ActiveSession {
+export function createSession(players: readonly GlobalPlayer[]): ActiveSession {
   return {
     id: crypto.randomUUID(),
     startedAt: new Date().toISOString(),
-    players: playerNames.map(name => ({
-      name,
-      gamesPlayed: 0,
-      consecutiveStreak: 0,
-      onBreak: true,
-    })),
+    players: players.map(toSessionPlayer),
     matches: [],
     pairingMatrix: { together: {}, against: {} },
   };
 }
 
-export function selectNextPlayers(players: readonly SessionPlayer[]): {
-  readonly selected: readonly [string, string, string, string];
-  readonly onBreak: readonly string[];
+export function createLegacySessionFromPlayerNames(playerNames: readonly string[]): ActiveSession {
+  return createSession(
+    playerNames.map((displayName, index) =>
+      createGlobalPlayer({
+        id: `legacy-local-player-${index + 1}`,
+        displayName,
+        createdBy: 'legacy-local',
+      }),
+    ),
+  );
+}
+
+export function selectNextPlayers(players: readonly GlobalSessionPlayer[]): {
+  readonly selected: readonly [GlobalSessionPlayer, GlobalSessionPlayer, GlobalSessionPlayer, GlobalSessionPlayer];
+  readonly onBreak: readonly GlobalSessionPlayer[];
 } {
   if (players.length <= 4) {
     return {
-      selected: players.map(p => p.name) as unknown as readonly [string, string, string, string],
+      selected: players as unknown as readonly [GlobalSessionPlayer, GlobalSessionPlayer, GlobalSessionPlayer, GlobalSessionPlayer],
       onBreak: [],
     };
   }
@@ -54,8 +63,8 @@ export function selectNextPlayers(players: readonly SessionPlayer[]): {
   const prioritized = [...breakPlayers, ...onCourtPlayers];
 
   return {
-    selected: prioritized.slice(0, 4).map(p => p.name) as unknown as readonly [string, string, string, string],
-    onBreak: prioritized.slice(4).map(p => p.name),
+    selected: prioritized.slice(0, 4) as unknown as readonly [GlobalSessionPlayer, GlobalSessionPlayer, GlobalSessionPlayer, GlobalSessionPlayer],
+    onBreak: prioritized.slice(4),
   };
 }
 
@@ -71,17 +80,17 @@ function scoreTeamSplit(split: TeamSplit, matrix: PairingMatrix): number {
   const [a1, a2] = split.teamA;
   const [b1, b2] = split.teamB;
   const togetherScore =
-    (getPairCount(matrix.together, a1, a2) + getPairCount(matrix.together, b1, b2)) * 2;
+    (getPairCount(matrix.together, a1.id, a2.id) + getPairCount(matrix.together, b1.id, b2.id)) * 2;
   const againstScore =
-    getPairCount(matrix.against, a1, b1) +
-    getPairCount(matrix.against, a1, b2) +
-    getPairCount(matrix.against, a2, b1) +
-    getPairCount(matrix.against, a2, b2);
+    getPairCount(matrix.against, a1.id, b1.id) +
+    getPairCount(matrix.against, a1.id, b2.id) +
+    getPairCount(matrix.against, a2.id, b1.id) +
+    getPairCount(matrix.against, a2.id, b2.id);
   return togetherScore + againstScore;
 }
 
 export function rankSplitsForPlayers(
-  players: readonly [string, string, string, string],
+  players: readonly [GlobalSessionPlayer, GlobalSessionPlayer, GlobalSessionPlayer, GlobalSessionPlayer],
   matrix: PairingMatrix,
 ): readonly [TeamSplit, TeamSplit, TeamSplit] {
   const [p0, p1, p2, p3] = players;
@@ -122,13 +131,13 @@ function updatePairingMatrix(matrix: PairingMatrix, split: TeamSplit): PairingMa
   const [a1, a2] = split.teamA;
   const [b1, b2] = split.teamB;
   let together = matrix.together;
-  together = incrementPairCount(together, a1, a2);
-  together = incrementPairCount(together, b1, b2);
+  together = incrementPairCount(together, a1.id, a2.id);
+  together = incrementPairCount(together, b1.id, b2.id);
   let against = matrix.against;
-  against = incrementPairCount(against, a1, b1);
-  against = incrementPairCount(against, a1, b2);
-  against = incrementPairCount(against, a2, b1);
-  against = incrementPairCount(against, a2, b2);
+  against = incrementPairCount(against, a1.id, b1.id);
+  against = incrementPairCount(against, a1.id, b2.id);
+  against = incrementPairCount(against, a2.id, b1.id);
+  against = incrementPairCount(against, a2.id, b2.id);
   return { together, against };
 }
 
@@ -136,16 +145,28 @@ export function applyMatchResult(
   session: ActiveSession,
   split: TeamSplit,
   winnerTeam: 'teamA' | 'teamB',
-  metadata?: Pick<MatchRecord, 'finalScore' | 'startedAt' | 'endedAt'>,
+  metadata?: Pick<MatchRecord, 'finalScore' | 'startedAt' | 'endedAt' | 'globalMatchId'>,
 ): ActiveSession {
-  const playedNames = new Set([...split.teamA, ...split.teamB]);
+  const playedIds = new Set([...split.teamA, ...split.teamB].map(player => player.id));
   const newMatrix = updatePairingMatrix(session.pairingMatrix, split);
-  const newPlayers: SessionPlayer[] = session.players.map(player =>
-    playedNames.has(player.name)
+  const newPlayers: GlobalSessionPlayer[] = session.players.map(player =>
+    playedIds.has(player.id)
       ? { ...player, gamesPlayed: player.gamesPlayed + 1, consecutiveStreak: player.consecutiveStreak + 1, onBreak: false }
       : { ...player, consecutiveStreak: 0, onBreak: true },
   );
-  const matchRecord: MatchRecord = { teamA: split.teamA, teamB: split.teamB, winnerTeam, ...metadata };
+  const matchRecord: MatchRecord = {
+    id: crypto.randomUUID(),
+    sessionId: session.id,
+    matchNumber: session.matches.length + 1,
+    teamAPlayerIds: [split.teamA[0].id, split.teamA[1].id],
+    teamBPlayerIds: [split.teamB[0].id, split.teamB[1].id],
+    teamADisplayNames: [split.teamA[0].displayName, split.teamA[1].displayName],
+    teamBDisplayNames: [split.teamB[0].displayName, split.teamB[1].displayName],
+    teamAPairId: createPairId(split.teamA[0].id, split.teamA[1].id),
+    teamBPairId: createPairId(split.teamB[0].id, split.teamB[1].id),
+    winnerTeam,
+    ...metadata,
+  };
   return { ...session, players: newPlayers, matches: [...session.matches, matchRecord], pairingMatrix: newMatrix };
 }
 
@@ -155,7 +176,8 @@ export function archiveSession(session: ActiveSession, endedAt: string): Archive
     startedAt: session.startedAt,
     endedAt,
     players: session.players.map(player => ({
-      name: player.name,
+      id: player.id,
+      displayName: player.displayName,
       gamesPlayed: player.gamesPlayed,
       breaksTaken: session.matches.length - player.gamesPlayed,
     })),

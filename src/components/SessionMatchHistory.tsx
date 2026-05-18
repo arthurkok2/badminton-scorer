@@ -1,13 +1,20 @@
-import type { MatchRecord } from '../session/sessionTypes';
+import type { LegacyMatchRecord, MatchRecord } from '../session/sessionTypes';
+
+type SessionHistoryRecord = MatchRecord | LegacyMatchRecord;
 
 interface SessionMatchHistoryProps {
-  readonly matches: readonly MatchRecord[];
+  readonly matches: readonly SessionHistoryRecord[];
 }
 
 export function SessionMatchHistory({ matches }: SessionMatchHistoryProps) {
   if (matches.length === 0) return null;
 
-  const rows = [...matches.map((match, index) => ({ match, matchNumber: index + 1 }))].reverse();
+  const rows = [
+    ...matches.map((match, index) => ({
+      match,
+      matchNumber: isLegacyMatchRecord(match) ? index + 1 : match.matchNumber,
+    })),
+  ].reverse();
 
   return (
     <section className="session-match-history" aria-label="Session match history">
@@ -17,10 +24,10 @@ export function SessionMatchHistory({ matches }: SessionMatchHistoryProps) {
       </div>
       <ol className="session-match-history-list">
         {rows.map(({ match, matchNumber }) => (
-          <li key={`${matchNumber}-${match.teamA.join('-')}-${match.teamB.join('-')}`}>
+          <li key={matchKey(match, matchNumber)}>
             <div>
               <span className="session-match-history-number">Match {matchNumber}</span>
-              <strong>{formatTeam(match.teamA)} vs {formatTeam(match.teamB)}</strong>
+              <strong>{formatTeam(teamDisplayNames(match, 'teamA'))} vs {formatTeam(teamDisplayNames(match, 'teamB'))}</strong>
               <span>{formatWinner(match)} won</span>
               {match.finalScore ? <span>{formatFinalScore(match)}</span> : null}
             </div>
@@ -32,19 +39,33 @@ export function SessionMatchHistory({ matches }: SessionMatchHistoryProps) {
   );
 }
 
+function isLegacyMatchRecord(match: SessionHistoryRecord): match is LegacyMatchRecord {
+  return 'teamA' in match;
+}
+
+function teamDisplayNames(match: SessionHistoryRecord, team: 'teamA' | 'teamB'): readonly [string, string] {
+  if (isLegacyMatchRecord(match)) return match[team];
+  return team === 'teamA' ? match.teamADisplayNames : match.teamBDisplayNames;
+}
+
+function matchKey(match: SessionHistoryRecord, matchNumber: number): string {
+  if (!isLegacyMatchRecord(match)) return match.id;
+  return `${matchNumber}-${match.teamA.join('-')}-${match.teamB.join('-')}`;
+}
+
 function formatTeam(team: readonly [string, string]): string {
   return `${team[0]} & ${team[1]}`;
 }
 
-function formatWinner(match: MatchRecord): string {
-  return formatTeam(match[match.winnerTeam]);
+function formatWinner(match: SessionHistoryRecord): string {
+  return formatTeam(teamDisplayNames(match, match.winnerTeam));
 }
 
-function formatFinalScore(match: MatchRecord): string {
+function formatFinalScore(match: SessionHistoryRecord): string {
   return match.finalScore ? `${match.finalScore.teamA}-${match.finalScore.teamB}` : '';
 }
 
-function formatDuration(match: MatchRecord): string {
+function formatDuration(match: SessionHistoryRecord): string {
   if (!match.startedAt || !match.endedAt) return 'Duration unavailable';
 
   const startedAt = Date.parse(match.startedAt);

@@ -16,7 +16,7 @@ export interface GlobalPlayer {
   readonly statsVersion: number;
 }
 
-export interface SessionPlayer {
+export interface LegacySessionPlayer {
   readonly name: string;
   readonly gamesPlayed: number;
   readonly consecutiveStreak: number;
@@ -32,11 +32,36 @@ export interface GlobalSessionPlayer {
 }
 
 export interface TeamSplit {
+  readonly teamA: readonly [GlobalSessionPlayer, GlobalSessionPlayer];
+  readonly teamB: readonly [GlobalSessionPlayer, GlobalSessionPlayer];
+}
+
+export interface MatchRecord {
+  readonly id: string;
+  readonly sessionId: string;
+  readonly matchNumber: number;
+  readonly teamAPlayerIds: readonly [string, string];
+  readonly teamBPlayerIds: readonly [string, string];
+  readonly teamADisplayNames: readonly [string, string];
+  readonly teamBDisplayNames: readonly [string, string];
+  readonly teamAPairId: string;
+  readonly teamBPairId: string;
+  readonly winnerTeam: 'teamA' | 'teamB';
+  readonly finalScore?: {
+    readonly teamA: number;
+    readonly teamB: number;
+  };
+  readonly startedAt?: string;
+  readonly endedAt?: string;
+  readonly globalMatchId?: string;
+}
+
+export interface LegacyTeamSplit {
   readonly teamA: readonly [string, string];
   readonly teamB: readonly [string, string];
 }
 
-export interface MatchRecord {
+export interface LegacyMatchRecord {
   readonly teamA: readonly [string, string];
   readonly teamB: readonly [string, string];
   readonly winnerTeam: 'teamA' | 'teamB';
@@ -55,19 +80,20 @@ export interface PairingMatrix {
 
 export interface MatchSuggestion {
   readonly rankedSplits: readonly [TeamSplit, TeamSplit, TeamSplit];
-  readonly onBreak: readonly string[];
+  readonly onBreak: readonly GlobalSessionPlayer[];
 }
 
 export interface ActiveSession {
   readonly id: string;
   readonly startedAt: string;
-  readonly players: readonly SessionPlayer[];
+  readonly players: readonly GlobalSessionPlayer[];
   readonly matches: readonly MatchRecord[];
   readonly pairingMatrix: PairingMatrix;
 }
 
 export interface ArchivedPlayer {
-  readonly name: string;
+  readonly id: string;
+  readonly displayName: string;
   readonly gamesPlayed: number;
   readonly breaksTaken: number;
 }
@@ -77,5 +103,5 @@ export interface ArchivedSession {
   readonly startedAt: string;
   readonly endedAt: string;
   readonly players: readonly ArchivedPlayer[];
-  readonly matches: readonly MatchRecord[];
+  readonly matches: readonly (MatchRecord | LegacyMatchRecord)[];
 }
