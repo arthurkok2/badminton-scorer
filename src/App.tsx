@@ -34,9 +34,12 @@ import {
 } from './session/cloudSessionService';
 import {
   loadActiveSession,
+  loadSessionArchive,
   saveActiveSession,
   clearActiveSession,
   appendToSessionArchive,
+  isSessionImportedForUser,
+  markSessionImportedForUser,
 } from './session/sessionStorage';
 import { SessionSetup } from './components/SessionSetup';
 import { MatchSuggestion } from './components/MatchSuggestion';
@@ -49,6 +52,7 @@ import { RemoteControlsModal } from './components/RemoteControlsModal';
 import { DiagnosticsModal } from './components/DiagnosticsModal';
 import type { DiagnosticEvent } from './components/DiagnosticsModal';
 import { SessionMatchHistory } from './components/SessionMatchHistory';
+import { SessionImportPrompt } from './components/SessionImportPrompt';
 import { useWatchRemoteHost } from './hooks/useWatchRemoteHost';
 import { useAuth } from './auth';
 import type { ActiveSession, GlobalPlayer, MatchSuggestion as MatchSuggestionData, TeamSplit } from './session/sessionTypes';
@@ -127,6 +131,8 @@ export default function App() {
   const [diagnostics, setDiagnostics] = useState<DiagnosticEvent[]>([]);
   const [activeModal, setActiveModal] = useState<AppModal | undefined>(undefined);
   const [playerSearchResults, setPlayerSearchResults] = useState<GlobalPlayer[]>([]);
+  const [showImportPrompt, setShowImportPrompt] = useState(false);
+  const [importLegacyNames, setImportLegacyNames] = useState<string[]>([]);
   const connectionRef = useRef<BluetoothRemoteConnection | undefined>(undefined);
   const keyboardConnectionRef = useRef<KeyboardRemoteConnection | undefined>(undefined);
   const gamepadConnectionRef = useRef<GamepadRemoteConnection | undefined>(undefined);
@@ -199,6 +205,25 @@ export default function App() {
       : !user || isAnonymous
         ? 'Sign in to start watch remote.'
         : undefined;
+
+  useEffect(() => {
+    if (!user || isAnonymous) return;
+    const archive = loadSessionArchive();
+    const activeSession = loadActiveSession();
+    const sessions = activeSession ? [activeSession, ...archive] : archive;
+    const unimportedNames = new Set<string>();
+    for (const session of sessions) {
+      if ('players' in session && !isSessionImportedForUser(user.uid, session.id)) {
+        for (const player of session.players) {
+          unimportedNames.add(player.displayName);
+        }
+      }
+    }
+    if (unimportedNames.size > 0) {
+      setImportLegacyNames([...unimportedNames]);
+      setShowImportPrompt(true);
+    }
+  }, [user, isAnonymous]);
 
   const watchRemote = useWatchRemoteHost({
     match,
@@ -375,6 +400,25 @@ export default function App() {
       return undefined;
     }
   }, [user]);
+
+  const handleImportSessions = useCallback((mapping: ReadonlyMap<string, GlobalPlayer>) => {
+    if (!user) return;
+    const archive = loadSessionArchive();
+    const active = loadActiveSession();
+    const sessions = active ? [active, ...archive] : archive;
+    for (const session of sessions) {
+      if ('players' in session) {
+        markSessionImportedForUser(user.uid, session.id);
+      }
+    }
+    setShowImportPrompt(false);
+    // suppress unused variable warning — mapping reserved for future cloud write
+    void mapping;
+  }, [user]);
+
+  const handleDismissImport = useCallback(() => {
+    setShowImportPrompt(false);
+  }, []);
 
   const handleStartMatch = useCallback((split: TeamSplit) => {
     const playerNames = {
@@ -599,6 +643,16 @@ export default function App() {
             onStartSession={handleStartSession}
           />
         </div>
+        {showImportPrompt && (
+          <SessionImportPrompt
+            legacyNames={importLegacyNames}
+            searchResults={playerSearchResults}
+            onSearchPlayers={handleSearchPlayers}
+            onCreatePlayer={handleCreatePlayer}
+            onImport={handleImportSessions}
+            onDismiss={handleDismissImport}
+          />
+        )}
         {activeModalDialog}
       </main>
     );
@@ -618,6 +672,16 @@ export default function App() {
             onEndSession={handleEndSession}
           />
         </div>
+        {showImportPrompt && (
+          <SessionImportPrompt
+            legacyNames={importLegacyNames}
+            searchResults={playerSearchResults}
+            onSearchPlayers={handleSearchPlayers}
+            onCreatePlayer={handleCreatePlayer}
+            onImport={handleImportSessions}
+            onDismiss={handleDismissImport}
+          />
+        )}
         {activeModalDialog}
       </main>
     );
@@ -648,6 +712,16 @@ export default function App() {
           </div>
         )}
       </div>
+      {showImportPrompt && (
+        <SessionImportPrompt
+          legacyNames={importLegacyNames}
+          searchResults={playerSearchResults}
+          onSearchPlayers={handleSearchPlayers}
+          onCreatePlayer={handleCreatePlayer}
+          onImport={handleImportSessions}
+          onDismiss={handleDismissImport}
+        />
+      )}
       {activeModalDialog}
       <AnimationOverlay event={activeAnimation} onDismiss={handleAnimationDismiss} />
     </main>

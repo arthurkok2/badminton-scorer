@@ -8,6 +8,7 @@ import { connectGamepadRemote } from './input/gamepadRemote';
 import { connectKeyboardRemote } from './input/keyboardRemote';
 import { speakAnnouncement } from './speech/announcer';
 import * as useWatchRemoteHostModule from './hooks/useWatchRemoteHost';
+import * as sessionStorageModule from './session/sessionStorage';
 import type { BluetoothRemoteConnection } from './input/bluetoothRemote';
 import type { GamepadRemoteConnection, GamepadRemoteDiagnosticEvent } from './input/gamepadRemote';
 import type { KeyboardRemoteConnection, KeyboardRemoteDiagnosticEvent } from './input/keyboardRemote';
@@ -960,5 +961,21 @@ describe('App', () => {
     await user.click(screen.getByRole('switch', { name: /animations/i }));
 
     expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '{}')).toMatchObject({ animationsEnabled: false });
+  });
+
+  it('shows import prompt when there are unimported sessions for signed-in user', async () => {
+    const archivedSession = {
+      id: 'session-abc',
+      startedAt: '2026-01-01T10:00:00.000Z',
+      endedAt: '2026-01-01T12:00:00.000Z',
+      players: [{ id: 'p1', displayName: 'OldAlice', gamesPlayed: 3, breaksTaken: 0 }],
+      matches: [],
+    };
+    vi.spyOn(sessionStorageModule, 'loadSessionArchive').mockReturnValue([archivedSession]);
+    vi.spyOn(sessionStorageModule, 'isSessionImportedForUser').mockReturnValue(false);
+
+    render(<App />);
+
+    expect(await screen.findByText(/import your session history/i)).toBeInTheDocument();
   });
 });
