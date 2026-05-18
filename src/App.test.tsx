@@ -11,6 +11,7 @@ import * as useWatchRemoteHostModule from './hooks/useWatchRemoteHost';
 import type { BluetoothRemoteConnection } from './input/bluetoothRemote';
 import type { GamepadRemoteConnection, GamepadRemoteDiagnosticEvent } from './input/gamepadRemote';
 import type { KeyboardRemoteConnection, KeyboardRemoteDiagnosticEvent } from './input/keyboardRemote';
+import type { GlobalPlayer } from './session/sessionTypes';
 
 const authMock = vi.hoisted(() => ({
   useAuth: vi.fn(() => ({
@@ -72,6 +73,32 @@ vi.mock('./hooks/useWatchRemoteHost', async (importOriginal) => {
   };
 });
 
+const testPlayers: GlobalPlayer[] = [
+  { id: 'p1', displayName: 'Alice', searchName: 'alice', createdBy: 'uid-1', claimStatus: 'guest', globalIndividualElo: 1500, globalMatchCount: 0, statsVersion: 1 },
+  { id: 'p2', displayName: 'Bob', searchName: 'bob', createdBy: 'uid-1', claimStatus: 'guest', globalIndividualElo: 1500, globalMatchCount: 0, statsVersion: 1 },
+  { id: 'p3', displayName: 'Carol', searchName: 'carol', createdBy: 'uid-1', claimStatus: 'guest', globalIndividualElo: 1500, globalMatchCount: 0, statsVersion: 1 },
+  { id: 'p4', displayName: 'Dave', searchName: 'dave', createdBy: 'uid-1', claimStatus: 'guest', globalIndividualElo: 1500, globalMatchCount: 0, statsVersion: 1 },
+];
+
+const cloudServiceMock = vi.hoisted(() => ({
+  searchGlobalPlayers: vi.fn(() => Promise.resolve([
+    { id: 'p1', displayName: 'Alice', searchName: 'alice', createdBy: 'uid-1', claimStatus: 'guest', globalIndividualElo: 1500, globalMatchCount: 0, statsVersion: 1 },
+    { id: 'p2', displayName: 'Bob', searchName: 'bob', createdBy: 'uid-1', claimStatus: 'guest', globalIndividualElo: 1500, globalMatchCount: 0, statsVersion: 1 },
+    { id: 'p3', displayName: 'Carol', searchName: 'carol', createdBy: 'uid-1', claimStatus: 'guest', globalIndividualElo: 1500, globalMatchCount: 0, statsVersion: 1 },
+    { id: 'p4', displayName: 'Dave', searchName: 'dave', createdBy: 'uid-1', claimStatus: 'guest', globalIndividualElo: 1500, globalMatchCount: 0, statsVersion: 1 },
+  ])),
+  createGlobalPlayerDocument: vi.fn(() => Promise.resolve(
+    { id: 'p1', displayName: 'Alice', searchName: 'alice', createdBy: 'uid-1', claimStatus: 'guest', globalIndividualElo: 1500, globalMatchCount: 0, statsVersion: 1 },
+  )),
+  completeCloudSessionMatch: vi.fn(() => Promise.resolve(undefined)),
+}));
+
+vi.mock('./session/cloudSessionService', () => ({
+  searchGlobalPlayers: cloudServiceMock.searchGlobalPlayers,
+  createGlobalPlayerDocument: cloudServiceMock.createGlobalPlayerDocument,
+  completeCloudSessionMatch: cloudServiceMock.completeCloudSessionMatch,
+}));
+
 const STORAGE_KEY = 'badminton-scorer-preferences';
 const mockedSpeakAnnouncement = vi.mocked(speakAnnouncement);
 const mockedGetBluetoothSupportStatus = vi.mocked(getBluetoothSupportStatus);
@@ -126,10 +153,12 @@ async function openDiagnostics(user: ReturnType<typeof userEvent.setup>) {
 async function startSessionMatch(user: ReturnType<typeof userEvent.setup>) {
   await chooseSettingsAction(user, /session mode/i);
 
-  for (const name of ['Alice', 'Bob', 'Carol', 'Dave']) {
-    await user.clear(screen.getByLabelText(/player name/i));
-    await user.type(screen.getByLabelText(/player name/i), name);
-    await user.click(screen.getByRole('button', { name: /^add$/i }));
+  // Trigger search to load test players via the mock
+  await user.type(screen.getByRole('textbox', { name: /player search/i }), 'a');
+
+  // Add each player from search results chips
+  for (const player of testPlayers) {
+    await user.click(screen.getByRole('button', { name: new RegExp(`add ${player.displayName}`, 'i') }));
   }
 
   await user.click(screen.getByRole('button', { name: /start session/i }));
@@ -229,6 +258,24 @@ describe('App', () => {
     await chooseSettingsAction(user, /session mode/i);
 
     expect(screen.getByRole('heading', { name: /session setup/i })).toBeInTheDocument();
+  });
+
+  it('shows a sign-in prompt instead of session setup when not signed in', async () => {
+    authMock.useAuth.mockReturnValue({
+      user: null as unknown as { uid: string; isAnonymous: boolean },
+      loading: false,
+      isAnonymous: false,
+      authUnavailable: false,
+      signInWithGoogle: vi.fn(),
+      signOut: vi.fn(),
+    });
+    const user = userEvent.setup();
+    render(<App />);
+
+    await chooseSettingsAction(user, /session mode/i);
+
+    expect(screen.queryByRole('heading', { name: /session setup/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: /sign in required/i })).toBeInTheDocument();
   });
 
   it('hides New match from the settings menu during a session match', async () => {

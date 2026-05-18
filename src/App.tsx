@@ -23,18 +23,20 @@ import {
 import { loadPreferences, loadMatchState, savePreferences, saveMatchState, clearMatchState, type AppPreferences } from './preferences';
 import { getSpeechStatus, speakAnnouncement } from './speech/announcer';
 import {
-  createLegacySessionFromPlayerNames,
+  createSession,
   generateMatchSuggestion,
   applyMatchResult,
   archiveSession,
 } from './session/sessionScheduler';
 import {
+  searchGlobalPlayers,
+  createGlobalPlayerDocument,
+} from './session/cloudSessionService';
+import {
   loadActiveSession,
   saveActiveSession,
   clearActiveSession,
   appendToSessionArchive,
-  loadSavedPlayers,
-  saveSavedPlayers,
 } from './session/sessionStorage';
 import { SessionSetup } from './components/SessionSetup';
 import { MatchSuggestion } from './components/MatchSuggestion';
@@ -49,7 +51,7 @@ import type { DiagnosticEvent } from './components/DiagnosticsModal';
 import { SessionMatchHistory } from './components/SessionMatchHistory';
 import { useWatchRemoteHost } from './hooks/useWatchRemoteHost';
 import { useAuth } from './auth';
-import type { ActiveSession, MatchSuggestion as MatchSuggestionData, TeamSplit } from './session/sessionTypes';
+import type { ActiveSession, GlobalPlayer, MatchSuggestion as MatchSuggestionData, TeamSplit } from './session/sessionTypes';
 import { detectAnimationEvent } from './animations/detectAnimationEvent';
 import { AnimationOverlay } from './components/AnimationOverlay';
 import type { AnimationEvent } from './animations/types';
@@ -58,6 +60,7 @@ import type { AppMenuAction } from './components/AppMenu';
 type AppMode = 'match' | 'session';
 type SessionPhase = 'setup' | 'suggestion' | 'playing';
 type AppSettingsModal = Exclude<AppMenuAction, 'sessionMode' | 'newMatch'>;
+type AppModal = AppSettingsModal | 'sessionSignIn';
 
 const appSettingsModalTitles: Record<AppSettingsModal, string> = {
   matchSettings: 'Match settings',
@@ -120,10 +123,10 @@ export default function App() {
   });
   const [currentPlayedSplit, setCurrentPlayedSplit] = useState<TeamSplit | undefined>(undefined);
   const [currentSessionMatchStartedAt, setCurrentSessionMatchStartedAt] = useState<string | undefined>(undefined);
-  const [savedPlayers, setSavedPlayers] = useState<string[]>(() => loadSavedPlayers());
   const [bluetoothStatus, setBluetoothStatus] = useState<BluetoothStatus>(() => getBluetoothSupportStatus());
   const [diagnostics, setDiagnostics] = useState<DiagnosticEvent[]>([]);
-  const [activeModal, setActiveModal] = useState<AppSettingsModal | undefined>(undefined);
+  const [activeModal, setActiveModal] = useState<AppModal | undefined>(undefined);
+  const [playerSearchResults, setPlayerSearchResults] = useState<GlobalPlayer[]>([]);
   const connectionRef = useRef<BluetoothRemoteConnection | undefined>(undefined);
   const keyboardConnectionRef = useRef<KeyboardRemoteConnection | undefined>(undefined);
   const gamepadConnectionRef = useRef<GamepadRemoteConnection | undefined>(undefined);
@@ -187,6 +190,7 @@ export default function App() {
     loading: authLoading,
     isAnonymous,
     authUnavailable,
+    signInWithGoogle,
   } = useAuth();
   const watchRemoteUnavailableReason = authLoading
     ? 'Checking sign-in...'
@@ -326,10 +330,14 @@ export default function App() {
   }, [dispatch]);
 
   const handleSwitchToSession = useCallback(() => {
+    if (!user || isAnonymous) {
+      setActiveModal('sessionSignIn');
+      return;
+    }
     if (hasStarted(matchView.match) && !window.confirm('Leave this match and start a session?')) return;
     setActiveModal(undefined);
     setAppMode('session');
-  }, [matchView.match]);
+  }, [isAnonymous, matchView.match, user]);
 
   const handleSwitchToMatch = useCallback(() => {
     if (activeSession && !window.confirm('End the current session?')) return;
@@ -344,17 +352,29 @@ export default function App() {
     setSessionPhase('setup');
   }, [activeSession]);
 
-  const handleStartSession = useCallback((playerNames: readonly string[]) => {
-    const merged = Array.from(new Set([...savedPlayers, ...playerNames]));
-    saveSavedPlayers(merged);
-    setSavedPlayers(merged);
-    const session = createLegacySessionFromPlayerNames(playerNames);
+  const handleStartSession = useCallback((players: readonly GlobalPlayer[]) => {
+    const session = createSession(players);
     saveActiveSession(session);
     const suggestion = generateMatchSuggestion(session);
     setActiveSession(session);
     setCurrentSuggestion(suggestion);
     setSessionPhase('suggestion');
-  }, [savedPlayers]);
+  }, []);
+
+  const handleSearchPlayers = useCallback((searchText: string) => {
+    void searchGlobalPlayers({ searchText }).then(results => {
+      setPlayerSearchResults(results);
+    });
+  }, []);
+
+  const handleCreatePlayer = useCallback(async (displayName: string): Promise<GlobalPlayer | undefined> => {
+    if (!user) return undefined;
+    try {
+      return await createGlobalPlayerDocument({ displayName, uid: user.uid });
+    } catch {
+      return undefined;
+    }
+  }, [user]);
 
   const handleStartMatch = useCallback((split: TeamSplit) => {
     const playerNames = {
@@ -500,9 +520,24 @@ export default function App() {
     };
   }, [appMode, match.teams]);
   const settingsLocked = appMode === 'session' && sessionPhase === 'playing';
+  const activeModalTitle = activeModal === 'sessionSignIn'
+    ? 'Sign in required'
+    : activeModal !== undefined
+      ? appSettingsModalTitles[activeModal]
+      : '';
   const activeModalDialog = activeModal ? (
-    <AppModal title={appSettingsModalTitles[activeModal]} onClose={() => setActiveModal(undefined)}>
-      {activeModal === 'matchSettings' ? (
+    <AppModal title={activeModalTitle} onClose={() => setActiveModal(undefined)}>
+      {activeModal === 'sessionSignIn' ? (
+        <div className="session-sign-in-prompt">
+          <p>You need to sign in to use session mode.</p>
+          <button
+            className="session-primary-button"
+            onClick={() => { void signInWithGoogle(); setActiveModal(undefined); }}
+          >
+            Sign in with Google
+          </button>
+        </div>
+      ) : activeModal === 'matchSettings' ? (
         <MatchSettingsModal
           match={match}
           matchMode={preferences.matchMode}
@@ -556,7 +591,13 @@ export default function App() {
           <div className="app-mode-toggle">
             <button onClick={handleSwitchToMatch}>← Match mode</button>
           </div>
-          <SessionSetup savedPlayers={savedPlayers} onStartSession={handleStartSession} />
+          <SessionSetup
+            savedPlayers={[]}
+            searchResults={playerSearchResults}
+            onSearchPlayers={handleSearchPlayers}
+            onCreatePlayer={handleCreatePlayer}
+            onStartSession={handleStartSession}
+          />
         </div>
         {activeModalDialog}
       </main>
