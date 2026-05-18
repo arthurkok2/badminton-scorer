@@ -161,6 +161,11 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
       allow update: if isNamedSignedIn()
         && request.resource.data.id == resource.data.id
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.displayName == resource.data.displayName
+        && request.resource.data.searchName == resource.data.searchName
+        && request.resource.data.claimStatus == resource.data.claimStatus
+        && request.resource.data.createdAt == resource.data.createdAt
         && isValidElo(request.resource.data.globalIndividualElo)
         && request.resource.data.globalMatchCount is number
         && request.resource.data.globalMatchCount >= resource.data.globalMatchCount;
@@ -182,6 +187,8 @@ service cloud.firestore {
       allow update: if isNamedSignedIn()
         && request.resource.data.id == resource.data.id
         && request.resource.data.playerIds == resource.data.playerIds
+        && request.resource.data.displayNames == resource.data.displayNames
+        && request.resource.data.createdAt == resource.data.createdAt
         && isValidElo(request.resource.data.globalPairElo)
         && request.resource.data.globalMatchCount is number
         && request.resource.data.globalMatchCount >= resource.data.globalMatchCount;

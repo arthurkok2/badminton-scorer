@@ -423,8 +423,8 @@ Rules tests cover:
 
 ### Match blocks added (before catch-all deny)
 
-- `match /players/{playerId}` — named-signed-in read; create validates all required fields and initial values; update enforces id immutability, valid Elo range, and non-decreasing match count; delete denied.
-- `match /pairs/{pairId}` — same pattern as players; update also enforces `playerIds` immutability.
+- `match /players/{playerId}` — named-signed-in read; create validates all required fields and initial values; update enforces id immutability plus immutability of `createdBy`, `displayName`, `searchName`, `claimStatus`, and `createdAt`, valid Elo range, and non-decreasing match count; delete denied.
+- `match /pairs/{pairId}` — same pattern as players; update enforces `playerIds`, `displayNames`, and `createdAt` immutability in addition to id immutability.
 - `match /globalMatches/{matchId}` — named-signed-in read; create validates submitter, player lists, valid winner team, status `submitted`, and server timestamp; update and delete denied.
 - `match /users/{userId}` — read/create/update only when `request.auth.uid == userId`; delete denied. Contains nested:
   - `match /sessions/{sessionId}` — same ownership check; nested `match /matches/{matchId}` allows read/create, denies update/delete.
@@ -464,7 +464,7 @@ interface HistoryStatsModalProps {
 }
 ```
 
-For Task 10 the arrays are always empty; later tasks wire real Firestore data.
+The modal is wired to real local data. A `historyStatsSummary` memo recomputes from the session archive whenever the modal is opened (`showHistoryStats` changes to true). It filters out legacy `LegacyMatchRecord` entries (which lack an `id` field), flattens all remaining `MatchRecord` entries across archived sessions, and passes them to `buildStatsSummary`. The resulting `StatsSummary` is mapped to `PlayerLeaderboardEntry[]` and `PairLeaderboardEntry[]`. Because local session records do not carry per-player Elo snapshots, both entries use `1500` as a placeholder Elo until cloud Elo data is wired. The sessions tab is built directly from the session archive. The matchups tab remains empty for now.
 
 ## Non-Goals
 

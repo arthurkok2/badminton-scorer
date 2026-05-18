@@ -18,6 +18,8 @@ When a session match ends and the user is signed in (non-anonymous), the complet
 - `sessionSyncError` state holds the error message string when a sync fails.
 - `pendingRetryMatch` state holds the `MatchRecord` to retry.
 - `handleRetrySessionSync` clears the error and re-calls `completeCloudSessionMatch`.
+- On success (both initial and retry), the `.then()` handler clears both `sessionSyncError` and `pendingRetryMatch` so the banner disappears without a page reload.
+- On failure, `sessionSyncError` is set to the retry prompt and `pendingRetryMatch` remains set.
 - Errors are non-blocking: local session state is always committed first.
 
 ## UI

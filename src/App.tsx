@@ -42,6 +42,7 @@ import {
   isSessionImportedForUser,
   markSessionImportedForUser,
 } from './session/sessionStorage';
+import { buildStatsSummary } from './session/stats';
 import { SessionSetup } from './components/SessionSetup';
 import { MatchSuggestion } from './components/MatchSuggestion';
 import { AccountBar } from './components/AccountBar';
@@ -139,6 +140,15 @@ export default function App() {
   const [showImportPrompt, setShowImportPrompt] = useState(false);
   const [showHistoryStats, setShowHistoryStats] = useState(false);
   const [importLegacyNames, setImportLegacyNames] = useState<string[]>([]);
+
+  const historyStatsSummary = useMemo(() => {
+    if (!showHistoryStats) return undefined;
+    const archive = loadSessionArchive();
+    const allMatches = archive.flatMap(s => (s.matches ?? []).filter((m): m is import('./session/sessionTypes').MatchRecord => 'id' in m));
+    if (allMatches.length === 0) return undefined;
+    return buildStatsSummary(allMatches);
+  }, [showHistoryStats]);
+
   const connectionRef = useRef<BluetoothRemoteConnection | undefined>(undefined);
   const keyboardConnectionRef = useRef<KeyboardRemoteConnection | undefined>(undefined);
   const gamepadConnectionRef = useRef<GamepadRemoteConnection | undefined>(undefined);
@@ -461,6 +471,10 @@ export default function App() {
       if (completedMatch) {
         setPendingRetryMatch({ matchRecord: completedMatch });
         completeCloudSessionMatch({ uid: user.uid, matchRecord: completedMatch })
+          .then(() => {
+            setSessionSyncError(undefined);
+            setPendingRetryMatch(undefined);
+          })
           .catch(() => { setSessionSyncError('Could not sync match to cloud. Tap to retry.'); });
       }
     }
@@ -491,6 +505,10 @@ export default function App() {
     if (!user || !pendingRetryMatch) return;
     setSessionSyncError(undefined);
     completeCloudSessionMatch({ uid: user.uid, matchRecord: pendingRetryMatch.matchRecord })
+      .then(() => {
+        setSessionSyncError(undefined);
+        setPendingRetryMatch(undefined);
+      })
       .catch(() => { setSessionSyncError('Could not sync match to cloud. Tap to retry.'); });
   }, [pendingRetryMatch, user]);
 
@@ -686,7 +704,34 @@ export default function App() {
         )}
         {activeModalDialog}
         {showHistoryStats && (
-          <HistoryStatsModal sessions={[]} players={[]} pairs={[]} matchups={[]} onClose={() => setShowHistoryStats(false)} />
+          <HistoryStatsModal
+            sessions={loadSessionArchive().map(s => ({
+              id: s.id,
+              startedAt: s.startedAt,
+              matchCount: s.matches?.length ?? 0,
+            }))}
+            players={historyStatsSummary
+              ? Object.entries(historyStatsSummary.players).map(([id, p]) => ({
+                  id,
+                  displayName: p.displayName,
+                  elo: 1500,
+                  matchesPlayed: p.matchesPlayed,
+                  winRate: p.winRate,
+                  recentForm: p.recentForm,
+                }))
+              : []}
+            pairs={historyStatsSummary
+              ? Object.entries(historyStatsSummary.pairs).map(([id, p]) => ({
+                  id,
+                  displayNames: p.displayNames,
+                  elo: 1500,
+                  matchesPlayed: p.matchesPlayed,
+                  winRate: p.winRate,
+                }))
+              : []}
+            matchups={[]}
+            onClose={() => setShowHistoryStats(false)}
+          />
         )}
       </main>
     );
@@ -718,7 +763,34 @@ export default function App() {
         )}
         {activeModalDialog}
         {showHistoryStats && (
-          <HistoryStatsModal sessions={[]} players={[]} pairs={[]} matchups={[]} onClose={() => setShowHistoryStats(false)} />
+          <HistoryStatsModal
+            sessions={loadSessionArchive().map(s => ({
+              id: s.id,
+              startedAt: s.startedAt,
+              matchCount: s.matches?.length ?? 0,
+            }))}
+            players={historyStatsSummary
+              ? Object.entries(historyStatsSummary.players).map(([id, p]) => ({
+                  id,
+                  displayName: p.displayName,
+                  elo: 1500,
+                  matchesPlayed: p.matchesPlayed,
+                  winRate: p.winRate,
+                  recentForm: p.recentForm,
+                }))
+              : []}
+            pairs={historyStatsSummary
+              ? Object.entries(historyStatsSummary.pairs).map(([id, p]) => ({
+                  id,
+                  displayNames: p.displayNames,
+                  elo: 1500,
+                  matchesPlayed: p.matchesPlayed,
+                  winRate: p.winRate,
+                }))
+              : []}
+            matchups={[]}
+            onClose={() => setShowHistoryStats(false)}
+          />
         )}
       </main>
     );
@@ -767,7 +839,34 @@ export default function App() {
       )}
       {activeModalDialog}
         {showHistoryStats && (
-          <HistoryStatsModal sessions={[]} players={[]} pairs={[]} matchups={[]} onClose={() => setShowHistoryStats(false)} />
+          <HistoryStatsModal
+            sessions={loadSessionArchive().map(s => ({
+              id: s.id,
+              startedAt: s.startedAt,
+              matchCount: s.matches?.length ?? 0,
+            }))}
+            players={historyStatsSummary
+              ? Object.entries(historyStatsSummary.players).map(([id, p]) => ({
+                  id,
+                  displayName: p.displayName,
+                  elo: 1500,
+                  matchesPlayed: p.matchesPlayed,
+                  winRate: p.winRate,
+                  recentForm: p.recentForm,
+                }))
+              : []}
+            pairs={historyStatsSummary
+              ? Object.entries(historyStatsSummary.pairs).map(([id, p]) => ({
+                  id,
+                  displayNames: p.displayNames,
+                  elo: 1500,
+                  matchesPlayed: p.matchesPlayed,
+                  winRate: p.winRate,
+                }))
+              : []}
+            matchups={[]}
+            onClose={() => setShowHistoryStats(false)}
+          />
         )}
       <AnimationOverlay event={activeAnimation} onDismiss={handleAnimationDismiss} />
     </main>

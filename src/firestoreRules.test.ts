@@ -27,4 +27,10 @@ describe('firestore.rules', () => {
     expect(rules).toContain('allow read: if isNamedSignedIn()');
     expect(rules).toContain("request.auth.token.firebase.sign_in_provider != 'anonymous'");
   });
+
+  it('pins immutable player fields on update', () => {
+    expect(rules).toContain('request.resource.data.displayName == resource.data.displayName');
+    expect(rules).toContain('request.resource.data.searchName == resource.data.searchName');
+    expect(rules).toContain('request.resource.data.createdBy == resource.data.createdBy');
+  });
 });
