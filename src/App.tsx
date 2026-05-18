@@ -32,6 +32,10 @@ import {
   searchGlobalPlayers,
   createGlobalPlayerDocument,
   completeCloudSessionMatch,
+  importMappedLegacySessions,
+  loadCloudHistoryStats,
+  saveCloudSession,
+  type CloudHistoryStats,
 } from './session/cloudSessionService';
 import {
   loadActiveSession,
@@ -42,7 +46,6 @@ import {
   isSessionImportedForUser,
   markSessionImportedForUser,
 } from './session/sessionStorage';
-import { buildStatsSummary } from './session/stats';
 import { SessionSetup } from './components/SessionSetup';
 import { MatchSuggestion } from './components/MatchSuggestion';
 import { AccountBar } from './components/AccountBar';
@@ -140,14 +143,7 @@ export default function App() {
   const [showImportPrompt, setShowImportPrompt] = useState(false);
   const [showHistoryStats, setShowHistoryStats] = useState(false);
   const [importLegacyNames, setImportLegacyNames] = useState<string[]>([]);
-
-  const historyStatsSummary = useMemo(() => {
-    if (!showHistoryStats) return undefined;
-    const archive = loadSessionArchive();
-    const allMatches = archive.flatMap(s => (s.matches ?? []).filter((m): m is import('./session/sessionTypes').MatchRecord => 'id' in m));
-    if (allMatches.length === 0) return undefined;
-    return buildStatsSummary(allMatches);
-  }, [showHistoryStats]);
+  const [cloudHistoryStats, setCloudHistoryStats] = useState<CloudHistoryStats | undefined>(undefined);
 
   const connectionRef = useRef<BluetoothRemoteConnection | undefined>(undefined);
   const keyboardConnectionRef = useRef<KeyboardRemoteConnection | undefined>(undefined);
@@ -383,7 +379,13 @@ export default function App() {
   const handleSwitchToMatch = useCallback(() => {
     if (activeSession && !window.confirm('End the current session?')) return;
     if (activeSession) {
-      appendToSessionArchive(archiveSession(activeSession, new Date().toISOString()));
+      const archivedSession = archiveSession(activeSession, new Date().toISOString());
+      appendToSessionArchive(archivedSession);
+      if (user && !isAnonymous) {
+        void saveCloudSession({ uid: user.uid, session: archivedSession, status: 'completed' }).catch(() => {
+          setSessionSyncError('Could not sync session to cloud.');
+        });
+      }
       clearActiveSession();
       setActiveSession(undefined);
       setCurrentSuggestion(undefined);
@@ -391,16 +393,21 @@ export default function App() {
     }
     setAppMode('match');
     setSessionPhase('setup');
-  }, [activeSession]);
+  }, [activeSession, isAnonymous, user]);
 
   const handleStartSession = useCallback((players: readonly GlobalPlayer[]) => {
     const session = createSession(players);
     saveActiveSession(session);
+    if (user && !isAnonymous) {
+      void saveCloudSession({ uid: user.uid, session, status: 'active' }).catch(() => {
+        setSessionSyncError('Could not sync session to cloud.');
+      });
+    }
     const suggestion = generateMatchSuggestion(session);
     setActiveSession(session);
     setCurrentSuggestion(suggestion);
     setSessionPhase('suggestion');
-  }, []);
+  }, [isAnonymous, user]);
 
   const handleSearchPlayers = useCallback((searchText: string) => {
     void searchGlobalPlayers({ searchText }).then(results => {
@@ -422,15 +429,39 @@ export default function App() {
     const archive = loadSessionArchive();
     const active = loadActiveSession();
     const sessions = active ? [active, ...archive] : archive;
-    for (const session of sessions) {
-      if (session.players.some(p => p.id.startsWith('legacy-local-player-'))) {
-        markSessionImportedForUser(user.uid, session.id);
-      }
-    }
-    setShowImportPrompt(false);
-    // suppress unused variable warning — mapping reserved for future cloud write
-    void mapping;
+    const importableSessions = sessions.filter((session) =>
+      session.players.some(p => p.id.startsWith('legacy-local-player-')),
+    );
+    void importMappedLegacySessions({ uid: user.uid, sessions: importableSessions, mapping })
+      .then(() => {
+        for (const session of importableSessions) {
+          markSessionImportedForUser(user.uid, session.id);
+        }
+        setSessionSyncError(undefined);
+        setShowImportPrompt(false);
+      })
+      .catch(() => {
+        setSessionSyncError('Could not import local sessions to cloud. Try again.');
+      });
   }, [user]);
+
+  const handleShowHistoryStats = useCallback(() => {
+    if (!user || isAnonymous) {
+      setActiveModal('sessionSignIn');
+      return;
+    }
+
+    void loadCloudHistoryStats({ uid: user.uid })
+      .then((stats) => {
+        setCloudHistoryStats(stats);
+        setShowHistoryStats(true);
+      })
+      .catch(() => {
+        setSessionSyncError('Could not load cloud history.');
+        setCloudHistoryStats(undefined);
+        setShowHistoryStats(true);
+      });
+  }, [isAnonymous, user]);
 
   const handleDismissImport = useCallback(() => {
     setShowImportPrompt(false);
@@ -483,7 +514,13 @@ export default function App() {
   const handleEndSession = useCallback(() => {
     if (!activeSession) return;
     if (!window.confirm('End the current session?')) return;
-    appendToSessionArchive(archiveSession(activeSession, new Date().toISOString()));
+    const archivedSession = archiveSession(activeSession, new Date().toISOString());
+    appendToSessionArchive(archivedSession);
+    if (user && !isAnonymous) {
+      void saveCloudSession({ uid: user.uid, session: archivedSession, status: 'completed' }).catch(() => {
+        setSessionSyncError('Could not sync session to cloud.');
+      });
+    }
     clearActiveSession();
     clearMatchState();
     setActiveSession(undefined);
@@ -499,7 +536,7 @@ export default function App() {
     );
     setSessionPhase('setup');
     setAppMode('match');
-  }, [activeSession]);
+  }, [activeSession, isAnonymous, user]);
 
   const handleRetrySessionSync = useCallback(() => {
     if (!user || !pendingRetryMatch) return;
@@ -587,17 +624,13 @@ export default function App() {
       }
 
       if (action === 'historyStats') {
-        if (user && !isAnonymous) {
-          setShowHistoryStats(true);
-        } else {
-          setActiveModal('sessionSignIn');
-        }
+        handleShowHistoryStats();
         return;
       }
 
       setActiveModal(action);
     },
-    [handleNewMatch, handleSwitchToSession, isAnonymous, user],
+    [handleNewMatch, handleShowHistoryStats, handleSwitchToSession],
   );
 
   const matchWinner = match.winnerTeamId;
@@ -703,36 +736,15 @@ export default function App() {
           />
         )}
         {activeModalDialog}
-        {showHistoryStats && (
+        {showHistoryStats ? (
           <HistoryStatsModal
-            sessions={loadSessionArchive().map(s => ({
-              id: s.id,
-              startedAt: s.startedAt,
-              matchCount: s.matches?.length ?? 0,
-            }))}
-            players={historyStatsSummary
-              ? Object.entries(historyStatsSummary.players).map(([id, p]) => ({
-                  id,
-                  displayName: p.displayName,
-                  elo: 1500,
-                  matchesPlayed: p.matchesPlayed,
-                  winRate: p.winRate,
-                  recentForm: p.recentForm,
-                }))
-              : []}
-            pairs={historyStatsSummary
-              ? Object.entries(historyStatsSummary.pairs).map(([id, p]) => ({
-                  id,
-                  displayNames: p.displayNames,
-                  elo: 1500,
-                  matchesPlayed: p.matchesPlayed,
-                  winRate: p.winRate,
-                }))
-              : []}
-            matchups={[]}
+            sessions={cloudHistoryStats?.sessions ?? []}
+            players={cloudHistoryStats?.players ?? []}
+            pairs={cloudHistoryStats?.pairs ?? []}
+            matchups={cloudHistoryStats?.matchups ?? []}
             onClose={() => setShowHistoryStats(false)}
           />
-        )}
+        ) : null}
       </main>
     );
   }
@@ -762,36 +774,15 @@ export default function App() {
           />
         )}
         {activeModalDialog}
-        {showHistoryStats && (
+        {showHistoryStats ? (
           <HistoryStatsModal
-            sessions={loadSessionArchive().map(s => ({
-              id: s.id,
-              startedAt: s.startedAt,
-              matchCount: s.matches?.length ?? 0,
-            }))}
-            players={historyStatsSummary
-              ? Object.entries(historyStatsSummary.players).map(([id, p]) => ({
-                  id,
-                  displayName: p.displayName,
-                  elo: 1500,
-                  matchesPlayed: p.matchesPlayed,
-                  winRate: p.winRate,
-                  recentForm: p.recentForm,
-                }))
-              : []}
-            pairs={historyStatsSummary
-              ? Object.entries(historyStatsSummary.pairs).map(([id, p]) => ({
-                  id,
-                  displayNames: p.displayNames,
-                  elo: 1500,
-                  matchesPlayed: p.matchesPlayed,
-                  winRate: p.winRate,
-                }))
-              : []}
-            matchups={[]}
+            sessions={cloudHistoryStats?.sessions ?? []}
+            players={cloudHistoryStats?.players ?? []}
+            pairs={cloudHistoryStats?.pairs ?? []}
+            matchups={cloudHistoryStats?.matchups ?? []}
             onClose={() => setShowHistoryStats(false)}
           />
-        )}
+        ) : null}
       </main>
     );
   }
@@ -838,36 +829,15 @@ export default function App() {
         />
       )}
       {activeModalDialog}
-        {showHistoryStats && (
+        {showHistoryStats ? (
           <HistoryStatsModal
-            sessions={loadSessionArchive().map(s => ({
-              id: s.id,
-              startedAt: s.startedAt,
-              matchCount: s.matches?.length ?? 0,
-            }))}
-            players={historyStatsSummary
-              ? Object.entries(historyStatsSummary.players).map(([id, p]) => ({
-                  id,
-                  displayName: p.displayName,
-                  elo: 1500,
-                  matchesPlayed: p.matchesPlayed,
-                  winRate: p.winRate,
-                  recentForm: p.recentForm,
-                }))
-              : []}
-            pairs={historyStatsSummary
-              ? Object.entries(historyStatsSummary.pairs).map(([id, p]) => ({
-                  id,
-                  displayNames: p.displayNames,
-                  elo: 1500,
-                  matchesPlayed: p.matchesPlayed,
-                  winRate: p.winRate,
-                }))
-              : []}
-            matchups={[]}
+            sessions={cloudHistoryStats?.sessions ?? []}
+            players={cloudHistoryStats?.players ?? []}
+            pairs={cloudHistoryStats?.pairs ?? []}
+            matchups={cloudHistoryStats?.matchups ?? []}
             onClose={() => setShowHistoryStats(false)}
           />
-        )}
+        ) : null}
       <AnimationOverlay event={activeAnimation} onDismiss={handleAnimationDismiss} />
     </main>
   );

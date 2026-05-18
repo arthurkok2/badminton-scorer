@@ -288,6 +288,7 @@ After a user is signed in and has either no local import to perform, selected `N
 - Completing a session match creates a user match document, creates a global match document, updates global player Elo, updates global pair Elo, and updates the user's stats summary.
 - Ending a session marks the Firestore session `completed`.
 - Saved players are mirrored to the user stats summary.
+- The History & Stats view reads cloud session summaries, global player ratings, global pair ratings, and global match matchup records through the cloud session service. It must not present local archive data or placeholder Elo values as cloud/global ranking data.
 
 LocalStorage remains a device fallback for the active session after the signed-in session has been created with global player ids. If a Firestore write fails during a signed-in session, session mode continues locally and the UI shows a compact sync warning with a retry path. This design does not attempt multi-device active-session conflict resolution. If the same user edits the same active session from two devices, last successful cloud write wins for metadata and each completed match id prevents duplicate match writes.
 

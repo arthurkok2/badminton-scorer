@@ -1,7 +1,6 @@
 import {
   collection,
   doc,
-  getDoc,
   getDocs,
   limit,
   orderBy,
@@ -15,7 +14,52 @@ import {
 import { getFirebaseDb } from '../firebase';
 import { createGlobalPlayer, createPairId, normalizePlayerSearchName } from './playerIdentity';
 import { calculateIndividualEloUpdate, calculatePairEloUpdate, INITIAL_ELO, type EloSubject } from './elo';
-import type { GlobalPlayer, MatchRecord } from './sessionTypes';
+import { buildStatsSummary } from './stats';
+import type {
+  ActiveSession,
+  ArchivedSession,
+  GlobalPlayer,
+  LegacyMatchRecord,
+  MatchRecord,
+} from './sessionTypes';
+
+export interface CloudSessionSummary {
+  readonly id: string;
+  readonly startedAt?: string;
+  readonly matchCount: number;
+}
+
+export interface CloudPlayerLeaderboardEntry {
+  readonly id: string;
+  readonly displayName: string;
+  readonly elo: number;
+  readonly matchesPlayed: number;
+  readonly winRate: number;
+  readonly recentForm: readonly ('W' | 'L')[];
+}
+
+export interface CloudPairLeaderboardEntry {
+  readonly id: string;
+  readonly displayNames: readonly [string, string];
+  readonly elo: number;
+  readonly matchesPlayed: number;
+  readonly winRate: number;
+}
+
+export interface CloudMatchupEntry {
+  readonly id: string;
+  readonly players: readonly [string, string];
+  readonly matchesPlayed: number;
+  readonly wins: number;
+  readonly losses: number;
+}
+
+export interface CloudHistoryStats {
+  readonly sessions: readonly CloudSessionSummary[];
+  readonly players: readonly CloudPlayerLeaderboardEntry[];
+  readonly pairs: readonly CloudPairLeaderboardEntry[];
+  readonly matchups: readonly CloudMatchupEntry[];
+}
 
 export async function createGlobalPlayerDocument(options: {
   readonly displayName: string;
@@ -52,6 +96,120 @@ export async function searchGlobalPlayers(options: {
   ));
 
   return snapshot.docs.map((document) => document.data() as GlobalPlayer);
+}
+
+export async function saveCloudSession(options: {
+  readonly uid: string;
+  readonly session: ActiveSession | ArchivedSession;
+  readonly status: 'active' | 'completed';
+  readonly source?: 'cloud' | 'local-import' | 'local-active-import';
+  readonly db?: Firestore;
+}): Promise<void> {
+  const db = resolveDb(options.db);
+  const timestamp = serverTimestamp();
+  const sessionRef = doc(collection(db, `users/${options.uid}/sessions`), options.session.id);
+  const shouldWriteCreatedAt = options.status === 'active' || options.source?.includes('import');
+  const players = options.session.players.map((player) => ({
+    id: player.id,
+    displayName: player.displayName,
+    gamesPlayed: player.gamesPlayed,
+    ...('breaksTaken' in player ? { breaksTaken: player.breaksTaken } : {}),
+  }));
+
+  await setDoc(sessionRef, {
+    id: options.session.id,
+    status: options.status,
+    startedAt: options.session.startedAt,
+    ...('endedAt' in options.session ? { endedAt: options.session.endedAt } : {}),
+    players,
+    matchCount: options.session.matches.length,
+    source: options.source ?? 'cloud',
+    ...(options.source?.includes('import') ? { importedAt: timestamp } : {}),
+    ...(shouldWriteCreatedAt ? { createdAt: timestamp } : {}),
+    updatedAt: timestamp,
+  }, { merge: true });
+}
+
+export async function importMappedLegacySessions(options: {
+  readonly uid: string;
+  readonly sessions: readonly (ActiveSession | ArchivedSession)[];
+  readonly mapping: ReadonlyMap<string, GlobalPlayer>;
+  readonly db?: Firestore;
+}): Promise<void> {
+  const db = resolveDb(options.db);
+
+  for (const session of options.sessions) {
+    const isCompleted = 'endedAt' in session;
+    await saveCloudSession({
+      uid: options.uid,
+      session,
+      status: isCompleted ? 'completed' : 'active',
+      source: isCompleted ? 'local-import' : 'local-active-import',
+      db,
+    });
+
+    for (const [index, match] of session.matches.entries()) {
+      const matchRecord = toMappedMatchRecord(session.id, index + 1, match, options.mapping);
+      await completeCloudSessionMatch({ uid: options.uid, matchRecord, db });
+    }
+  }
+}
+
+export async function loadCloudHistoryStats(options: {
+  readonly uid: string;
+  readonly db?: Firestore;
+}): Promise<CloudHistoryStats> {
+  const db = resolveDb(options.db);
+  const [sessionSnapshot, playerSnapshot, pairSnapshot, globalMatchSnapshot] = await Promise.all([
+    getDocs(query(collection(db, `users/${options.uid}/sessions`), orderBy('startedAt', 'desc'), limit(50))),
+    getDocs(query(collection(db, 'players'), orderBy('globalIndividualElo', 'desc'), limit(50))),
+    getDocs(query(collection(db, 'pairs'), orderBy('globalPairElo', 'desc'), limit(50))),
+    getDocs(query(collection(db, 'globalMatches'), orderBy('createdAt', 'desc'), limit(200))),
+  ]);
+
+  const globalMatches = globalMatchSnapshot.docs.map((document) => document.data() as MatchRecord);
+  const playerOutcomeStats = buildPlayerOutcomeStats(globalMatches);
+  const pairOutcomeStats = buildPairOutcomeStats(globalMatches);
+  const playerNames = new Map<string, string>();
+  const players = playerSnapshot.docs.map((document) => {
+    const data = document.data() as GlobalPlayer;
+    const outcomes = playerOutcomeStats[data.id];
+    playerNames.set(data.id, data.displayName);
+    return {
+      id: data.id,
+      displayName: data.displayName,
+      elo: data.globalIndividualElo,
+      matchesPlayed: data.globalMatchCount,
+      winRate: outcomes && outcomes.matchesPlayed > 0 ? outcomes.wins / outcomes.matchesPlayed : 0,
+      recentForm: outcomes?.recentForm ?? [],
+    };
+  });
+
+  const pairs = pairSnapshot.docs.map((document) => {
+    const data = document.data() as { id: string; displayNames: readonly [string, string]; globalPairElo: number; globalMatchCount: number };
+    const outcomes = pairOutcomeStats[data.id];
+    return {
+      id: data.id,
+      displayNames: data.displayNames,
+      elo: data.globalPairElo,
+      matchesPlayed: data.globalMatchCount,
+      winRate: outcomes && outcomes.matchesPlayed > 0 ? outcomes.wins / outcomes.matchesPlayed : 0,
+    };
+  });
+
+  return {
+    sessions: sessionSnapshot.docs.map((document) => {
+      const data = document.data() as { id?: string; startedAt?: string; matchCount?: number };
+      return {
+        id: data.id ?? document.id,
+        startedAt: data.startedAt,
+        matchCount: data.matchCount ?? 0,
+      };
+    }),
+    players,
+    pairs,
+    matchups: buildMatchupEntries(globalMatches, playerNames),
+  };
 }
 
 export async function completeCloudSessionMatch(options: {
@@ -125,6 +283,8 @@ export async function completeCloudSessionMatch(options: {
 
     const timestamp = serverTimestamp();
     const sourcePath = `users/${uid}/sessions/${matchRecord.sessionId}/matches/${matchRecord.id}`;
+    const sessionRef = doc(collection(db, `users/${uid}/sessions`), matchRecord.sessionId);
+    const statsRef = doc(collection(db, `users/${uid}/stats`), 'summary');
 
     // Write local session match document
     const sessionMatchRef = doc(
@@ -136,6 +296,12 @@ export async function completeCloudSessionMatch(options: {
       submittedBy: uid,
       createdAt: timestamp,
     });
+
+    transaction.set(sessionRef, {
+      id: matchRecord.sessionId,
+      matchCount: matchRecord.matchNumber,
+      updatedAt: timestamp,
+    }, { merge: true });
 
     // Write global match document
     const globalMatchRef = doc(collection(db, 'globalMatches'), matchRecord.id);
@@ -215,9 +381,173 @@ export async function completeCloudSessionMatch(options: {
         updatedAt: pairTimestamp,
       });
     }
+
+    const summary = buildStatsSummary([matchRecord]);
+    transaction.set(statsRef, {
+      players: summary.players,
+      pairs: summary.pairs,
+      matchups: summary.matchups,
+      ratedMatchCount: matchRecord.matchNumber,
+      statsVersion: 1,
+      updatedAt: timestamp,
+    }, { merge: true });
   });
 }
 
 function resolveDb(db?: Firestore): Firestore {
   return db ?? getFirebaseDb();
+}
+
+function toMappedMatchRecord(
+  sessionId: string,
+  matchNumber: number,
+  match: MatchRecord | LegacyMatchRecord,
+  mapping: ReadonlyMap<string, GlobalPlayer>,
+): MatchRecord {
+  if ('id' in match) {
+    return remapCurrentMatchRecord(match, mapping);
+  }
+
+  const teamA = mapTeam(match.teamA, mapping);
+  const teamB = mapTeam(match.teamB, mapping);
+  return {
+    id: `${sessionId}-match-${matchNumber}`,
+    sessionId,
+    matchNumber,
+    teamAPlayerIds: [teamA[0].id, teamA[1].id],
+    teamBPlayerIds: [teamB[0].id, teamB[1].id],
+    teamADisplayNames: [teamA[0].displayName, teamA[1].displayName],
+    teamBDisplayNames: [teamB[0].displayName, teamB[1].displayName],
+    teamAPairId: createPairId(teamA[0].id, teamA[1].id),
+    teamBPairId: createPairId(teamB[0].id, teamB[1].id),
+    winnerTeam: match.winnerTeam,
+    ...(match.finalScore !== undefined ? { finalScore: match.finalScore } : {}),
+    ...(match.startedAt !== undefined ? { startedAt: match.startedAt } : {}),
+    ...(match.endedAt !== undefined ? { endedAt: match.endedAt } : {}),
+  };
+}
+
+function remapCurrentMatchRecord(
+  match: MatchRecord,
+  mapping: ReadonlyMap<string, GlobalPlayer>,
+): MatchRecord {
+  const teamA = mapTeam(match.teamADisplayNames, mapping);
+  const teamB = mapTeam(match.teamBDisplayNames, mapping);
+  return {
+    ...match,
+    teamAPlayerIds: [teamA[0].id, teamA[1].id],
+    teamBPlayerIds: [teamB[0].id, teamB[1].id],
+    teamADisplayNames: [teamA[0].displayName, teamA[1].displayName],
+    teamBDisplayNames: [teamB[0].displayName, teamB[1].displayName],
+    teamAPairId: createPairId(teamA[0].id, teamA[1].id),
+    teamBPairId: createPairId(teamB[0].id, teamB[1].id),
+  };
+}
+
+function mapTeam(
+  names: readonly [string, string],
+  mapping: ReadonlyMap<string, GlobalPlayer>,
+): readonly [GlobalPlayer, GlobalPlayer] {
+  const first = mapping.get(names[0]);
+  const second = mapping.get(names[1]);
+  if (!first || !second) {
+    throw new Error('Every legacy player must be mapped before import.');
+  }
+  return [first, second];
+}
+
+function buildMatchupEntries(
+  matches: readonly MatchRecord[],
+  playerNames: ReadonlyMap<string, string>,
+): CloudMatchupEntry[] {
+  const matchups: Record<string, { matchesPlayed: number; wins: number; losses: number }> = {};
+  for (const match of matches) {
+    const teamAWon = match.winnerTeam === 'teamA';
+    for (const playerA of match.teamAPlayerIds) {
+      for (const playerB of match.teamBPlayerIds) {
+        incrementMatchup(matchups, `${playerA}__vs__${playerB}`, teamAWon);
+        incrementMatchup(matchups, `${playerB}__vs__${playerA}`, !teamAWon);
+      }
+    }
+  }
+
+  return Object.entries(matchups).map(([id, matchup]) => {
+    const [first = '', second = ''] = id.split('__vs__');
+    return {
+      id,
+      players: [playerNames.get(first) ?? first, playerNames.get(second) ?? second],
+      matchesPlayed: matchup.matchesPlayed,
+      wins: matchup.wins,
+      losses: matchup.losses,
+    };
+  });
+}
+
+function buildPlayerOutcomeStats(
+  matches: readonly MatchRecord[],
+): Record<string, { matchesPlayed: number; wins: number; recentForm: ('W' | 'L')[] }> {
+  const stats: Record<string, { matchesPlayed: number; wins: number; recentForm: ('W' | 'L')[] }> = {};
+  for (const match of matches) {
+    const teamAWon = match.winnerTeam === 'teamA';
+    for (const playerId of match.teamAPlayerIds) {
+      incrementOutcome(stats, playerId, teamAWon);
+    }
+    for (const playerId of match.teamBPlayerIds) {
+      incrementOutcome(stats, playerId, !teamAWon);
+    }
+  }
+  return stats;
+}
+
+function buildPairOutcomeStats(
+  matches: readonly MatchRecord[],
+): Record<string, { matchesPlayed: number; wins: number }> {
+  const stats: Record<string, { matchesPlayed: number; wins: number }> = {};
+  for (const match of matches) {
+    const teamAWon = match.winnerTeam === 'teamA';
+    incrementPairOutcome(stats, match.teamAPairId, teamAWon);
+    incrementPairOutcome(stats, match.teamBPairId, !teamAWon);
+  }
+  return stats;
+}
+
+function incrementOutcome(
+  stats: Record<string, { matchesPlayed: number; wins: number; recentForm: ('W' | 'L')[] }>,
+  id: string,
+  won: boolean,
+): void {
+  stats[id] ??= { matchesPlayed: 0, wins: 0, recentForm: [] };
+  stats[id].matchesPlayed += 1;
+  if (won) {
+    stats[id].wins += 1;
+  }
+  if (stats[id].recentForm.length < 5) {
+    stats[id].recentForm.push(won ? 'W' : 'L');
+  }
+}
+
+function incrementPairOutcome(
+  stats: Record<string, { matchesPlayed: number; wins: number }>,
+  id: string,
+  won: boolean,
+): void {
+  stats[id] ??= { matchesPlayed: 0, wins: 0 };
+  stats[id].matchesPlayed += 1;
+  if (won) {
+    stats[id].wins += 1;
+  }
+}
+
+function incrementMatchup(
+  matchups: Record<string, { matchesPlayed: number; wins: number; losses: number }>,
+  id: string,
+  won: boolean,
+): void {
+  matchups[id] ??= { matchesPlayed: 0, wins: 0, losses: 0 };
+  matchups[id].matchesPlayed += 1;
+  if (won) {
+    matchups[id].wins += 1;
+  } else {
+    matchups[id].losses += 1;
+  }
 }

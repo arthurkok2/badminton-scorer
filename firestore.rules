@@ -47,6 +47,24 @@ service cloud.firestore {
               'lastAppliedCommandId'];
     }
 
+    function playerDocKeys() {
+      return ['id', 'displayName', 'searchName', 'createdBy', 'createdAt',
+              'updatedAt', 'claimStatus', 'linkedUid', 'globalIndividualElo',
+              'globalMatchCount', 'statsVersion'];
+    }
+
+    function pairDocKeys() {
+      return ['id', 'playerIds', 'displayNames', 'createdAt', 'updatedAt',
+              'globalPairElo', 'globalMatchCount', 'statsVersion'];
+    }
+
+    function globalMatchDocKeys() {
+      return ['id', 'submittedBy', 'sessionId', 'sourcePath', 'matchNumber',
+              'teamAPlayerIds', 'teamBPlayerIds', 'teamAPairId', 'teamBPairId',
+              'winnerTeam', 'finalScore', 'startedAt', 'endedAt',
+              'globalIndividualElo', 'globalPairElo', 'status', 'createdAt'];
+    }
+
     match /matches/{code} {
       allow read: if true;
 
@@ -158,7 +176,8 @@ service cloud.firestore {
         && request.resource.data.globalMatchCount == 0
         && request.resource.data.statsVersion == 1
         && request.resource.data.createdAt == request.time
-        && request.resource.data.updatedAt == request.time;
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.keys().hasOnly(playerDocKeys());
       allow update: if isNamedSignedIn()
         && request.resource.data.id == resource.data.id
         && request.resource.data.createdBy == resource.data.createdBy
@@ -168,7 +187,8 @@ service cloud.firestore {
         && request.resource.data.createdAt == resource.data.createdAt
         && isValidElo(request.resource.data.globalIndividualElo)
         && request.resource.data.globalMatchCount is number
-        && request.resource.data.globalMatchCount >= resource.data.globalMatchCount;
+        && request.resource.data.globalMatchCount >= resource.data.globalMatchCount
+        && request.resource.data.keys().hasOnly(playerDocKeys());
       allow delete: if false;
     }
 
@@ -183,7 +203,8 @@ service cloud.firestore {
         && request.resource.data.globalMatchCount == 0
         && request.resource.data.statsVersion == 1
         && request.resource.data.createdAt == request.time
-        && request.resource.data.updatedAt == request.time;
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.keys().hasOnly(pairDocKeys());
       allow update: if isNamedSignedIn()
         && request.resource.data.id == resource.data.id
         && request.resource.data.playerIds == resource.data.playerIds
@@ -191,7 +212,8 @@ service cloud.firestore {
         && request.resource.data.createdAt == resource.data.createdAt
         && isValidElo(request.resource.data.globalPairElo)
         && request.resource.data.globalMatchCount is number
-        && request.resource.data.globalMatchCount >= resource.data.globalMatchCount;
+        && request.resource.data.globalMatchCount >= resource.data.globalMatchCount
+        && request.resource.data.keys().hasOnly(pairDocKeys());
       allow delete: if false;
     }
 
@@ -203,8 +225,16 @@ service cloud.firestore {
         && isValidPlayerList(request.resource.data.teamAPlayerIds)
         && isValidPlayerList(request.resource.data.teamBPlayerIds)
         && isValidTeamId(request.resource.data.winnerTeam)
+        && request.resource.data.sourcePath is string
+        && request.resource.data.sourcePath.matches('^users/' + request.auth.uid + '/sessions/[^/]+/matches/[^/]+$')
+        && request.resource.data.matchNumber is number
+        && request.resource.data.teamAPairId is string
+        && request.resource.data.teamBPairId is string
+        && request.resource.data.globalIndividualElo is map
+        && request.resource.data.globalPairElo is map
         && request.resource.data.status == 'submitted'
-        && request.resource.data.createdAt == request.time;
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.keys().hasOnly(globalMatchDocKeys());
       allow update, delete: if false;
     }
 

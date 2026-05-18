@@ -12,6 +12,7 @@ import * as sessionStorageModule from './session/sessionStorage';
 import type { BluetoothRemoteConnection } from './input/bluetoothRemote';
 import type { GamepadRemoteConnection, GamepadRemoteDiagnosticEvent } from './input/gamepadRemote';
 import type { KeyboardRemoteConnection, KeyboardRemoteDiagnosticEvent } from './input/keyboardRemote';
+import type { CloudHistoryStats } from './session/cloudSessionService';
 import type { GlobalPlayer } from './session/sessionTypes';
 
 const authMock = vi.hoisted(() => ({
@@ -92,12 +93,23 @@ const cloudServiceMock = vi.hoisted(() => ({
     { id: 'p1', displayName: 'Alice', searchName: 'alice', createdBy: 'uid-1', claimStatus: 'guest', globalIndividualElo: 1500, globalMatchCount: 0, statsVersion: 1 },
   )),
   completeCloudSessionMatch: vi.fn(() => Promise.resolve(undefined)),
+  importMappedLegacySessions: vi.fn(() => Promise.resolve(undefined)),
+  loadCloudHistoryStats: vi.fn<() => Promise<CloudHistoryStats>>(() => Promise.resolve({
+    sessions: [],
+    players: [],
+    pairs: [],
+    matchups: [],
+  })),
+  saveCloudSession: vi.fn(() => Promise.resolve(undefined)),
 }));
 
 vi.mock('./session/cloudSessionService', () => ({
   searchGlobalPlayers: cloudServiceMock.searchGlobalPlayers,
   createGlobalPlayerDocument: cloudServiceMock.createGlobalPlayerDocument,
   completeCloudSessionMatch: cloudServiceMock.completeCloudSessionMatch,
+  importMappedLegacySessions: cloudServiceMock.importMappedLegacySessions,
+  loadCloudHistoryStats: cloudServiceMock.loadCloudHistoryStats,
+  saveCloudSession: cloudServiceMock.saveCloudSession,
 }));
 
 const STORAGE_KEY = 'badminton-scorer-preferences';
@@ -184,6 +196,12 @@ describe('App', () => {
     mockedConnectKeyboardRemote.mockReturnValue({ disconnect: vi.fn() });
     mockedConnectGamepadRemote.mockReturnValue({ disconnect: vi.fn() });
     mockedUseWatchRemoteHost.mockReturnValue({ ...inactiveWatchRemoteResult, start: vi.fn(), stop: vi.fn() });
+    cloudServiceMock.searchGlobalPlayers.mockResolvedValue(testPlayers);
+    cloudServiceMock.createGlobalPlayerDocument.mockResolvedValue(testPlayers[0]);
+    cloudServiceMock.completeCloudSessionMatch.mockResolvedValue(undefined);
+    cloudServiceMock.importMappedLegacySessions.mockResolvedValue(undefined);
+    cloudServiceMock.loadCloudHistoryStats.mockResolvedValue({ sessions: [], players: [], pairs: [], matchups: [] });
+    cloudServiceMock.saveCloudSession.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -1007,5 +1025,55 @@ describe('App', () => {
     render(<App />);
 
     expect(await screen.findByText(/import your session history/i)).toBeInTheDocument();
+  });
+
+  it('uploads mapped legacy sessions before marking them imported', async () => {
+    const user = userEvent.setup();
+    const archivedSession = {
+      id: 'session-abc',
+      startedAt: '2026-01-01T10:00:00.000Z',
+      endedAt: '2026-01-01T12:00:00.000Z',
+      players: [{ id: 'legacy-local-player-1', displayName: 'OldAlice', gamesPlayed: 1, breaksTaken: 0 }],
+      matches: [],
+    };
+    vi.spyOn(sessionStorageModule, 'loadSessionArchive').mockReturnValue([archivedSession]);
+    vi.spyOn(sessionStorageModule, 'isSessionImportedForUser').mockReturnValue(false);
+    const markImported = vi.spyOn(sessionStorageModule, 'markSessionImportedForUser');
+
+    render(<App />);
+
+    await user.click(await screen.findByRole('button', { name: /map oldalice/i }));
+    await user.type(screen.getByRole('textbox', { name: /search for player/i }), 'Alice');
+    await user.click(await screen.findByRole('button', { name: /select alice/i }));
+    await user.click(screen.getByRole('button', { name: /import sessions/i }));
+
+    await waitFor(() => expect(cloudServiceMock.importMappedLegacySessions).toHaveBeenCalledWith(
+      expect.objectContaining({
+        uid: 'google-uid',
+        sessions: [archivedSession],
+        mapping: expect.any(Map),
+      }),
+    ));
+    await waitFor(() => expect(markImported).toHaveBeenCalledWith('google-uid', 'session-abc'));
+  });
+
+  it('loads cloud-backed history stats from the service', async () => {
+    const user = userEvent.setup();
+    const stats: CloudHistoryStats = {
+      sessions: [{ id: 'session-1', startedAt: '2026-01-01T10:00:00.000Z', matchCount: 3 }],
+      players: [{ id: 'p1', displayName: 'Alice', elo: 1602, matchesPlayed: 3, winRate: 0.67, recentForm: ['W', 'L', 'W'] }],
+      pairs: [{ id: 'p1__p2', displayNames: ['Alice', 'Bob'], elo: 1530, matchesPlayed: 2, winRate: 1 }],
+      matchups: [{ id: 'p1__vs__p3', players: ['Alice', 'Carol'], matchesPlayed: 2, wins: 1, losses: 1 }],
+    };
+    cloudServiceMock.loadCloudHistoryStats.mockResolvedValue(stats);
+
+    render(<App />);
+
+    await chooseSettingsAction(user, /history & stats/i);
+    await waitFor(() => expect(cloudServiceMock.loadCloudHistoryStats).toHaveBeenCalledWith({ uid: 'google-uid' }));
+    await user.click(screen.getByRole('tab', { name: /players/i }));
+
+    expect(await screen.findByText('Alice')).toBeInTheDocument();
+    expect(screen.getByText('1602')).toBeInTheDocument();
   });
 });
