@@ -1027,6 +1027,22 @@ describe('App', () => {
     expect(await screen.findByText(/import your session history/i)).toBeInTheDocument();
   });
 
+  it('shows import prompt for older name-only local session players', async () => {
+    const archivedSession = {
+      id: 'session-legacy',
+      startedAt: '2026-01-01T10:00:00.000Z',
+      endedAt: '2026-01-01T12:00:00.000Z',
+      players: [{ name: 'OldAlice', gamesPlayed: 3, consecutiveStreak: 0, onBreak: false }],
+      matches: [],
+    };
+    vi.spyOn(sessionStorageModule, 'loadSessionArchive').mockReturnValue([archivedSession as never]);
+    vi.spyOn(sessionStorageModule, 'isSessionImportedForUser').mockReturnValue(false);
+
+    render(<App />);
+
+    expect(await screen.findByRole('button', { name: /map oldalice/i })).toBeInTheDocument();
+  });
+
   it('uploads mapped legacy sessions before marking them imported', async () => {
     const user = userEvent.setup();
     const archivedSession = {

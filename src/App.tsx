@@ -225,9 +225,10 @@ export default function App() {
     const sessions = activeSession ? [activeSession, ...archive] : archive;
     const unimportedNames = new Set<string>();
     for (const session of sessions) {
-      if (!isSessionImportedForUser(user.uid, session.id) && session.players.some(p => p.id.startsWith('legacy-local-player-'))) {
+      if (!isSessionImportedForUser(user.uid, session.id) && hasLegacySessionPlayer(session.players)) {
         for (const player of session.players) {
-          unimportedNames.add(player.displayName);
+          const displayName = getStoredSessionPlayerDisplayName(player);
+          if (displayName) unimportedNames.add(displayName);
         }
       }
     }
@@ -429,9 +430,7 @@ export default function App() {
     const archive = loadSessionArchive();
     const active = loadActiveSession();
     const sessions = active ? [active, ...archive] : archive;
-    const importableSessions = sessions.filter((session) =>
-      session.players.some(p => p.id.startsWith('legacy-local-player-')),
-    );
+    const importableSessions = sessions.filter((session) => hasLegacySessionPlayer(session.players));
     void importMappedLegacySessions({ uid: user.uid, sessions: importableSessions, mapping })
       .then(() => {
         for (const session of importableSessions) {
@@ -849,6 +848,22 @@ function createInitialMatch(mode: MatchMode, playerNames: Record<PlayerId, strin
 
 function hasStarted(match: MatchState): boolean {
   return match.score.teamA !== 0 || match.score.teamB !== 0 || match.history.length > 0 || match.winnerTeamId !== undefined;
+}
+
+function hasLegacySessionPlayer(players: readonly unknown[]): boolean {
+  return players.some((player) => {
+    if (!player || typeof player !== 'object') return false;
+    const id = 'id' in player ? player.id : undefined;
+    if (typeof id === 'string') return id.startsWith('legacy-local-player-');
+    return 'name' in player && typeof player.name === 'string';
+  });
+}
+
+function getStoredSessionPlayerDisplayName(player: unknown): string | undefined {
+  if (!player || typeof player !== 'object') return undefined;
+  if ('displayName' in player && typeof player.displayName === 'string') return player.displayName;
+  if ('name' in player && typeof player.name === 'string') return player.name;
+  return undefined;
 }
 
 function applyMatchViewAction(current: MatchViewState, action: MatchViewAction): MatchViewState {

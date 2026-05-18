@@ -35,7 +35,7 @@ On every sign-in transition (after auth loads):
 
 ### `handleImportSessions`
 
-Uploads every mapped legacy session to the signed-in user's Firestore session tree before marking it imported for the current user (`markSessionImportedForUser`). Archived legacy matches are converted to global-player match records using the completed mapping and submitted through the cloud session service so global Elo and user stats update consistently. If the cloud write fails, the prompt remains importable and the sessions are not marked imported.
+Uploads every mapped legacy session to the signed-in user's Firestore session tree before marking it imported for the current user (`markSessionImportedForUser`). Archived legacy matches are converted to global-player match records using the completed mapping and submitted through the cloud session service so global Elo and user stats update consistently. Older local session player records may contain `name` without `id`/`displayName`; import detection and Firestore session metadata normalize those records instead of crashing. If the cloud write fails, the prompt remains importable and the sessions are not marked imported.
 
 ### `handleDismissImport`
 

@@ -127,6 +127,31 @@ describe('cloud session service', () => {
     }));
   });
 
+  it('writes metadata for older name-only session players', async () => {
+    const { saveCloudSession } = await import('./cloudSessionService');
+
+    await saveCloudSession({
+      uid: 'uid-1',
+      status: 'completed',
+      db,
+      source: 'local-import',
+      session: {
+        id: 'session-legacy',
+        startedAt: '2026-01-01T10:00:00.000Z',
+        endedAt: '2026-01-01T12:00:00.000Z',
+        players: [{ name: 'OldAlice', gamesPlayed: 2, consecutiveStreak: 0, onBreak: false }],
+        matches: [],
+      } as never,
+    });
+
+    const [, payload] = firestoreMocks.setDoc.mock.calls[0];
+    expect(payload).toEqual(expect.objectContaining({
+      players: [
+        { id: 'legacy-local-player-oldalice', displayName: 'OldAlice', gamesPlayed: 2 },
+      ],
+    }));
+  });
+
   it('loads cloud history stats from Firestore documents', async () => {
     const { loadCloudHistoryStats } = await import('./cloudSessionService');
     firestoreMocks.getDocs

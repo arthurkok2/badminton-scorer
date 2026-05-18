@@ -109,12 +109,7 @@ export async function saveCloudSession(options: {
   const timestamp = serverTimestamp();
   const sessionRef = doc(collection(db, `users/${options.uid}/sessions`), options.session.id);
   const shouldWriteCreatedAt = options.status === 'active' || options.source?.includes('import');
-  const players = options.session.players.map((player) => ({
-    id: player.id,
-    displayName: player.displayName,
-    gamesPlayed: player.gamesPlayed,
-    ...('breaksTaken' in player ? { breaksTaken: player.breaksTaken } : {}),
-  }));
+  const players = options.session.players.map(toSessionPlayerSummary);
 
   await setDoc(sessionRef, {
     id: options.session.id,
@@ -454,6 +449,37 @@ function mapTeam(
     throw new Error('Every legacy player must be mapped before import.');
   }
   return [first, second];
+}
+
+function toSessionPlayerSummary(player: unknown): {
+  readonly id: string;
+  readonly displayName: string;
+  readonly gamesPlayed: number;
+  readonly breaksTaken?: number;
+} {
+  if (!player || typeof player !== 'object') {
+    throw new Error('Session player must be an object.');
+  }
+  const id = 'id' in player && typeof player.id === 'string' ? player.id : undefined;
+  const displayName =
+    'displayName' in player && typeof player.displayName === 'string'
+      ? player.displayName
+      : 'name' in player && typeof player.name === 'string'
+        ? player.name
+        : undefined;
+  const gamesPlayed = 'gamesPlayed' in player && typeof player.gamesPlayed === 'number' ? player.gamesPlayed : 0;
+  const breaksTaken = 'breaksTaken' in player && typeof player.breaksTaken === 'number' ? player.breaksTaken : undefined;
+
+  if (!displayName) {
+    throw new Error('Session player must have a display name.');
+  }
+
+  return {
+    id: id ?? `legacy-local-player-${normalizePlayerSearchName(displayName)}`,
+    displayName,
+    gamesPlayed,
+    ...(breaksTaken !== undefined ? { breaksTaken } : {}),
+  };
 }
 
 function buildMatchupEntries(
