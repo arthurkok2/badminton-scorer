@@ -133,12 +133,12 @@ function incrementPlayer(
 function incrementPair(
   pairs: Record<string, MutablePairStats>,
   pairId: string,
-  displayNames: readonly string[],
+  displayNames: readonly [string, string],
   won: boolean,
 ): void {
   if (!pairs[pairId]) {
     pairs[pairId] = {
-      displayNames: [displayNames[0]!, displayNames[1]!],
+      displayNames: [displayNames[0], displayNames[1]],
       matchesPlayed: 0,
       wins: 0,
       losses: 0,
