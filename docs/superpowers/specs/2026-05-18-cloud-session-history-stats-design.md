@@ -202,7 +202,7 @@ User-scoped stats are derived from completed session matches recorded by that us
 
 ## Elo Model
 
-Global individual players and global doubles pairs both start at `1500`.
+Global individual players and global doubles pairs both start at `1500`. Shared Elo helpers expose this initial rating as `INITIAL_ELO = 1500` so new player and pair records use one canonical default.
 
 K-factor:
 
@@ -213,13 +213,16 @@ Individual Elo:
 
 - Compute each team's rating from the average individual Elo of its two players.
 - Compute expected score using the standard Elo expected-score formula.
+- Compute each team's K-factor from the average K-factor of its two players, including mixed provisional and established teams.
 - Apply the same rating delta to both players on the same team.
 - Winning players gain points; losing players lose points.
+- Reject updates where the four player ids are not unique. Duplicate player ids are invalid input because returning snapshots keyed by id would otherwise silently overwrite one participant.
 
 Pair Elo:
 
 - Compute expected score from the current Elo of the two pairs.
 - Apply one pair delta to the winning pair and the inverse delta to the losing pair.
+- Reject updates where both pair ids are identical. Duplicate pair ids are invalid input because returning snapshots keyed by id would otherwise silently overwrite one pair.
 
 When a team has mixed provisional and established players, use the average of the two players' K-factors for that team's individual update. Pair Elo uses the pair's own K-factor.
 
