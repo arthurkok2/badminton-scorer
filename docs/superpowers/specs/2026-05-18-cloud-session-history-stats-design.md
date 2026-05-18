@@ -411,6 +411,29 @@ Rules tests cover:
 - Other signed-in users cannot read or write another user's sessions, matches, or stats.
 - Public reads are denied for user-owned history and stats.
 
+## Firestore Security Rules Implementation
+
+`firestore.rules` is extended with helpers and match blocks covering all global and user-owned collections.
+
+### Helpers added
+
+- `isValidPlayerId(v)` — string, 1–128 chars.
+- `isValidPlayerList(v)` — list of exactly two valid player ids.
+- `isValidElo(v)` — number between 0 and 5000 inclusive.
+
+### Match blocks added (before catch-all deny)
+
+- `match /players/{playerId}` — named-signed-in read; create validates all required fields and initial values; update enforces id immutability, valid Elo range, and non-decreasing match count; delete denied.
+- `match /pairs/{pairId}` — same pattern as players; update also enforces `playerIds` immutability.
+- `match /globalMatches/{matchId}` — named-signed-in read; create validates submitter, player lists, valid winner team, status `submitted`, and server timestamp; update and delete denied.
+- `match /users/{userId}` — read/create/update only when `request.auth.uid == userId`; delete denied. Contains nested:
+  - `match /sessions/{sessionId}` — same ownership check; nested `match /matches/{matchId}` allows read/create, denies update/delete.
+  - `match /stats/{statsId}` — same ownership check; delete denied.
+
+### Indexes added
+
+`firestore.indexes.json` adds a single-field ascending index on `players.searchName` to support prefix search queries.
+
 ## Non-Goals
 
 - Normal match mode history.

@@ -1,4 +1,12 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "players",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "searchName", "order": "ASCENDING" }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }

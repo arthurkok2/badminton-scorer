@@ -9,4 +9,22 @@ describe('firestore.rules', () => {
     expect(rules).toContain("request.auth.token.firebase.sign_in_provider != 'anonymous'");
     expect(rules).not.toContain('including anonymous');
   });
+
+  it('defines global player, pair, global match, and user-owned paths', () => {
+    expect(rules).toContain('match /players/{playerId}');
+    expect(rules).toContain('match /pairs/{pairId}');
+    expect(rules).toContain('match /globalMatches/{matchId}');
+    expect(rules).toContain('match /users/{userId}');
+  });
+
+  it('requires ownership for user-owned history and stats', () => {
+    expect(rules).toContain('request.auth.uid == userId');
+    expect(rules).toContain('match /sessions/{sessionId}');
+    expect(rules).toContain('match /stats/{statsId}');
+  });
+
+  it('allows signed-in global lookup but rejects anonymous users', () => {
+    expect(rules).toContain('allow read: if isNamedSignedIn()');
+    expect(rules).toContain("request.auth.token.firebase.sign_in_provider != 'anonymous'");
+  });
 });

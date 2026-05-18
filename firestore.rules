@@ -29,6 +29,18 @@ service cloud.firestore {
         && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
 
+    function isValidPlayerId(v) {
+      return v is string && v.size() >= 1 && v.size() <= 128;
+    }
+
+    function isValidPlayerList(v) {
+      return v is list && v.size() == 2 && isValidPlayerId(v[0]) && isValidPlayerId(v[1]);
+    }
+
+    function isValidElo(v) {
+      return v is number && v >= 0 && v <= 5000;
+    }
+
     function matchDocKeys() {
       return ['active', 'code', 'createdAt', 'hostHeartbeatAt', 'hostId',
               'matchMode', 'matchState', 'updatedAt', 'winnerTeamId',
@@ -126,6 +138,85 @@ service cloud.firestore {
              'appliedAt', 'rejectedAt', 'rejectionReason']
           );
 
+        allow delete: if false;
+      }
+    }
+
+    match /players/{playerId} {
+      allow read: if isNamedSignedIn();
+      allow create: if isNamedSignedIn()
+        && request.resource.data.id == playerId
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 1
+        && request.resource.data.displayName.size() <= 80
+        && request.resource.data.searchName is string
+        && request.resource.data.searchName.size() >= 1
+        && request.resource.data.searchName.size() <= 80
+        && request.resource.data.claimStatus == 'guest'
+        && request.resource.data.globalIndividualElo == 1500
+        && request.resource.data.globalMatchCount == 0
+        && request.resource.data.statsVersion == 1
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      allow update: if isNamedSignedIn()
+        && request.resource.data.id == resource.data.id
+        && isValidElo(request.resource.data.globalIndividualElo)
+        && request.resource.data.globalMatchCount is number
+        && request.resource.data.globalMatchCount >= resource.data.globalMatchCount;
+      allow delete: if false;
+    }
+
+    match /pairs/{pairId} {
+      allow read: if isNamedSignedIn();
+      allow create: if isNamedSignedIn()
+        && request.resource.data.id == pairId
+        && isValidPlayerList(request.resource.data.playerIds)
+        && request.resource.data.displayNames is list
+        && request.resource.data.displayNames.size() == 2
+        && request.resource.data.globalPairElo == 1500
+        && request.resource.data.globalMatchCount == 0
+        && request.resource.data.statsVersion == 1
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      allow update: if isNamedSignedIn()
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.playerIds == resource.data.playerIds
+        && isValidElo(request.resource.data.globalPairElo)
+        && request.resource.data.globalMatchCount is number
+        && request.resource.data.globalMatchCount >= resource.data.globalMatchCount;
+      allow delete: if false;
+    }
+
+    match /globalMatches/{matchId} {
+      allow read: if isNamedSignedIn();
+      allow create: if isNamedSignedIn()
+        && request.resource.data.id == matchId
+        && request.resource.data.submittedBy == request.auth.uid
+        && isValidPlayerList(request.resource.data.teamAPlayerIds)
+        && isValidPlayerList(request.resource.data.teamBPlayerIds)
+        && isValidTeamId(request.resource.data.winnerTeam)
+        && request.resource.data.status == 'submitted'
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+
+    match /users/{userId} {
+      allow read, create, update: if isNamedSignedIn() && request.auth.uid == userId;
+      allow delete: if false;
+
+      match /sessions/{sessionId} {
+        allow read, create, update: if isNamedSignedIn() && request.auth.uid == userId;
+        allow delete: if false;
+
+        match /matches/{matchId} {
+          allow read, create: if isNamedSignedIn() && request.auth.uid == userId;
+          allow update, delete: if false;
+        }
+      }
+
+      match /stats/{statsId} {
+        allow read, create, update: if isNamedSignedIn() && request.auth.uid == userId;
         allow delete: if false;
       }
     }
