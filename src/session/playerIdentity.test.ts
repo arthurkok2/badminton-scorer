@@ -11,9 +11,22 @@ describe('player identity helpers', () => {
     expect(normalizePlayerSearchName('  Alice   Van  Pelt ')).toBe('alice van pelt');
   });
 
+  it('normalizes uppercase ASCII names deterministically', () => {
+    expect(normalizePlayerSearchName('  ALICE   IVY  ')).toBe('alice ivy');
+  });
+
   it('creates stable pair ids regardless of player order', () => {
     expect(createPairId('player_bob', 'player_alice')).toBe('player_alice__player_bob');
     expect(createPairId('player_alice', 'player_bob')).toBe('player_alice__player_bob');
+  });
+
+  it('rejects pair ids when player ids contain the pair separator', () => {
+    expect(() => createPairId('player__bob', 'player_alice')).toThrow(
+      'Player ids used in pair ids must not contain "__".',
+    );
+    expect(() => createPairId('player_bob', 'player__alice')).toThrow(
+      'Player ids used in pair ids must not contain "__".',
+    );
   });
 
   it('creates a global player with default Elo fields', () => {

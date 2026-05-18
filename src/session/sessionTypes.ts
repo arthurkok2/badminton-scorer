@@ -1,5 +1,9 @@
 // src/session/sessionTypes.ts
 
+/**
+ * App-domain global player record. Persisted Firestore DTOs add createdAt and
+ * updatedAt in the cloud session service layer.
+ */
 export interface GlobalPlayer {
   readonly id: string;
   readonly displayName: string;

@@ -1,10 +1,14 @@
 import type { GlobalPlayer, GlobalSessionPlayer } from './sessionTypes';
 
 export function normalizePlayerSearchName(name: string): string {
-  return name.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+  return name.trim().replace(/\s+/g, ' ').toLowerCase();
 }
 
 export function createPairId(a: string, b: string): string {
+  if (a.includes('__') || b.includes('__')) {
+    throw new Error('Player ids used in pair ids must not contain "__".');
+  }
+
   return [a, b].sort().join('__');
 }
 
