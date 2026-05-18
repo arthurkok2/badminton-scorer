@@ -1,7 +1,27 @@
 // src/session/sessionTypes.ts
 
+export interface GlobalPlayer {
+  readonly id: string;
+  readonly displayName: string;
+  readonly searchName: string;
+  readonly createdBy: string;
+  readonly claimStatus: 'guest' | 'claimed' | 'verified';
+  readonly linkedUid?: string;
+  readonly globalIndividualElo: number;
+  readonly globalMatchCount: number;
+  readonly statsVersion: number;
+}
+
 export interface SessionPlayer {
   readonly name: string;
+  readonly gamesPlayed: number;
+  readonly consecutiveStreak: number;
+  readonly onBreak: boolean;
+}
+
+export interface GlobalSessionPlayer {
+  readonly id: string;
+  readonly displayName: string;
   readonly gamesPlayed: number;
   readonly consecutiveStreak: number;
   readonly onBreak: boolean;
