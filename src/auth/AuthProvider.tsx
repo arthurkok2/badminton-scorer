@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import {
   GoogleAuthProvider,
-  linkWithPopup,
   onAuthStateChanged,
-  signInAnonymously,
   signInWithPopup,
   signOut as firebaseSignOut,
   type User,
@@ -19,16 +17,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const auth = getFirebaseAuth();
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        setUser(firebaseUser);
-        setLoading(false);
-      } else {
+      if (firebaseUser?.isAnonymous) {
         try {
-          await signInAnonymously(auth);
+          await firebaseSignOut(auth);
         } catch {
           setAuthUnavailable(true);
-          setLoading(false);
         }
+        setUser(null);
+        setLoading(false);
+      } else if (firebaseUser) {
+        setUser(firebaseUser);
+        setAuthUnavailable(false);
+        setLoading(false);
+      } else {
+        setUser(null);
+        setLoading(false);
       }
     });
 
@@ -38,25 +41,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = useCallback(async () => {
     const auth = getFirebaseAuth();
     const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
+  }, []);
 
-    if (user?.isAnonymous) {
-      try {
-        await linkWithPopup(user, provider);
-      } catch (err) {
-        const code = (err as { code?: string }).code;
-        if (code === 'auth/credential-already-in-use' || code === 'auth/email-already-in-use') {
-          await signInWithPopup(auth, provider);
-        } else {
-          throw err;
-        }
-      }
-    } else {
-      await signInWithPopup(auth, provider);
-    }
-  }, [user]);
-
-  // Calling signOut on a Google-linked account causes Firebase to fire onAuthStateChanged(null),
-  // which triggers this provider to re-sign-in anonymously — the user reverts to anonymous mode.
   const signOut = useCallback(async () => {
     await firebaseSignOut(getFirebaseAuth());
   }, []);

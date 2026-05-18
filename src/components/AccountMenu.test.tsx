@@ -30,7 +30,7 @@ describe('AccountMenu', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('opens a neutral sign-in menu for anonymous users', async () => {
+  it('opens a neutral sign-in menu for users without a named account', async () => {
     const signInWithGoogle = vi.fn().mockResolvedValue(undefined);
     (authMock.useAuth as Mock).mockReturnValue(
       makeAuthState({

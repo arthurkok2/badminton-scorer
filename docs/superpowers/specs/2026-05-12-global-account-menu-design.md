@@ -8,7 +8,7 @@ Make authentication feel like a normal app-level account feature instead of a wa
 
 Add an app chrome row above the main scorer layout and controller content. The row keeps a small product label on the left and places the account control on the right. This keeps the avatar visible even when the watch remote panel is lower on the page.
 
-Anonymous users continue to see a compact "Sign in with Google" button. Auth loading renders no control, and auth unavailable renders the existing muted "Unavailable offline" text.
+Signed-out users continue to see a compact "Sign in with Google" button. Auth loading renders no control, and auth unavailable renders the existing muted "Unavailable offline" text.
 
 Signed-in Google users see a circular avatar button. The avatar uses `user.photoURL` when present and falls back to initials derived from `displayName` or `email`. The button has an accessible label that includes the account name where available.
 
@@ -23,13 +23,13 @@ The dropdown closes when the user clicks outside it, presses Escape, or activate
 
 ## Component Boundaries
 
-`SignInButton` remains the reusable auth entry point and becomes responsible for both anonymous sign-in and signed-in account-menu states. `WatchRemotePanel` stops rendering auth UI directly; it continues to receive `authUnavailable` only for disabling watch remote start actions. `App` and `ControllerPage` render the global account row.
+The account menu is the reusable auth entry point and handles signed-out, unavailable, and signed-in states. The app no longer creates or displays anonymous Firebase sessions. Firestore-backed controls such as watch remote hosting and the controller route are disabled unless the account menu has a named signed-in user.
 
 ## Testing
 
-Update `SignInButton` tests to cover:
+Update account menu tests to cover:
 
-- Anonymous sign-in still renders and calls `signInWithGoogle`.
+- Signed-out state renders and calls `signInWithGoogle`.
 - Signed-in users render an avatar button rather than inline profile text.
 - `photoURL` is used when present.
 - Initials fallback is used when no profile photo exists.

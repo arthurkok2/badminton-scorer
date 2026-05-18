@@ -49,7 +49,7 @@ export function useControllerClient(service?: ControllerService): {
   readonly sendCommand: (type: WatchRemoteCommandType, teamId?: TeamId) => Promise<void>;
 } {
   const resolvedService = service ?? defaultService;
-  const { user, loading, authUnavailable } = useAuth();
+  const { user, loading, isAnonymous, authUnavailable } = useAuth();
 
   const [status, setStatus] = useState<ControllerStatus>('disconnected');
   const [matchDoc, setMatchDoc] = useState<WatchRemoteMatchDocument | undefined>(undefined);
@@ -65,7 +65,7 @@ export function useControllerClient(service?: ControllerService): {
     (code: string) => {
       const normalised = code.trim().toUpperCase();
       if (!normalised) return;
-      if (loading || authUnavailable || !user) return;
+      if (loading || authUnavailable || !user || isAnonymous) return;
 
       setStatus('joining');
       setError(undefined);
@@ -88,7 +88,7 @@ export function useControllerClient(service?: ControllerService): {
         },
       });
     },
-    [resolvedService, user, loading, authUnavailable],
+    [resolvedService, user, loading, isAnonymous, authUnavailable],
   );
 
   const leave = useCallback(() => {

@@ -24,6 +24,11 @@ service cloud.firestore {
       return k is string && k in ['wear', 'web'];
     }
 
+    function isNamedSignedIn() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
     function matchDocKeys() {
       return ['active', 'code', 'createdAt', 'hostHeartbeatAt', 'hostId',
               'matchMode', 'matchState', 'updatedAt', 'winnerTeamId',
@@ -34,7 +39,7 @@ service cloud.firestore {
       allow read: if true;
 
       allow create: if
-        request.auth != null
+        isNamedSignedIn()
         && request.auth.uid == request.resource.data.hostId
         && isValidRoomCode(code)
         && request.resource.data.code == code
@@ -54,7 +59,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(matchDocKeys());
 
       allow update: if
-        request.auth != null
+        isNamedSignedIn()
         && request.auth.uid == resource.data.hostId
         && request.resource.data.code == resource.data.code
         && request.resource.data.createdAt == resource.data.createdAt
@@ -76,7 +81,7 @@ service cloud.firestore {
         allow read: if true;
 
         allow create: if
-          request.auth != null
+          isNamedSignedIn()
           && isValidCommandType(request.resource.data.type)
           && isValidSourceKind(request.resource.data.sourceKind)
           && request.resource.data.sourceId is string
@@ -99,7 +104,7 @@ service cloud.firestore {
           );
 
         allow update: if
-          request.auth != null
+          isNamedSignedIn()
           && request.auth.uid == get(/databases/$(database)/documents/matches/$(code)).data.hostId
           && resource.data.type == request.resource.data.type
           && resource.data.sourceId == request.resource.data.sourceId

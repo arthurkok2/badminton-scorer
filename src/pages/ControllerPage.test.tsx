@@ -8,9 +8,9 @@ import { createMatch } from '../domain/matchEngine';
 
 const authMock = vi.hoisted(() => ({
   useAuth: vi.fn(() => ({
-    user: { uid: 'anon', isAnonymous: true },
+    user: { uid: 'google-uid', isAnonymous: false },
     loading: false,
-    isAnonymous: true,
+    isAnonymous: false,
     authUnavailable: false,
     signInWithGoogle: vi.fn(),
     signOut: vi.fn(),
@@ -58,6 +58,14 @@ function makeActiveState(overrides: Partial<WatchRemoteMatchDocument> = {}) {
 describe('ControllerPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    authMock.useAuth.mockReturnValue({
+      user: { uid: 'google-uid', isAnonymous: false },
+      loading: false,
+      isAnonymous: false,
+      authUnavailable: false,
+      signInWithGoogle: vi.fn(),
+      signOut: vi.fn(),
+    });
     mockedUseControllerClient.mockReturnValue(mockHookState);
   });
 
@@ -95,6 +103,14 @@ describe('ControllerPage', () => {
     });
 
     it('renders a sign-in button in the global account chrome', () => {
+      authMock.useAuth.mockReturnValue({
+        user: null as unknown as { uid: string; isAnonymous: boolean },
+        loading: false,
+        isAnonymous: false,
+        authUnavailable: false,
+        signInWithGoogle: vi.fn(),
+        signOut: vi.fn(),
+      });
       render(<MemoryRouter><ControllerPage /></MemoryRouter>);
 
       expect(screen.getByRole('button', { name: /account menu, sign in with google/i })).toBeInTheDocument();
@@ -121,6 +137,21 @@ describe('ControllerPage', () => {
 
       expect(screen.getByRole('button', { name: /join/i })).toBeDisabled();
       expect(screen.getByText(/unavailable offline/i)).toBeInTheDocument();
+    });
+
+    it('disables the Join button when signed out', () => {
+      authMock.useAuth.mockReturnValueOnce({
+        user: null as unknown as { uid: string; isAnonymous: boolean },
+        loading: false,
+        isAnonymous: false,
+        authUnavailable: false,
+        signInWithGoogle: vi.fn(),
+        signOut: vi.fn(),
+      });
+      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
+
+      expect(screen.getByRole('button', { name: /join/i })).toBeDisabled();
+      expect(screen.getByText(/sign in to use the firebase controller/i)).toBeInTheDocument();
     });
   });
 

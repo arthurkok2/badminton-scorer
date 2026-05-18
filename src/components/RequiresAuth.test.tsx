@@ -9,14 +9,22 @@ describe('RequiresAuth', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('renders children when signed in with a named account', async () => {
-    authMock.useAuth.mockReturnValue({ isAnonymous: false, loading: false });
+    authMock.useAuth.mockReturnValue({ user: { uid: 'u1' }, isAnonymous: false, loading: false });
     const { RequiresAuth } = await import('./RequiresAuth');
     render(<RequiresAuth><div>protected</div></RequiresAuth>);
     expect(screen.getByText('protected')).toBeInTheDocument();
   });
 
   it('renders sign-in nudge instead of children when anonymous', async () => {
-    authMock.useAuth.mockReturnValue({ isAnonymous: true, loading: false });
+    authMock.useAuth.mockReturnValue({ user: { uid: 'anon' }, isAnonymous: true, loading: false });
+    const { RequiresAuth } = await import('./RequiresAuth');
+    render(<RequiresAuth><div>protected</div></RequiresAuth>);
+    expect(screen.queryByText('protected')).not.toBeInTheDocument();
+    expect(screen.getByText(/sign in to use this feature/i)).toBeInTheDocument();
+  });
+
+  it('renders sign-in nudge instead of children when signed out', async () => {
+    authMock.useAuth.mockReturnValue({ user: null, isAnonymous: false, loading: false });
     const { RequiresAuth } = await import('./RequiresAuth');
     render(<RequiresAuth><div>protected</div></RequiresAuth>);
     expect(screen.queryByText('protected')).not.toBeInTheDocument();

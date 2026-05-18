@@ -8,9 +8,9 @@ import type { PendingWatchRemoteCommand } from '../remote/firestoreRemoteTypes';
 // Mock useAuth so the hook gets a deterministic uid
 vi.mock('../auth', () => ({
   useAuth: vi.fn(() => ({
-    user: { uid: 'test-host-uid', isAnonymous: true },
+    user: { uid: 'test-host-uid', isAnonymous: false },
     loading: false,
-    isAnonymous: true,
+    isAnonymous: false,
     authUnavailable: false,
     signInWithGoogle: vi.fn(),
     signOut: vi.fn(),
@@ -455,6 +455,32 @@ describe('useWatchRemoteHost', () => {
       user: null,
       loading: false,
       isAnonymous: false,
+      authUnavailable: false,
+      signInWithGoogle: vi.fn(),
+      signOut: vi.fn(),
+    });
+
+    const service = makeService();
+    const dispatch = vi.fn();
+    const announce = vi.fn();
+    const match = createTestMatch();
+
+    const { result } = renderHook(() =>
+      useWatchRemoteHost({ match, dispatch, announce, service }),
+    );
+
+    await act(async () => { await result.current.start(); });
+
+    expect(service.createRoom).not.toHaveBeenCalled();
+    expect(result.current.status).toBe('inactive');
+  });
+
+  it('does not start when the current Firebase user is anonymous', async () => {
+    const { useAuth } = await import('../auth');
+    (useAuth as ReturnType<typeof vi.fn>).mockReturnValueOnce({
+      user: { uid: 'anon-uid', isAnonymous: true },
+      loading: false,
+      isAnonymous: true,
       authUnavailable: false,
       signInWithGoogle: vi.fn(),
       signOut: vi.fn(),

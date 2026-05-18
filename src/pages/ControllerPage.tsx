@@ -28,10 +28,16 @@ const controllerSettingsTitles: Record<ControllerSettingsAction, string> = {
 export function ControllerPage() {
   const { status, matchDoc, error, commandError, lastCode, join, leave, sendCommand } =
     useControllerClient();
-  const { loading: authLoading, authUnavailable } = useAuth();
+  const {
+    user,
+    loading: authLoading,
+    isAnonymous,
+    authUnavailable,
+  } = useAuth();
   const codeInputRef = useRef<HTMLInputElement>(null);
   const [activeModal, setActiveModal] = useState<ControllerSettingsAction | undefined>(undefined);
-  const joinDisabled = status === 'joining' || authLoading || authUnavailable;
+  const signInRequired = !authLoading && !authUnavailable && (!user || isAnonymous);
+  const joinDisabled = status === 'joining' || authLoading || authUnavailable || signInRequired;
   const handleAppMenuAction = useCallback((action: AppMenuAction) => {
     if (isControllerSettingsAction(action)) {
       setActiveModal(action);
@@ -76,7 +82,10 @@ export function ControllerPage() {
                 {status === 'joining' ? 'Joining…' : 'Join'}
               </button>
               {authUnavailable && (
-                <p className="controller-auth-unavailable">Sign-in unavailable offline — controller disabled</p>
+                <p className="controller-auth-unavailable">Sign-in unavailable offline - controller disabled</p>
+              )}
+              {signInRequired && (
+                <p className="controller-auth-unavailable">Sign in to use the Firebase controller.</p>
               )}
             </div>
             <Link to="/" className="controller-back-link">← Back to scorer</Link>

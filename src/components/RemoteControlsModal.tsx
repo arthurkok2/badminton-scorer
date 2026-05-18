@@ -10,7 +10,7 @@ interface RemoteControlsModalProps {
     readonly error?: string;
     readonly lastCommandLabel?: string;
   };
-  readonly authUnavailable: boolean;
+  readonly watchRemoteUnavailableReason?: string;
   readonly onConnectBluetooth: () => void;
   readonly onStartWatchRemote: () => void;
   readonly onStopWatchRemote: () => void;
@@ -19,12 +19,13 @@ interface RemoteControlsModalProps {
 export function RemoteControlsModal({
   bluetoothStatus,
   watchRemote,
-  authUnavailable,
+  watchRemoteUnavailableReason,
   onConnectBluetooth,
   onStartWatchRemote,
   onStopWatchRemote,
 }: RemoteControlsModalProps) {
   const bluetoothUnsupported = bluetoothStatus === 'unsupported';
+  const watchRemoteUnavailable = watchRemoteUnavailableReason !== undefined;
 
   return (
     <div className="settings-panel">
@@ -52,7 +53,7 @@ export function RemoteControlsModal({
           <span>Watch remote {watchRemote.status}</span>
         </div>
         {(watchRemote.status === 'inactive' || watchRemote.status === 'error') ? (
-          <button type="button" onClick={onStartWatchRemote} disabled={authUnavailable}>
+          <button type="button" onClick={onStartWatchRemote} disabled={watchRemoteUnavailable}>
             Start watch remote
           </button>
         ) : null}
@@ -70,7 +71,7 @@ export function RemoteControlsModal({
         {watchRemote.status === 'error' && watchRemote.error ? (
           <div className="watch-remote-status" role="alert">{watchRemote.error}</div>
         ) : null}
-        {authUnavailable ? <p className="settings-note">Watch remote unavailable offline.</p> : null}
+        {watchRemoteUnavailableReason ? <p className="settings-note">{watchRemoteUnavailableReason}</p> : null}
       </section>
     </div>
   );

@@ -52,7 +52,7 @@ export function useWatchRemoteHost(options: {
 } {
   const { match, dispatch, announce, service = defaultService } = options;
 
-  const { user, loading, authUnavailable } = useAuth();
+  const { user, loading, isAnonymous, authUnavailable } = useAuth();
 
   const [status, setStatus] = useState<WatchRemoteHostStatus>('inactive');
   const [code, setCode] = useState<string | undefined>(undefined);
@@ -81,7 +81,7 @@ export function useWatchRemoteHost(options: {
   const start = useCallback(async () => {
     // Guard against double-start or missing auth
     if (statusRef.current !== 'inactive') return;
-    if (loading || authUnavailable || !user) return;
+    if (loading || authUnavailable || !user || isAnonymous) return;
 
     cancelledRef.current = false;
     updateStatus('starting');
@@ -141,7 +141,7 @@ export function useWatchRemoteHost(options: {
       updateStatus('error');
       setError(err instanceof Error ? err.message : String(err));
     }
-  }, [service, dispatch, announce, user, loading, authUnavailable]);
+  }, [service, dispatch, announce, user, loading, isAnonymous, authUnavailable]);
 
   const stop = useCallback(async () => {
     // Handle stop() called while start() is still in progress

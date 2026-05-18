@@ -11,7 +11,7 @@ describe('RemoteControlsModal', () => {
       <RemoteControlsModal
         bluetoothStatus="disconnected"
         watchRemote={{ status: 'inactive', code: undefined, error: undefined, lastCommandLabel: undefined }}
-        authUnavailable={false}
+        watchRemoteUnavailableReason={undefined}
         onConnectBluetooth={onConnectBluetooth}
         onStartWatchRemote={onStartWatchRemote}
         onStopWatchRemote={vi.fn()}
@@ -31,7 +31,7 @@ describe('RemoteControlsModal', () => {
       <RemoteControlsModal
         bluetoothStatus="unsupported"
         watchRemote={{ status: 'active', code: 'ABC123', error: undefined, lastCommandLabel: 'Team A point' }}
-        authUnavailable={false}
+        watchRemoteUnavailableReason={undefined}
         onConnectBluetooth={vi.fn()}
         onStartWatchRemote={vi.fn()}
         onStopWatchRemote={onStopWatchRemote}
@@ -42,5 +42,22 @@ describe('RemoteControlsModal', () => {
     expect(screen.getByText(/last: team a point/i)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: /end remote/i }));
     expect(onStopWatchRemote).toHaveBeenCalledTimes(1);
+  });
+
+  it('requires sign-in before starting watch remote hosting', async () => {
+    const onStartWatchRemote = vi.fn();
+    render(
+      <RemoteControlsModal
+        bluetoothStatus="disconnected"
+        watchRemote={{ status: 'inactive', code: undefined, error: undefined, lastCommandLabel: undefined }}
+        watchRemoteUnavailableReason="Sign in to start watch remote."
+        onConnectBluetooth={vi.fn()}
+        onStartWatchRemote={onStartWatchRemote}
+        onStopWatchRemote={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: /start watch remote/i })).toBeDisabled();
+    expect(screen.getByText(/sign in to start watch remote/i)).toBeInTheDocument();
   });
 });

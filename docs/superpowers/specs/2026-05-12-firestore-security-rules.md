@@ -61,8 +61,8 @@ Two collections:
 
 ### Auth integration
 
-Rooms require `request.auth != null && request.auth.uid == hostId` on create and update.
-Commands require `request.auth != null` on create (any signed-in user, including anonymous).
+Rooms require a named Firebase account and `request.auth.uid == hostId` on create and update.
+Commands require a named Firebase account on create.
 Command updates (mark applied/rejected) require the caller's uid to match the room's `hostId` via a `get()` lookup.
 
-The app uses Firebase Anonymous Auth as a baseline — every client has a Firebase uid even without an explicit sign-in, so `request.auth` is always populated in practice.
+Anonymous Firebase Auth is explicitly rejected by checking `request.auth.token.firebase.sign_in_provider != 'anonymous'`. Local scoring and local remotes remain available while signed out, but Firestore-backed features require explicit sign-in.

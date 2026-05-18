@@ -14,9 +14,9 @@ import type { KeyboardRemoteConnection, KeyboardRemoteDiagnosticEvent } from './
 
 const authMock = vi.hoisted(() => ({
   useAuth: vi.fn(() => ({
-    user: { uid: 'anon', isAnonymous: true },
+    user: { uid: 'google-uid', isAnonymous: false },
     loading: false,
-    isAnonymous: true,
+    isAnonymous: false,
     authUnavailable: false,
     signInWithGoogle: vi.fn(),
     signOut: vi.fn(),
@@ -140,9 +140,9 @@ describe('App', () => {
   beforeEach(() => {
     window.localStorage.clear();
     authMock.useAuth.mockReturnValue({
-      user: { uid: 'anon', isAnonymous: true },
+      user: { uid: 'google-uid', isAnonymous: false },
       loading: false,
-      isAnonymous: true,
+      isAnonymous: false,
       authUnavailable: false,
       signInWithGoogle: vi.fn(),
       signOut: vi.fn(),
@@ -187,6 +187,14 @@ describe('App', () => {
   });
 
   it('renders the account control in the global app chrome', () => {
+    authMock.useAuth.mockReturnValue({
+      user: null as unknown as { uid: string; isAnonymous: boolean },
+      loading: false,
+      isAnonymous: false,
+      authUnavailable: false,
+      signInWithGoogle: vi.fn(),
+      signOut: vi.fn(),
+    });
     render(<App />);
 
     expect(screen.getByRole('button', { name: /account menu, sign in with google/i })).toBeInTheDocument();

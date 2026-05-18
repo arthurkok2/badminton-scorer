@@ -182,7 +182,19 @@ export default function App() {
     setMatchView((current) => applyMatchViewAction(current, action));
   }, []);
 
-  const { authUnavailable } = useAuth();
+  const {
+    user,
+    loading: authLoading,
+    isAnonymous,
+    authUnavailable,
+  } = useAuth();
+  const watchRemoteUnavailableReason = authLoading
+    ? 'Checking sign-in...'
+    : authUnavailable
+      ? 'Sign-in unavailable offline.'
+      : !user || isAnonymous
+        ? 'Sign in to start watch remote.'
+        : undefined;
 
   const watchRemote = useWatchRemoteHost({
     match,
@@ -520,7 +532,7 @@ export default function App() {
             error: watchRemote.error,
             lastCommandLabel: watchRemote.lastCommandLabel,
           }}
-          authUnavailable={authUnavailable}
+          watchRemoteUnavailableReason={watchRemoteUnavailableReason}
           onConnectBluetooth={handleConnectBluetooth}
           onStartWatchRemote={handleStartWatchRemote}
           onStopWatchRemote={handleStopWatchRemote}

@@ -6,7 +6,7 @@ Revamp the top-right account and settings area so account identity remains separ
 
 ## Current Context
 
-The app currently renders a global account row through `AccountBar` and `SignInButton`. Anonymous users see only a "Sign in with Google" button. Signed-in users see an avatar dropdown with profile details, a disabled Settings item, and Sign out.
+The app currently renders a global account row through `AccountBar` and the account menu. Signed-out users see a neutral account avatar with a "Sign in with Google" action. Signed-in users see an avatar dropdown with profile details and Sign out.
 
 Match setup, announcement preferences, animations, session mode, remote controls, device status, and diagnostics are currently shown in the main scorer layout through `Controls`, `StatusBar`, `WatchRemotePanel`, and `RemoteDiagnostics`.
 
@@ -17,7 +17,7 @@ The top app bar will render two compact controls on the right:
 - Account avatar button.
 - Settings gear button.
 
-The account avatar is always present after auth loading completes. Signed-in users see their Google photo or initials. Anonymous users see a neutral fallback avatar. If auth is unavailable, the avatar still opens an account menu that explains sign-in is unavailable offline.
+The account avatar is always present after auth loading completes. Signed-in users see their Google photo or initials. Signed-out users see a neutral fallback avatar. If auth is unavailable, the avatar still opens an account menu that explains sign-in is unavailable offline.
 
 The gear button is available regardless of sign-in state. It opens the app tools menu.
 
@@ -26,7 +26,7 @@ The gear button is available regardless of sign-in state. It opens the app tools
 The avatar opens an account-focused dropdown:
 
 - Signed-in state: profile photo or initials, display name or email, email when available, and Sign out.
-- Anonymous state: neutral identity label and Sign in with Google.
+- Signed-out state: neutral identity label and Sign in with Google.
 - Auth unavailable state: neutral identity label and a muted unavailable/offline message.
 
 The account menu must not contain app settings. It closes on outside pointer interaction, Escape, and after activating Sign in or Sign out.
@@ -149,10 +149,10 @@ Keyboard users must be able to open menus, activate menu items, close dropdowns/
 
 Add or update tests to cover:
 
-- Anonymous users can open the account menu and see Sign in with Google.
+- Signed-out users can open the account menu and see Sign in with Google.
 - Signed-in users can open the account menu and sign out.
 - Auth-unavailable users still see an account menu state without app settings disappearing.
-- Anonymous users can open the gear menu.
+- Signed-out users can open the gear menu.
 - Gear menu items open the correct modal or trigger the correct top-level flow.
 - Auto announce, announcement mode, animations, match mode, player names, first-server setup, Bluetooth connect, watch remote hosting, and diagnostics remain wired to existing callbacks/state.
 - Undo and manual announce remain visible on the main scorer.
@@ -183,7 +183,7 @@ Add or update tests to cover:
 
 ## Implementation Notes (Task 5, 2026-05-17)
 
-- `RemoteControlsModal` receives `bluetoothStatus`, `watchRemote` (status/code/error/lastCommandLabel), `authUnavailable`, and three callbacks: `onConnectBluetooth`, `onStartWatchRemote`, `onStopWatchRemote`. It replicates `StatusBar` Bluetooth UI and `WatchRemotePanel` watch-remote UI inside a `settings-panel` layout.
+- `RemoteControlsModal` receives `bluetoothStatus`, `watchRemote` (status/code/error/lastCommandLabel), `watchRemoteUnavailableReason`, and three callbacks: `onConnectBluetooth`, `onStartWatchRemote`, `onStopWatchRemote`. It replicates the Bluetooth and watch-remote UI inside a `settings-panel` layout.
 - `DiagnosticsModal` accepts a `readonly DiagnosticEvent[]` and renders either an empty-state paragraph or an ordered list of keyboard and gamepad events, matching the existing `RemoteDiagnostics` output format.
 - `DiagnosticEvent` type is defined and exported from `DiagnosticsModal.tsx`; `App.tsx` imports it from there instead of declaring it locally. The local `RemoteDiagnostics` function and local `DiagnosticEvent` type alias were removed from `App.tsx`.
 - `StatusBar` and `WatchRemotePanel` imports were removed from `App.tsx`; the components are no longer rendered in the main scorer layout. Their source files are unchanged.
@@ -194,4 +194,4 @@ Add or update tests to cover:
 
 - CSS utility classes added to `styles.css`: `.settings-panel` (grid layout for modal body content), `.settings-section` (bordered, dark-background grouping card with gap), `.settings-section h3` (muted uppercase section label), and `.live-utility-controls` (2-column icon-button layout override for non-session match controls).
 - The `.settings-note` rule already existed; it was not duplicated or modified.
-- All three integration tests specified for this task were already covered by pre-existing tests in `App.test.tsx` (anonymous match settings open, session mode start, new match with confirmation). No duplicate tests were added.
+- All three integration tests specified for this task were already covered by pre-existing tests in `App.test.tsx` (signed-out match settings open, session mode start, new match with confirmation). No duplicate tests were added.

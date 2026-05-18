@@ -176,7 +176,7 @@ Development can start with permissive Firestore rules, matching the Wavelength d
 
 Before deployment:
 
-- Require authenticated or anonymous Firebase clients.
+- Require named, non-anonymous Firebase clients.
 - Allow clients to read active match documents by code.
 - Allow clients to create command documents.
 - Prevent watches from updating `matchState`, `active`, `appliedAt`, `rejectedAt`, and `rejectionReason`.
