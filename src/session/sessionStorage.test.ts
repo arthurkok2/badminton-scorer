@@ -1,9 +1,11 @@
 import {
   appendToSessionArchive,
   clearActiveSession,
+  isSessionImportedForUser,
   loadActiveSession,
   loadSavedPlayers,
   loadSessionArchive,
+  markSessionImportedForUser,
   saveActiveSession,
   saveSavedPlayers,
 } from './sessionStorage';
@@ -76,5 +78,14 @@ describe('session storage', () => {
     expect(() => saveActiveSession(createLegacySessionFromPlayerNames(['Alice', 'Bob', 'Carol', 'Dave']))).not.toThrow();
 
     setItem.mockRestore();
+  });
+
+  it('tracks imported local sessions per user', () => {
+    expect(isSessionImportedForUser('uid-1', 'session-1')).toBe(false);
+
+    markSessionImportedForUser('uid-1', 'session-1');
+
+    expect(isSessionImportedForUser('uid-1', 'session-1')).toBe(true);
+    expect(isSessionImportedForUser('uid-2', 'session-1')).toBe(false);
   });
 });

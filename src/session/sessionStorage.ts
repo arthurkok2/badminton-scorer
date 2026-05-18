@@ -3,6 +3,7 @@ import type { ActiveSession, ArchivedSession } from './sessionTypes';
 const ACTIVE_SESSION_KEY = 'badminton-scorer-active-session';
 const SESSION_ARCHIVE_KEY = 'badminton-scorer-session-archive';
 const SAVED_PLAYERS_KEY = 'badminton-scorer-saved-players';
+const IMPORTED_SESSION_MARKERS_KEY = 'badminton-scorer-imported-session-markers';
 
 export function loadActiveSession(): ActiveSession | undefined {
   try {
@@ -69,4 +70,33 @@ export function saveSavedPlayers(players: readonly string[]): void {
   } catch {
     // Non-critical.
   }
+}
+
+export function isSessionImportedForUser(uid: string, sessionId: string): boolean {
+  return loadImportedSessionMarkers().includes(importMarker(uid, sessionId));
+}
+
+export function markSessionImportedForUser(uid: string, sessionId: string): void {
+  try {
+    const markers = new Set(loadImportedSessionMarkers());
+    markers.add(importMarker(uid, sessionId));
+    window.localStorage.setItem(IMPORTED_SESSION_MARKERS_KEY, JSON.stringify([...markers]));
+  } catch {
+    // Non-critical.
+  }
+}
+
+function loadImportedSessionMarkers(): string[] {
+  try {
+    const raw = window.localStorage.getItem(IMPORTED_SESSION_MARKERS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function importMarker(uid: string, sessionId: string): string {
+  return `${uid}:${sessionId}`;
 }
