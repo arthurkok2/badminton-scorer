@@ -213,7 +213,7 @@ export default function App() {
     const sessions = activeSession ? [activeSession, ...archive] : archive;
     const unimportedNames = new Set<string>();
     for (const session of sessions) {
-      if ('players' in session && !isSessionImportedForUser(user.uid, session.id)) {
+      if (!isSessionImportedForUser(user.uid, session.id) && session.players.some(p => p.id.startsWith('legacy-local-player-'))) {
         for (const player of session.players) {
           unimportedNames.add(player.displayName);
         }
@@ -407,7 +407,7 @@ export default function App() {
     const active = loadActiveSession();
     const sessions = active ? [active, ...archive] : archive;
     for (const session of sessions) {
-      if ('players' in session) {
+      if (session.players.some(p => p.id.startsWith('legacy-local-player-'))) {
         markSessionImportedForUser(user.uid, session.id);
       }
     }

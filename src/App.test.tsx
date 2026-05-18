@@ -968,7 +968,7 @@ describe('App', () => {
       id: 'session-abc',
       startedAt: '2026-01-01T10:00:00.000Z',
       endedAt: '2026-01-01T12:00:00.000Z',
-      players: [{ id: 'p1', displayName: 'OldAlice', gamesPlayed: 3, breaksTaken: 0 }],
+      players: [{ id: 'legacy-local-player-1', displayName: 'OldAlice', gamesPlayed: 3, breaksTaken: 0 }],
       matches: [],
     };
     vi.spyOn(sessionStorageModule, 'loadSessionArchive').mockReturnValue([archivedSession]);
