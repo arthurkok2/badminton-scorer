@@ -52,7 +52,7 @@ describe('cloud session service', () => {
     await searchGlobalPlayers({ searchText: ' Ali ', db });
 
     expect(firestoreMocks.where).toHaveBeenCalledWith('searchName', '>=', 'ali');
-    expect(firestoreMocks.where).toHaveBeenCalledWith('searchName', '<=', 'ali');
+    expect(firestoreMocks.where).toHaveBeenCalledWith('searchName', '<=', 'ali');
     expect(firestoreMocks.limit).toHaveBeenCalledWith(10);
   });
 

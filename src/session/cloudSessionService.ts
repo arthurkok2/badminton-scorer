@@ -46,7 +46,7 @@ export async function searchGlobalPlayers(options: {
   const snapshot = await getDocs(query(
     collection(resolveDb(options.db), 'players'),
     where('searchName', '>=', searchName),
-    where('searchName', '<=', `${searchName}`),
+    where('searchName', '<=', `${searchName}`),
     orderBy('searchName', 'asc'),
     limit(10),
   ));
