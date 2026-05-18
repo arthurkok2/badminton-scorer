@@ -221,7 +221,7 @@ Individual Elo:
 Pair Elo:
 
 - Compute expected score from the current Elo of the two pairs.
-- Apply one pair delta to the winning pair and the inverse delta to the losing pair.
+- Apply each pair's own rounded delta from its expected score and K-factor. Deltas are inverse only when both pairs use the same K-factor.
 - Reject updates where both pair ids are identical. Duplicate pair ids are invalid input because returning snapshots keyed by id would otherwise silently overwrite one pair.
 
 When a team has mixed provisional and established players, use the average of the two players' K-factors for that team's individual update. Pair Elo uses the pair's own K-factor.
