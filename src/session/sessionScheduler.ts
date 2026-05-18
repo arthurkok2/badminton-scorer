@@ -37,7 +37,8 @@ export function selectNextPlayers(players: readonly GlobalSessionPlayer[]): {
   readonly selected: readonly [GlobalSessionPlayer, GlobalSessionPlayer, GlobalSessionPlayer, GlobalSessionPlayer];
   readonly onBreak: readonly GlobalSessionPlayer[];
 } {
-  if (players.length <= 4) {
+  if (players.length < 4) throw new Error('selectNextPlayers requires at least 4 players');
+  if (players.length === 4) {
     return {
       selected: players as unknown as readonly [GlobalSessionPlayer, GlobalSessionPlayer, GlobalSessionPlayer, GlobalSessionPlayer],
       onBreak: [],
@@ -62,8 +63,10 @@ export function selectNextPlayers(players: readonly GlobalSessionPlayer[]): {
   // On-court players with highest streak sit out (they end up at the tail of prioritized).
   const prioritized = [...breakPlayers, ...onCourtPlayers];
 
+  const top4 = prioritized.slice(0, 4);
+  if (top4.length < 4) throw new Error('selectNextPlayers: not enough players after prioritization');
   return {
-    selected: prioritized.slice(0, 4) as unknown as readonly [GlobalSessionPlayer, GlobalSessionPlayer, GlobalSessionPlayer, GlobalSessionPlayer],
+    selected: top4 as unknown as readonly [GlobalSessionPlayer, GlobalSessionPlayer, GlobalSessionPlayer, GlobalSessionPlayer],
     onBreak: prioritized.slice(4),
   };
 }

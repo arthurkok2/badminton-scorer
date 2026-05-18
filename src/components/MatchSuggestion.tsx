@@ -33,12 +33,12 @@ export function MatchSuggestion({
   const [swapIn, setSwapIn] = useState('');
 
   const currentSplit = rankedSplits[splitIndex];
-  const playingNow = [...currentSplit.teamA, ...currentSplit.teamB] as [
+  const playingNow: [
     typeof currentSplit.teamA[0],
     typeof currentSplit.teamA[1],
     typeof currentSplit.teamB[0],
     typeof currentSplit.teamB[1],
-  ];
+  ] = [currentSplit.teamA[0], currentSplit.teamA[1], currentSplit.teamB[0], currentSplit.teamB[1]];
 
   function handleSwap() {
     setSplitIndex(prev => ((prev + 1) % 3) as 0 | 1 | 2);
@@ -48,7 +48,12 @@ export function MatchSuggestion({
     if (!swapOut || !swapIn) return;
     const swapInPlayer = onBreak.find(player => player.id === swapIn);
     if (!swapInPlayer) return;
-    const newFour = playingNow.map(player => (player.id === swapOut ? swapInPlayer : player)) as typeof playingNow;
+    const newFour: typeof playingNow = [
+      playingNow[0].id === swapOut ? swapInPlayer : playingNow[0],
+      playingNow[1].id === swapOut ? swapInPlayer : playingNow[1],
+      playingNow[2].id === swapOut ? swapInPlayer : playingNow[2],
+      playingNow[3].id === swapOut ? swapInPlayer : playingNow[3],
+    ];
     const newRanked = rankSplitsForPlayers(newFour, pairingMatrix);
     setRankedSplits(newRanked);
     const swapOutPlayer = playingNow.find(player => player.id === swapOut);

@@ -275,6 +275,21 @@ describe('applyMatchResult', () => {
     expect(next.pairingMatrix.together['player-carol']?.['player-dave']).toBe(1);
   });
 
+  it('accumulates pairing matrix counts across two consecutive matches', () => {
+    const session = createSession(globalPlayers);
+    const split = splitFor(session.players[0], session.players[1], session.players[2], session.players[3]);
+
+    const after1 = applyMatchResult(session, split, 'teamA');
+    // Use the updated player records for the second match so streak/gamesPlayed are correct,
+    // but keep the same pairing (alice+bob vs carol+dave) to verify count accumulation.
+    const split2 = splitFor(after1.players[0], after1.players[1], after1.players[2], after1.players[3]);
+    const after2 = applyMatchResult(after1, split2, 'teamA');
+
+    expect(after2.pairingMatrix.together['player-alice']?.['player-bob']).toBe(2);
+    expect(after2.pairingMatrix.together['player-bob']?.['player-alice']).toBe(2);
+    expect(after2.pairingMatrix.against['player-alice']?.['player-carol']).toBe(2);
+  });
+
   it('increments against count for all cross-team pairs by player id', () => {
     const session = createSession(globalPlayers);
     const split = splitFor(session.players[0], session.players[1], session.players[2], session.players[3]);
