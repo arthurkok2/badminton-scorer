@@ -48,6 +48,10 @@ Stores a canonical global player record. Session rosters reference these records
 
 Global player creation is available only to signed-in users. The UI warns on near-duplicate `searchName` matches, but v1 does not block duplicate human names because multiple real players may share a name.
 
+In the app domain, a `GlobalPlayer` record contains identity, display, claim, Elo, match-count, and stats-version fields. Firestore timestamp fields are added by the cloud persistence DTO layer rather than the app-domain record so session scheduling and UI code can work without Firestore timestamp types.
+
+Player search names are normalized deterministically by trimming, collapsing internal whitespace, and applying JavaScript default lowercase conversion. This avoids locale-dependent persisted search keys.
+
 ### `pairs/{pairId}`
 
 Stores a canonical global doubles pair. The id is derived from the two sorted player ids.
@@ -62,6 +66,8 @@ Stores a canonical global doubles pair. The id is derived from the two sorted pl
 | `globalPairElo` | number | Starts at `1500`. |
 | `globalMatchCount` | number | Completed global session matches for this pair. |
 | `statsVersion` | number | Starts at `1`. |
+
+Pair ids use the separator `__` between sorted player ids. App-generated player ids must not contain `__`; helpers reject ids containing that separator so different player-id pairs cannot collapse into the same pair id.
 
 ### `globalMatches/{matchId}`
 
