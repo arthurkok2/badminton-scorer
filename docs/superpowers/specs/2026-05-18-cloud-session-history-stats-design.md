@@ -434,6 +434,38 @@ Rules tests cover:
 
 `firestore.indexes.json` adds a single-field ascending index on `players.searchName` to support prefix search queries.
 
+## History & Stats Modal
+
+A `HistoryStatsModal` component (`src/components/HistoryStatsModal.tsx`) surfaces the cloud data in four tabs:
+
+- **Sessions** — list of past sessions with date and match count.
+- **Players** — player leaderboard with display name, Elo, matches played, win rate, and recent form.
+- **Pairs** — pair leaderboard with names, Elo, and matches played.
+- **Matchups** — head-to-head records between pairs of players.
+
+### Entry point
+
+The `AppMenu` exposes a "History & Stats" item (Trophy icon) as `'historyStats'` in the `AppMenuAction` union. It is included in the `sessionAppMenuActions` list so it appears during session mode.
+
+Clicking "History & Stats" in the menu:
+
+- If the user is signed in (non-anonymous): opens `HistoryStatsModal` via `showHistoryStats` state.
+- If the user is not signed in: shows the existing sign-in prompt modal.
+
+### Props
+
+```ts
+interface HistoryStatsModalProps {
+  sessions: readonly SessionSummaryEntry[];
+  players: readonly PlayerLeaderboardEntry[];
+  pairs: readonly PairLeaderboardEntry[];
+  matchups: readonly MatchupEntry[];
+  onClose: () => void;
+}
+```
+
+For Task 10 the arrays are always empty; later tasks wire real Firestore data.
+
 ## Non-Goals
 
 - Normal match mode history.

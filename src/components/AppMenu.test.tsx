@@ -12,6 +12,7 @@ function renderMenu(overrides: Partial<Record<AppMenuAction, () => void>> = {}) 
     diagnostics: vi.fn(),
     sessionMode: vi.fn(),
     newMatch: vi.fn(),
+    historyStats: vi.fn(),
     ...overrides,
   };
   render(<AppMenu onAction={(action) => handlers[action]()} />);
@@ -30,6 +31,7 @@ describe('AppMenu', () => {
     expect(screen.getByRole('menuitem', { name: /remote controls/i })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: /diagnostics/i })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: /session mode/i })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /history & stats/i })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: /new match/i })).toBeInTheDocument();
   });
 

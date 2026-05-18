@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { Bell, Bluetooth, ClipboardList, MonitorPlay, RotateCcw, Settings, Settings2, Users } from 'lucide-react';
+import { Bell, Bluetooth, ClipboardList, MonitorPlay, RotateCcw, Settings, Settings2, Trophy, Users } from 'lucide-react';
 
 export type AppMenuAction =
   | 'matchSettings'
@@ -9,7 +9,8 @@ export type AppMenuAction =
   | 'remoteControls'
   | 'diagnostics'
   | 'sessionMode'
-  | 'newMatch';
+  | 'newMatch'
+  | 'historyStats';
 
 interface AppMenuProps {
   readonly onAction: (action: AppMenuAction) => void;
@@ -23,6 +24,7 @@ const items: ReadonlyArray<{ action: AppMenuAction; label: string; icon: LucideI
   { action: 'remoteControls', label: 'Remote controls', icon: Bluetooth },
   { action: 'diagnostics', label: 'Diagnostics', icon: ClipboardList },
   { action: 'sessionMode', label: 'Session mode', icon: Users },
+  { action: 'historyStats', label: 'History & Stats', icon: Trophy },
   { action: 'newMatch', label: 'New match', icon: RotateCcw },
 ];
 

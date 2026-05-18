@@ -53,6 +53,7 @@ import { DiagnosticsModal } from './components/DiagnosticsModal';
 import type { DiagnosticEvent } from './components/DiagnosticsModal';
 import { SessionMatchHistory } from './components/SessionMatchHistory';
 import { SessionImportPrompt } from './components/SessionImportPrompt';
+import { HistoryStatsModal } from './components/HistoryStatsModal';
 import { useWatchRemoteHost } from './hooks/useWatchRemoteHost';
 import { useAuth } from './auth';
 import type { ActiveSession, GlobalPlayer, MatchSuggestion as MatchSuggestionData, TeamSplit } from './session/sessionTypes';
@@ -63,7 +64,7 @@ import type { AppMenuAction } from './components/AppMenu';
 
 type AppMode = 'match' | 'session';
 type SessionPhase = 'setup' | 'suggestion' | 'playing';
-type AppSettingsModal = Exclude<AppMenuAction, 'sessionMode' | 'newMatch'>;
+type AppSettingsModal = Exclude<AppMenuAction, 'sessionMode' | 'newMatch' | 'historyStats'>;
 type AppModal = AppSettingsModal | 'sessionSignIn';
 
 const appSettingsModalTitles: Record<AppSettingsModal, string> = {
@@ -81,6 +82,7 @@ const sessionAppMenuActions: readonly AppMenuAction[] = [
   'remoteControls',
   'diagnostics',
   'sessionMode',
+  'historyStats',
 ];
 
 interface MatchViewState {
@@ -132,6 +134,7 @@ export default function App() {
   const [activeModal, setActiveModal] = useState<AppModal | undefined>(undefined);
   const [playerSearchResults, setPlayerSearchResults] = useState<GlobalPlayer[]>([]);
   const [showImportPrompt, setShowImportPrompt] = useState(false);
+  const [showHistoryStats, setShowHistoryStats] = useState(false);
   const [importLegacyNames, setImportLegacyNames] = useState<string[]>([]);
   const connectionRef = useRef<BluetoothRemoteConnection | undefined>(undefined);
   const keyboardConnectionRef = useRef<KeyboardRemoteConnection | undefined>(undefined);
@@ -546,9 +549,18 @@ export default function App() {
         return;
       }
 
+      if (action === 'historyStats') {
+        if (user && !isAnonymous) {
+          setShowHistoryStats(true);
+        } else {
+          setActiveModal('sessionSignIn');
+        }
+        return;
+      }
+
       setActiveModal(action);
     },
-    [handleNewMatch, handleSwitchToSession],
+    [handleNewMatch, handleSwitchToSession, isAnonymous, user],
   );
 
   const matchWinner = match.winnerTeamId;
@@ -654,6 +666,9 @@ export default function App() {
           />
         )}
         {activeModalDialog}
+        {showHistoryStats && (
+          <HistoryStatsModal sessions={[]} players={[]} pairs={[]} matchups={[]} onClose={() => setShowHistoryStats(false)} />
+        )}
       </main>
     );
   }
@@ -683,6 +698,9 @@ export default function App() {
           />
         )}
         {activeModalDialog}
+        {showHistoryStats && (
+          <HistoryStatsModal sessions={[]} players={[]} pairs={[]} matchups={[]} onClose={() => setShowHistoryStats(false)} />
+        )}
       </main>
     );
   }
@@ -723,6 +741,9 @@ export default function App() {
         />
       )}
       {activeModalDialog}
+        {showHistoryStats && (
+          <HistoryStatsModal sessions={[]} players={[]} pairs={[]} matchups={[]} onClose={() => setShowHistoryStats(false)} />
+        )}
       <AnimationOverlay event={activeAnimation} onDismiss={handleAnimationDismiss} />
     </main>
   );
