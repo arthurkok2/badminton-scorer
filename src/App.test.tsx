@@ -609,6 +609,36 @@ describe('App', () => {
     expect(liveHistory).toHaveTextContent('12 min');
   });
 
+  it('calls completeCloudSessionMatch with uid and matchRecord when a session match ends', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-05-17T10:00:00.000Z'));
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    authMock.useAuth.mockReturnValue({
+      user: { uid: 'uid-1', isAnonymous: false },
+      loading: false,
+      isAnonymous: false,
+      authUnavailable: false,
+      signInWithGoogle: vi.fn(),
+      signOut: vi.fn(),
+    });
+    cloudServiceMock.completeCloudSessionMatch.mockClear();
+    render(<App />);
+
+    await startSessionMatch(user);
+    for (let i = 0; i < 21; i++) {
+      await user.click(screen.getByRole('button', { name: /award point to team a, score \d+/i }));
+    }
+    await user.click(screen.getByRole('button', { name: /next match/i }));
+
+    await waitFor(() => expect(cloudServiceMock.completeCloudSessionMatch).toHaveBeenCalledTimes(1));
+    expect(cloudServiceMock.completeCloudSessionMatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        uid: 'uid-1',
+        matchRecord: expect.objectContaining({ winnerTeam: 'teamA' }),
+      }),
+    );
+  });
+
   it('hides live session match history when disabled in display settings', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(new Date('2026-05-17T10:00:00.000Z'));

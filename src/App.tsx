@@ -31,6 +31,7 @@ import {
 import {
   searchGlobalPlayers,
   createGlobalPlayerDocument,
+  completeCloudSessionMatch,
 } from './session/cloudSessionService';
 import {
   loadActiveSession,
@@ -129,6 +130,8 @@ export default function App() {
   });
   const [currentPlayedSplit, setCurrentPlayedSplit] = useState<TeamSplit | undefined>(undefined);
   const [currentSessionMatchStartedAt, setCurrentSessionMatchStartedAt] = useState<string | undefined>(undefined);
+  const [sessionSyncError, setSessionSyncError] = useState<string | undefined>(undefined);
+  const [pendingRetryMatch, setPendingRetryMatch] = useState<{ matchRecord: import('./session/sessionTypes').MatchRecord } | undefined>(undefined);
   const [bluetoothStatus, setBluetoothStatus] = useState<BluetoothStatus>(() => getBluetoothSupportStatus());
   const [diagnostics, setDiagnostics] = useState<DiagnosticEvent[]>([]);
   const [activeModal, setActiveModal] = useState<AppModal | undefined>(undefined);
@@ -452,7 +455,16 @@ export default function App() {
     setCurrentPlayedSplit(undefined);
     setCurrentSessionMatchStartedAt(undefined);
     setSessionPhase('suggestion');
-  }, [activeSession, currentPlayedSplit, currentSessionMatchStartedAt, match.score]);
+
+    if (user && !isAnonymous) {
+      const completedMatch = updated.matches[updated.matches.length - 1];
+      if (completedMatch) {
+        setPendingRetryMatch({ matchRecord: completedMatch });
+        completeCloudSessionMatch({ uid: user.uid, matchRecord: completedMatch })
+          .catch(() => { setSessionSyncError('Could not sync match to cloud. Tap to retry.'); });
+      }
+    }
+  }, [activeSession, currentPlayedSplit, currentSessionMatchStartedAt, isAnonymous, match.score, user]);
 
   const handleEndSession = useCallback(() => {
     if (!activeSession) return;
@@ -474,6 +486,13 @@ export default function App() {
     setSessionPhase('setup');
     setAppMode('match');
   }, [activeSession]);
+
+  const handleRetrySessionSync = useCallback(() => {
+    if (!user || !pendingRetryMatch) return;
+    setSessionSyncError(undefined);
+    completeCloudSessionMatch({ uid: user.uid, matchRecord: pendingRetryMatch.matchRecord })
+      .catch(() => { setSessionSyncError('Could not sync match to cloud. Tap to retry.'); });
+  }, [pendingRetryMatch, user]);
 
   const handleEditPlayers = useCallback(() => {
     if (activeSession && activeSession.matches.length > 0 && !window.confirm('Editing players will reset the current session\'s match history. Continue?')) return;
@@ -722,6 +741,12 @@ export default function App() {
         />
         {isSessionPlaying && preferences.showSessionHistoryDuringLiveMatches && activeSession ? (
           <SessionMatchHistory matches={activeSession.matches} />
+        ) : null}
+        {isSessionPlaying && sessionSyncError ? (
+          <div className="session-sync-warning" role="status">
+            <span>{sessionSyncError}</span>
+            <button onClick={handleRetrySessionSync}>Retry</button>
+          </div>
         ) : null}
         {appMode === 'session' && sessionPhase === 'playing' && matchWinner && (
           <div className="session-match-over" role="dialog" aria-label="Match over">
