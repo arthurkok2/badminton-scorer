@@ -4,6 +4,10 @@ import { describe, expect, it } from 'vitest';
 
 describe('firestore.rules', () => {
   const rules = readFileSync(join(process.cwd(), 'firestore.rules'), 'utf8');
+  const pairRules = rules.slice(
+    rules.indexOf('match /pairs/{pairId}'),
+    rules.indexOf('match /globalMatches/{matchId}'),
+  );
 
   it('rejects anonymous Firebase users for Firestore-backed remote features', () => {
     expect(rules).toContain("request.auth.token.firebase.sign_in_provider != 'anonymous'");
@@ -32,5 +36,12 @@ describe('firestore.rules', () => {
     expect(rules).toContain('request.resource.data.displayName == resource.data.displayName');
     expect(rules).toContain('request.resource.data.searchName == resource.data.searchName');
     expect(rules).toContain('request.resource.data.createdBy == resource.data.createdBy');
+  });
+
+  it('allows first-match pair creation with a computed Elo and match count', () => {
+    expect(pairRules).toContain('isValidElo(request.resource.data.globalPairElo)');
+    expect(pairRules).toContain('request.resource.data.globalMatchCount >= 0');
+    expect(pairRules).not.toContain('request.resource.data.globalPairElo == 1500');
+    expect(pairRules).not.toContain('request.resource.data.globalMatchCount == 0');
   });
 });

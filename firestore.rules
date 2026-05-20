@@ -199,8 +199,9 @@ service cloud.firestore {
         && isValidPlayerList(request.resource.data.playerIds)
         && request.resource.data.displayNames is list
         && request.resource.data.displayNames.size() == 2
-        && request.resource.data.globalPairElo == 1500
-        && request.resource.data.globalMatchCount == 0
+        && isValidElo(request.resource.data.globalPairElo)
+        && request.resource.data.globalMatchCount is number
+        && request.resource.data.globalMatchCount >= 0
         && request.resource.data.statsVersion == 1
         && request.resource.data.createdAt == request.time
         && request.resource.data.updatedAt == request.time

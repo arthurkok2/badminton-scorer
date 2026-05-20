@@ -363,7 +363,7 @@ Required rule properties:
 - `request.auth.uid` must match `{uid}` for all reads and writes under `users/{uid}`.
 - User document `uid` must match both document id and auth uid.
 - Global player creation requires named sign-in and validates display names, search names, allowed fields, Elo bounds, and initial counters.
-- Global pair creation and updates require named sign-in and validate exactly two sorted player ids, allowed fields, Elo bounds, and counters.
+- Global pair creation and updates require named sign-in and validate exactly two sorted player ids, allowed fields, Elo bounds, and counters. New pair documents may be created by the first completed match with post-match Elo and `globalMatchCount: 1`; rules must not require first-match pair creates to remain at the initial `1500` rating with zero matches.
 - Global match creation requires named sign-in, `submittedBy == request.auth.uid`, valid team ids, valid pair ids, allowed fields, Elo snapshots, and status `submitted`.
 - Create and update rules validate required fields, allowed fields, enum values, list sizes, and basic numeric bounds.
 - Match documents cannot be publicly read.
