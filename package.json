@@ -13,7 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit",
-    "emulator": "npx -y firebase-tools@latest emulators:start --only firestore"
+    "emulator": "npx -y firebase-tools@latest emulators:start --only firestore,auth"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.0",

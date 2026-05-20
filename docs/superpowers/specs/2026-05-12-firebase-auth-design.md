@@ -18,7 +18,7 @@ Add `getFirebaseAuth()` alongside `getFirebaseDb()`. On first call it initialise
 
 If an older persisted anonymous Firebase user is restored from a previous app version, `AuthProvider` signs it out and exposes `user: null`. This clears the anonymous session instead of treating it as a valid account for advanced features.
 
-Auth emulator support mirrors the Firestore emulator pattern: connect when `VITE_USE_FIRESTORE_EMULATOR=true`.
+Auth emulator support mirrors the Firestore emulator pattern: connect when `VITE_USE_FIRESTORE_EMULATOR=true`. Local emulator startup includes both Firestore and Auth, with Auth listening on port `9099`.
 
 ---
 

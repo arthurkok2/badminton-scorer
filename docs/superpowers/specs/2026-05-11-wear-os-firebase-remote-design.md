@@ -119,7 +119,7 @@ The host serializes execution, writes the next `matchState`, and updates `lastAp
 Add Firebase support and a watch remote host layer:
 
 - `src/firebase.ts` initializes Firebase and supports the Firestore emulator.
-- `package.json` exposes `npm run emulator` as a local shortcut for `npx -y firebase-tools@latest emulators:start --only firestore`, so a global Firebase CLI install is not required.
+- `package.json` exposes `npm run emulator` as a local shortcut for `npx -y firebase-tools@latest emulators:start --only firestore,auth`, so a global Firebase CLI install is not required.
 - `src/remote/firestoreRemoteService.ts` creates rooms, publishes state, subscribes to commands, marks commands, and ends rooms.
 - `src/hooks/useWatchRemoteHost.ts` or an equivalent app-level hook connects Firestore to the current match state and `dispatch`.
 
