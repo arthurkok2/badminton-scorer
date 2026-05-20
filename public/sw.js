@@ -1,4 +1,4 @@
-const CACHE_NAME = 'badminton-scorer-v1';
+const CACHE_NAME = 'badminton-scorer-v2';
 const BASE_PATH = new URL(self.registration.scope).pathname.replace(/\/$/, '');
 const withBase = (path) => `${BASE_PATH}${path}`;
 const APP_SHELL = [withBase('/'), withBase('/index.html'), withBase('/manifest.webmanifest'), withBase('/icon-192.png'), withBase('/icon-512.png')];
@@ -78,6 +78,8 @@ async function precacheAppShell() {
   if (assets.length > 0) {
     await cache.addAll([ASSET_MANIFEST, ...assets]);
   }
+
+  await precacheAnimations(cache);
 }
 
 async function getBuildAssets() {
@@ -111,6 +113,21 @@ async function getBuildAssets() {
   } catch {
     return [];
   }
+}
+
+async function precacheAnimations(cache) {
+  await Promise.allSettled(
+    ANIMATION_VIDEOS.map(async (url) => {
+      try {
+        const response = await fetch(url);
+        if (response.ok) {
+          await cache.put(url, response);
+        }
+      } catch {
+        // Network failure for one video must not block others.
+      }
+    }),
+  );
 }
 
 function addManifestAsset(assets, file) {
