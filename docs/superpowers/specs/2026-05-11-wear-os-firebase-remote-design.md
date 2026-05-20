@@ -25,7 +25,7 @@ Use this Firebase web configuration for the badminton scorer project:
 ```ts
 const firebaseConfig = {
   apiKey: "AIzaSyD-Y-VmelbcTKMyTRrXfZ5fJEjVlRoatP4",
-  authDomain: "badminton-scorer-91f7d.firebaseapp.com",
+  authDomain: "badminton-scorer-91f7d.web.app",
   projectId: "badminton-scorer-91f7d",
   storageBucket: "badminton-scorer-91f7d.firebasestorage.app",
   messagingSenderId: "441715859789",

@@ -36,6 +36,16 @@ describe('firebase.ts', () => {
     expect(firebaseMocks.getAuth).toHaveBeenCalledTimes(1);
   });
 
+  it('uses the hosting domain as authDomain for redirect sign-in', async () => {
+    const { getFirebaseApp } = await import('./firebase');
+    getFirebaseApp();
+    expect(firebaseMocks.initializeApp).toHaveBeenCalledWith(
+      expect.objectContaining({
+        authDomain: 'badminton-scorer-91f7d.web.app',
+      }),
+    );
+  });
+
   it('getFirebaseAuth returns the same instance on repeated calls', async () => {
     const { getFirebaseAuth } = await import('./firebase');
     const a = getFirebaseAuth();

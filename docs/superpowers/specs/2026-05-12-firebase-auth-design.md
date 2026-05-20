@@ -20,6 +20,8 @@ If an older persisted anonymous Firebase user is restored from a previous app ve
 
 Auth emulator support mirrors the Firestore emulator pattern: connect when `VITE_USE_FIRESTORE_EMULATOR=true`. Local emulator startup includes both Firestore and Auth, with Auth listening on port `9099`.
 
+Production redirect sign-in uses `badminton-scorer-91f7d.web.app` as the Firebase SDK `authDomain` because the app is served from that Firebase Hosting domain. Keeping `authDomain` on `badminton-scorer-91f7d.firebaseapp.com` makes the redirect helper cross-origin from the deployed app and can prevent the signed-in state from being restored in browsers that block third-party storage.
+
 ---
 
 ## 2. `src/auth/` Module
