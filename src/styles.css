@@ -1429,6 +1429,54 @@ button {
   font-size: 0.85rem;
 }
 
+/* Toast notifications */
+.toast-viewport {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 10000;
+  display: grid;
+  gap: 8px;
+  width: min(360px, calc(100vw - 32px));
+}
+
+.toast {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: #17232b;
+  color: #f8fafc;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.toast--error {
+  border-color: rgba(245, 101, 101, 0.45);
+  background: #321d22;
+}
+
+.toast-dismiss {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  cursor: pointer;
+}
+
+.toast-dismiss:focus-visible {
+  outline: 2px solid #f8fafc;
+  outline-offset: 2px;
+}
+
 /* Animation overlay */
 .animation-overlay {
   position: fixed;

@@ -59,6 +59,7 @@ import type { DiagnosticEvent } from './components/DiagnosticsModal';
 import { SessionMatchHistory } from './components/SessionMatchHistory';
 import { SessionImportPrompt } from './components/SessionImportPrompt';
 import { HistoryStatsModal } from './components/HistoryStatsModal';
+import { ToastViewport, type ToastMessage } from './components/ToastViewport';
 import { useWatchRemoteHost } from './hooks/useWatchRemoteHost';
 import { useAuth } from './auth';
 import type { ActiveSession, GlobalPlayer, MatchSuggestion as MatchSuggestionData, TeamSplit } from './session/sessionTypes';
@@ -144,6 +145,7 @@ export default function App() {
   const [showHistoryStats, setShowHistoryStats] = useState(false);
   const [importLegacyNames, setImportLegacyNames] = useState<string[]>([]);
   const [cloudHistoryStats, setCloudHistoryStats] = useState<CloudHistoryStats | undefined>(undefined);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   const connectionRef = useRef<BluetoothRemoteConnection | undefined>(undefined);
   const keyboardConnectionRef = useRef<KeyboardRemoteConnection | undefined>(undefined);
@@ -153,11 +155,24 @@ export default function App() {
   const lastSpokenAnnouncementIdRef = useRef(0);
   const connectAttemptIdRef = useRef(0);
   const mountedRef = useRef(false);
+  const toastIdRef = useRef(0);
   const match = matchView.match;
   const [activeAnimation, setActiveAnimation] = useState<AnimationEvent | null>(null);
   const prevMatchRef = useRef<MatchState>(matchView.match);
 
   const handleAnimationDismiss = useCallback(() => setActiveAnimation(null), []);
+  const dismissToast = useCallback((id: number) => {
+    setToasts((current) => current.filter((toast) => toast.id !== id));
+  }, []);
+
+  const showToast = useCallback((message: string, variant: ToastMessage['variant'] = 'error') => {
+    toastIdRef.current += 1;
+    const id = toastIdRef.current;
+    setToasts((current) => [...current.slice(-2), { id, message, variant }]);
+    window.setTimeout(() => {
+      setToasts((current) => current.filter((toast) => toast.id !== id));
+    }, 5000);
+  }, []);
 
   useEffect(() => {
     preferencesRef.current = preferences;
@@ -385,6 +400,7 @@ export default function App() {
       if (user && !isAnonymous) {
         void saveCloudSession({ uid: user.uid, session: archivedSession, status: 'completed' }).catch(() => {
           setSessionSyncError('Could not sync session to cloud.');
+          showToast('Could not sync session to cloud.');
         });
       }
       clearActiveSession();
@@ -394,7 +410,7 @@ export default function App() {
     }
     setAppMode('match');
     setSessionPhase('setup');
-  }, [activeSession, isAnonymous, user]);
+  }, [activeSession, isAnonymous, showToast, user]);
 
   const handleStartSession = useCallback((players: readonly GlobalPlayer[]) => {
     const session = createSession(players);
@@ -402,13 +418,14 @@ export default function App() {
     if (user && !isAnonymous) {
       void saveCloudSession({ uid: user.uid, session, status: 'active' }).catch(() => {
         setSessionSyncError('Could not sync session to cloud.');
+        showToast('Could not sync session to cloud.');
       });
     }
     const suggestion = generateMatchSuggestion(session);
     setActiveSession(session);
     setCurrentSuggestion(suggestion);
     setSessionPhase('suggestion');
-  }, [isAnonymous, user]);
+  }, [isAnonymous, showToast, user]);
 
   const handleSearchPlayers = useCallback((searchText: string) => {
     if (!user || isAnonymous) {
@@ -422,17 +439,19 @@ export default function App() {
       })
       .catch(() => {
         setPlayerSearchResults([]);
+        showToast('Could not load players. Check your connection or sign in again.');
       });
-  }, [isAnonymous, user]);
+  }, [isAnonymous, showToast, user]);
 
   const handleCreatePlayer = useCallback(async (displayName: string): Promise<GlobalPlayer | undefined> => {
     if (!user || isAnonymous) return undefined;
     try {
       return await createGlobalPlayerDocument({ displayName, uid: user.uid });
     } catch {
+      showToast('Could not create player. Check your connection or sign in again.');
       return undefined;
     }
-  }, [isAnonymous, user]);
+  }, [isAnonymous, showToast, user]);
 
   const handleImportSessions = useCallback((mapping: ReadonlyMap<string, GlobalPlayer>) => {
     if (!user) return;
@@ -450,8 +469,9 @@ export default function App() {
       })
       .catch(() => {
         setSessionSyncError('Could not import local sessions to cloud. Try again.');
+        showToast('Could not import local sessions to cloud. Try again.');
       });
-  }, [user]);
+  }, [showToast, user]);
 
   const handleShowHistoryStats = useCallback(() => {
     if (!user || isAnonymous) {
@@ -466,10 +486,11 @@ export default function App() {
       })
       .catch(() => {
         setSessionSyncError('Could not load cloud history.');
+        showToast('Could not load cloud history.');
         setCloudHistoryStats(undefined);
         setShowHistoryStats(true);
       });
-  }, [isAnonymous, user]);
+  }, [isAnonymous, showToast, user]);
 
   const handleDismissImport = useCallback(() => {
     setShowImportPrompt(false);
@@ -514,10 +535,13 @@ export default function App() {
             setSessionSyncError(undefined);
             setPendingRetryMatch(undefined);
           })
-          .catch(() => { setSessionSyncError('Could not sync match to cloud. Tap to retry.'); });
+          .catch(() => {
+            setSessionSyncError('Could not sync match to cloud. Tap to retry.');
+            showToast('Could not sync match to cloud. Tap to retry.');
+          });
       }
     }
-  }, [activeSession, currentPlayedSplit, currentSessionMatchStartedAt, isAnonymous, match.score, user]);
+  }, [activeSession, currentPlayedSplit, currentSessionMatchStartedAt, isAnonymous, match.score, showToast, user]);
 
   const handleEndSession = useCallback(() => {
     if (!activeSession) return;
@@ -527,6 +551,7 @@ export default function App() {
     if (user && !isAnonymous) {
       void saveCloudSession({ uid: user.uid, session: archivedSession, status: 'completed' }).catch(() => {
         setSessionSyncError('Could not sync session to cloud.');
+        showToast('Could not sync session to cloud.');
       });
     }
     clearActiveSession();
@@ -544,7 +569,7 @@ export default function App() {
     );
     setSessionPhase('setup');
     setAppMode('match');
-  }, [activeSession, isAnonymous, user]);
+  }, [activeSession, isAnonymous, showToast, user]);
 
   const handleRetrySessionSync = useCallback(() => {
     if (!user || !pendingRetryMatch) return;
@@ -554,8 +579,11 @@ export default function App() {
         setSessionSyncError(undefined);
         setPendingRetryMatch(undefined);
       })
-      .catch(() => { setSessionSyncError('Could not sync match to cloud. Tap to retry.'); });
-  }, [pendingRetryMatch, user]);
+      .catch(() => {
+        setSessionSyncError('Could not sync match to cloud. Tap to retry.');
+        showToast('Could not sync match to cloud. Tap to retry.');
+      });
+  }, [pendingRetryMatch, showToast, user]);
 
   const handleEditPlayers = useCallback(() => {
     if (activeSession && activeSession.matches.length > 0 && !window.confirm('Editing players will reset the current session\'s match history. Continue?')) return;
@@ -716,6 +744,7 @@ export default function App() {
       ) : null}
     </AppModal>
   ) : null;
+  const toastViewport = <ToastViewport toasts={toasts} onDismiss={dismissToast} />;
 
   if (appMode === 'session' && sessionPhase === 'setup') {
     return (
@@ -753,6 +782,7 @@ export default function App() {
             onClose={() => setShowHistoryStats(false)}
           />
         ) : null}
+        {toastViewport}
       </main>
     );
   }
@@ -791,6 +821,7 @@ export default function App() {
             onClose={() => setShowHistoryStats(false)}
           />
         ) : null}
+        {toastViewport}
       </main>
     );
   }
@@ -846,6 +877,7 @@ export default function App() {
             onClose={() => setShowHistoryStats(false)}
           />
         ) : null}
+      {toastViewport}
       <AnimationOverlay event={activeAnimation} onDismiss={handleAnimationDismiss} />
     </main>
   );

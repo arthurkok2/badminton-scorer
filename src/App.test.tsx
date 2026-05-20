@@ -293,6 +293,7 @@ describe('App', () => {
     await user.type(screen.getByRole('textbox', { name: /player search/i }), 'b');
 
     await waitFor(() => expect(screen.queryByRole('button', { name: /add alice/i })).not.toBeInTheDocument());
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not load players/i);
   });
 
   it('does not query cloud players from stale session setup when anonymous', async () => {
