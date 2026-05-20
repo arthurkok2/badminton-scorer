@@ -45,6 +45,9 @@ import {
   appendToSessionArchive,
   isSessionImportedForUser,
   markSessionImportedForUser,
+  loadInProgressMatchState,
+  saveInProgressMatchState,
+  clearInProgressMatchState,
 } from './session/sessionStorage';
 import { SessionSetup } from './components/SessionSetup';
 import { MatchSuggestion } from './components/MatchSuggestion';
@@ -123,9 +126,10 @@ export default function App() {
   const [appMode, setAppMode] = useState<AppMode>(() =>
     loadActiveSession() ? 'session' : 'match',
   );
-  const [sessionPhase, setSessionPhase] = useState<SessionPhase>(() =>
-    loadActiveSession() ? 'suggestion' : 'setup',
-  );
+  const [sessionPhase, setSessionPhase] = useState<SessionPhase>(() => {
+    if (!loadActiveSession()) return 'setup';
+    return loadInProgressMatchState() ? 'playing' : 'suggestion';
+  });
   const [activeSession, setActiveSession] = useState<ActiveSession | undefined>(
     () => loadActiveSession(),
   );
@@ -133,8 +137,12 @@ export default function App() {
     const saved = loadActiveSession();
     return saved ? generateMatchSuggestion(saved) : undefined;
   });
-  const [currentPlayedSplit, setCurrentPlayedSplit] = useState<TeamSplit | undefined>(undefined);
-  const [currentSessionMatchStartedAt, setCurrentSessionMatchStartedAt] = useState<string | undefined>(undefined);
+  const [currentPlayedSplit, setCurrentPlayedSplit] = useState<TeamSplit | undefined>(
+    () => loadInProgressMatchState()?.split,
+  );
+  const [currentSessionMatchStartedAt, setCurrentSessionMatchStartedAt] = useState<string | undefined>(
+    () => loadInProgressMatchState()?.startedAt,
+  );
   const [sessionSyncError, setSessionSyncError] = useState<string | undefined>(undefined);
   const [pendingRetryMatch, setPendingRetryMatch] = useState<{ matchRecord: import('./session/sessionTypes').MatchRecord } | undefined>(undefined);
   const [bluetoothStatus, setBluetoothStatus] = useState<BluetoothStatus>(() => getBluetoothSupportStatus());
@@ -404,6 +412,7 @@ export default function App() {
         });
       }
       clearActiveSession();
+      clearInProgressMatchState();
       setActiveSession(undefined);
       setCurrentSuggestion(undefined);
       setCurrentSessionMatchStartedAt(undefined);
@@ -503,10 +512,12 @@ export default function App() {
       B1: split.teamB[0].displayName,
       B2: split.teamB[1].displayName,
     };
+    const startedAt = new Date().toISOString();
     clearMatchState();
+    saveInProgressMatchState({ split, startedAt });
     setMatchView({ match: createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1', playerNames }) });
     setCurrentPlayedSplit(split);
-    setCurrentSessionMatchStartedAt(new Date().toISOString());
+    setCurrentSessionMatchStartedAt(startedAt);
     setSessionPhase('playing');
   }, []);
 
@@ -519,6 +530,7 @@ export default function App() {
       endedAt,
     });
     saveActiveSession(updated);
+    clearInProgressMatchState();
     const suggestion = generateMatchSuggestion(updated);
     setActiveSession(updated);
     setCurrentSuggestion(suggestion);
@@ -555,6 +567,7 @@ export default function App() {
       });
     }
     clearActiveSession();
+    clearInProgressMatchState();
     clearMatchState();
     setActiveSession(undefined);
     setCurrentSuggestion(undefined);
@@ -592,6 +605,9 @@ export default function App() {
 
   const handleBackToSessionSuggestion = useCallback(() => {
     if (appMode !== 'session' || sessionPhase !== 'playing' || hasStarted(matchView.match)) return;
+    clearInProgressMatchState();
+    setCurrentPlayedSplit(undefined);
+    setCurrentSessionMatchStartedAt(undefined);
     setSessionPhase('suggestion');
   }, [appMode, matchView.match, sessionPhase]);
 

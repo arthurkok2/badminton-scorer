@@ -1,9 +1,15 @@
-import type { ActiveSession, ArchivedSession } from './sessionTypes';
+import type { ActiveSession, ArchivedSession, TeamSplit } from './sessionTypes';
 
 const ACTIVE_SESSION_KEY = 'badminton-scorer-active-session';
 const SESSION_ARCHIVE_KEY = 'badminton-scorer-session-archive';
 const SAVED_PLAYERS_KEY = 'badminton-scorer-saved-players';
 const IMPORTED_SESSION_MARKERS_KEY = 'badminton-scorer-imported-session-markers';
+const IN_PROGRESS_MATCH_KEY = 'badminton-scorer-in-progress-match';
+
+export interface InProgressMatchState {
+  readonly split: TeamSplit;
+  readonly startedAt: string;
+}
 
 export function loadActiveSession(): ActiveSession | undefined {
   try {
@@ -99,4 +105,32 @@ function loadImportedSessionMarkers(): string[] {
 
 function importMarker(uid: string, sessionId: string): string {
   return `${uid}:${sessionId}`;
+}
+
+export function loadInProgressMatchState(): InProgressMatchState | undefined {
+  try {
+    const raw = window.localStorage.getItem(IN_PROGRESS_MATCH_KEY);
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed.startedAt !== 'string' || !parsed.split) return undefined;
+    return parsed as InProgressMatchState;
+  } catch {
+    return undefined;
+  }
+}
+
+export function saveInProgressMatchState(state: InProgressMatchState): void {
+  try {
+    window.localStorage.setItem(IN_PROGRESS_MATCH_KEY, JSON.stringify(state));
+  } catch {
+    // Non-critical.
+  }
+}
+
+export function clearInProgressMatchState(): void {
+  try {
+    window.localStorage.removeItem(IN_PROGRESS_MATCH_KEY);
+  } catch {
+    // ignore
+  }
 }
