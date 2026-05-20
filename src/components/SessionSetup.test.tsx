@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import { SessionSetup } from './SessionSetup';
@@ -37,7 +37,8 @@ describe('SessionSetup', () => {
     expect(screen.getByRole('button', { name: /start session/i })).toBeDisabled();
   });
 
-  it('calls onSearchPlayers when search text changes', async () => {
+  it('debounces player search while typing', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     const onSearchPlayers = vi.fn();
     render(
       <SessionSetup
@@ -49,9 +50,19 @@ describe('SessionSetup', () => {
       />,
     );
 
-    await userEvent.type(screen.getByRole('textbox', { name: /player search/i }), 'Ali');
+    fireEvent.change(screen.getByRole('textbox', { name: /player search/i }), { target: { value: 'A' } });
+    fireEvent.change(screen.getByRole('textbox', { name: /player search/i }), { target: { value: 'Al' } });
+    fireEvent.change(screen.getByRole('textbox', { name: /player search/i }), { target: { value: 'Ali' } });
+    expect(onSearchPlayers).not.toHaveBeenCalled();
 
+    act(() => { vi.advanceTimersByTime(249); });
+    expect(onSearchPlayers).not.toHaveBeenCalled();
+
+    act(() => { vi.advanceTimersByTime(1); });
+    expect(onSearchPlayers).toHaveBeenCalledOnce();
     expect(onSearchPlayers).toHaveBeenCalledWith('Ali');
+
+    vi.useRealTimers();
   });
 
   it('adds a player from search result chips and enables Start after 4 players', async () => {

@@ -168,6 +168,7 @@ async function startSessionMatch(user: ReturnType<typeof userEvent.setup>) {
 
   // Trigger search to load test players via the mock
   await user.type(screen.getByRole('textbox', { name: /player search/i }), 'a');
+  await screen.findByRole('button', { name: /add alice/i });
 
   // Add each player from search results chips
   for (const player of testPlayers) {

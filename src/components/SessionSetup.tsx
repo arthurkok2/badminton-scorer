@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { GlobalPlayer } from '../session/sessionTypes';
 
 interface SessionSetupProps {
@@ -18,6 +18,26 @@ export function SessionSetup({
 }: SessionSetupProps) {
   const [players, setPlayers] = useState<GlobalPlayer[]>([]);
   const [nameInput, setNameInput] = useState('');
+  const hasMountedRef = useRef(false);
+  const shouldDebounceSearchRef = useRef(true);
+
+  useEffect(() => {
+    if (!hasMountedRef.current) {
+      hasMountedRef.current = true;
+      return;
+    }
+
+    if (!shouldDebounceSearchRef.current) {
+      shouldDebounceSearchRef.current = true;
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      onSearchPlayers(nameInput);
+    }, 250);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [nameInput, onSearchPlayers]);
 
   function addPlayer(player: GlobalPlayer) {
     if (players.some(p => p.id === player.id)) return;
@@ -30,7 +50,6 @@ export function SessionSetup({
 
   function handleSearchChange(value: string) {
     setNameInput(value);
-    onSearchPlayers(value);
   }
 
   async function handleCreatePlayer() {
@@ -39,6 +58,7 @@ export function SessionSetup({
     const created = await onCreatePlayer(trimmed);
     if (created) {
       addPlayer(created);
+      shouldDebounceSearchRef.current = false;
       setNameInput('');
       onSearchPlayers('');
     }
