@@ -5,7 +5,7 @@ import type { User } from 'firebase/auth';
 const authMocks = vi.hoisted(() => ({
   getFirebaseAuth: vi.fn(() => ({ kind: 'auth' })),
   onAuthStateChanged: vi.fn(),
-  signInWithPopup: vi.fn(),
+  signInWithRedirect: vi.fn(),
   signOut: vi.fn(),
   GoogleAuthProvider: vi.fn(() => ({ kind: 'googleProvider' })),
 }));
@@ -13,7 +13,7 @@ const authMocks = vi.hoisted(() => ({
 vi.mock('../firebase', () => ({ getFirebaseAuth: authMocks.getFirebaseAuth }));
 vi.mock('firebase/auth', () => ({
   onAuthStateChanged: authMocks.onAuthStateChanged,
-  signInWithPopup: authMocks.signInWithPopup,
+  signInWithRedirect: authMocks.signInWithRedirect,
   signOut: authMocks.signOut,
   GoogleAuthProvider: authMocks.GoogleAuthProvider,
 }));
@@ -88,7 +88,7 @@ describe('AuthProvider', () => {
 
   it('does not create anonymous Firebase users when auth has no current user', async () => {
     await renderProvider((trigger) => trigger(null));
-    expect(authMocks.signInWithPopup).not.toHaveBeenCalled();
+    expect(authMocks.signInWithRedirect).not.toHaveBeenCalled();
   });
 
   it('does not sign out when a named user is already present', async () => {
@@ -117,7 +117,7 @@ describe('AuthProvider', () => {
     expect(screen.getAllByText('no-user')).toHaveLength(1);
   });
 
-  it('signs in with Google directly', async () => {
+  it('signs in with Google using redirect to avoid popup blockers', async () => {
     const { AuthProvider } = await import('./AuthProvider');
     const { useAuth } = await import('./authContext');
     authMocks.onAuthStateChanged.mockImplementation((_auth, cb) => {
@@ -135,7 +135,7 @@ describe('AuthProvider', () => {
       screen.getByRole('button', { name: /sign in/i }).click();
     });
 
-    expect(authMocks.signInWithPopup).toHaveBeenCalledWith({ kind: 'auth' }, { kind: 'googleProvider' });
+    expect(authMocks.signInWithRedirect).toHaveBeenCalledWith({ kind: 'auth' }, { kind: 'googleProvider' });
   });
 
   it('unsubscribes from onAuthStateChanged on unmount', async () => {

@@ -41,7 +41,7 @@ interface AuthState {
 }
 ```
 
-`signInWithGoogle` always uses `signInWithPopup(new GoogleAuthProvider())`. There is no anonymous-to-named linking path.
+`signInWithGoogle` uses `signInWithRedirect(new GoogleAuthProvider())` so mobile browsers, PWA contexts, and strict popup blockers do not reject the auth flow. There is no anonymous-to-named linking path.
 
 ### `AuthProvider.tsx`
 
