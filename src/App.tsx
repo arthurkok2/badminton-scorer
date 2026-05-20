@@ -779,6 +779,8 @@ export default function App() {
             players={cloudHistoryStats?.players ?? []}
             pairs={cloudHistoryStats?.pairs ?? []}
             matchups={cloudHistoryStats?.matchups ?? []}
+            globalMatches={cloudHistoryStats?.globalMatches ?? []}
+            personalStats={cloudHistoryStats?.personalStats}
             onClose={() => setShowHistoryStats(false)}
           />
         ) : null}
@@ -818,6 +820,8 @@ export default function App() {
             players={cloudHistoryStats?.players ?? []}
             pairs={cloudHistoryStats?.pairs ?? []}
             matchups={cloudHistoryStats?.matchups ?? []}
+            globalMatches={cloudHistoryStats?.globalMatches ?? []}
+            personalStats={cloudHistoryStats?.personalStats}
             onClose={() => setShowHistoryStats(false)}
           />
         ) : null}
@@ -874,6 +878,8 @@ export default function App() {
             players={cloudHistoryStats?.players ?? []}
             pairs={cloudHistoryStats?.pairs ?? []}
             matchups={cloudHistoryStats?.matchups ?? []}
+            globalMatches={cloudHistoryStats?.globalMatches ?? []}
+            personalStats={cloudHistoryStats?.personalStats}
             onClose={() => setShowHistoryStats(false)}
           />
         ) : null}

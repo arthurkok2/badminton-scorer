@@ -1,6 +1,7 @@
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   limit,
   orderBy,
@@ -15,6 +16,7 @@ import { getFirebaseDb } from '../firebase';
 import { createGlobalPlayer, createPairId, normalizePlayerSearchName } from './playerIdentity';
 import { calculateIndividualEloUpdate, calculatePairEloUpdate, INITIAL_ELO, type EloSubject } from './elo';
 import { buildStatsSummary } from './stats';
+import type { StatsSummary } from './stats';
 import type {
   ActiveSession,
   ArchivedSession,
@@ -26,7 +28,15 @@ import type {
 export interface CloudSessionSummary {
   readonly id: string;
   readonly startedAt?: string;
+  readonly endedAt?: string;
+  readonly status?: 'active' | 'completed';
   readonly matchCount: number;
+  readonly players?: readonly {
+    readonly id: string;
+    readonly displayName: string;
+    readonly gamesPlayed: number;
+    readonly breaksTaken?: number;
+  }[];
 }
 
 export interface CloudPlayerLeaderboardEntry {
@@ -54,11 +64,27 @@ export interface CloudMatchupEntry {
   readonly losses: number;
 }
 
+export interface CloudGlobalMatchEntry {
+  readonly id: string;
+  readonly startedAt?: string;
+  readonly endedAt?: string;
+  readonly teamA: readonly [string, string];
+  readonly teamB: readonly [string, string];
+  readonly winnerTeam: 'teamA' | 'teamB';
+  readonly finalScore?: {
+    readonly teamA: number;
+    readonly teamB: number;
+  };
+  readonly submittedBy?: string;
+}
+
 export interface CloudHistoryStats {
   readonly sessions: readonly CloudSessionSummary[];
   readonly players: readonly CloudPlayerLeaderboardEntry[];
   readonly pairs: readonly CloudPairLeaderboardEntry[];
   readonly matchups: readonly CloudMatchupEntry[];
+  readonly globalMatches: readonly CloudGlobalMatchEntry[];
+  readonly personalStats?: StatsSummary;
 }
 
 export async function createGlobalPlayerDocument(options: {
@@ -155,11 +181,13 @@ export async function loadCloudHistoryStats(options: {
   readonly db?: Firestore;
 }): Promise<CloudHistoryStats> {
   const db = resolveDb(options.db);
-  const [sessionSnapshot, playerSnapshot, pairSnapshot, globalMatchSnapshot] = await Promise.all([
+  const statsRef = doc(collection(db, `users/${options.uid}/stats`), 'summary');
+  const [sessionSnapshot, playerSnapshot, pairSnapshot, globalMatchSnapshot, personalStatsSnapshot] = await Promise.all([
     getDocs(query(collection(db, `users/${options.uid}/sessions`), orderBy('startedAt', 'desc'), limit(50))),
     getDocs(query(collection(db, 'players'), orderBy('globalIndividualElo', 'desc'), limit(50))),
     getDocs(query(collection(db, 'pairs'), orderBy('globalPairElo', 'desc'), limit(50))),
     getDocs(query(collection(db, 'globalMatches'), orderBy('createdAt', 'desc'), limit(200))),
+    getDoc(statsRef),
   ]);
 
   const globalMatches = globalMatchSnapshot.docs.map((document) => document.data() as MatchRecord);
@@ -194,16 +222,21 @@ export async function loadCloudHistoryStats(options: {
 
   return {
     sessions: sessionSnapshot.docs.map((document) => {
-      const data = document.data() as { id?: string; startedAt?: string; matchCount?: number };
+      const data = document.data() as CloudSessionSummary;
       return {
         id: data.id ?? document.id,
-        startedAt: data.startedAt,
+        ...(data.startedAt !== undefined ? { startedAt: data.startedAt } : {}),
+        ...(data.endedAt !== undefined ? { endedAt: data.endedAt } : {}),
+        ...(data.status !== undefined ? { status: data.status } : {}),
         matchCount: data.matchCount ?? 0,
+        ...(data.players !== undefined ? { players: data.players } : {}),
       };
     }),
     players,
     pairs,
     matchups: buildMatchupEntries(globalMatches, playerNames),
+    globalMatches: globalMatches.map((match) => toCloudGlobalMatchEntry(match, playerNames)),
+    personalStats: readPersonalStats(personalStatsSnapshot),
   };
 }
 
@@ -507,6 +540,43 @@ function buildMatchupEntries(
       losses: matchup.losses,
     };
   });
+}
+
+function toCloudGlobalMatchEntry(
+  match: MatchRecord & { submittedBy?: string },
+  playerNames: ReadonlyMap<string, string>,
+): CloudGlobalMatchEntry {
+  return {
+    id: match.id,
+    startedAt: match.startedAt,
+    endedAt: match.endedAt,
+    teamA: [
+      match.teamADisplayNames?.[0] ?? playerNames.get(match.teamAPlayerIds[0]) ?? match.teamAPlayerIds[0],
+      match.teamADisplayNames?.[1] ?? playerNames.get(match.teamAPlayerIds[1]) ?? match.teamAPlayerIds[1],
+    ],
+    teamB: [
+      match.teamBDisplayNames?.[0] ?? playerNames.get(match.teamBPlayerIds[0]) ?? match.teamBPlayerIds[0],
+      match.teamBDisplayNames?.[1] ?? playerNames.get(match.teamBPlayerIds[1]) ?? match.teamBPlayerIds[1],
+    ],
+    winnerTeam: match.winnerTeam,
+    ...(match.finalScore !== undefined ? { finalScore: match.finalScore } : {}),
+    ...(match.submittedBy !== undefined ? { submittedBy: match.submittedBy } : {}),
+  };
+}
+
+function readPersonalStats(snapshot: unknown): StatsSummary | undefined {
+  if (!snapshot || typeof snapshot !== 'object') return undefined;
+  if ('exists' in snapshot && typeof snapshot.exists === 'function' && !snapshot.exists()) return undefined;
+  if (!('data' in snapshot) || typeof snapshot.data !== 'function') return undefined;
+  const data = snapshot.data() as Partial<StatsSummary> | undefined;
+  if (!data || data.statsVersion !== 1) return undefined;
+  return {
+    players: data.players ?? {},
+    pairs: data.pairs ?? {},
+    matchups: data.matchups ?? {},
+    ratedMatchCount: data.ratedMatchCount ?? 0,
+    statsVersion: 1,
+  };
 }
 
 function buildPlayerOutcomeStats(

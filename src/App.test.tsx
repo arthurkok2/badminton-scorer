@@ -99,6 +99,7 @@ const cloudServiceMock = vi.hoisted(() => ({
     players: [],
     pairs: [],
     matchups: [],
+    globalMatches: [],
   })),
   saveCloudSession: vi.fn(() => Promise.resolve(undefined)),
 }));
@@ -201,7 +202,7 @@ describe('App', () => {
     cloudServiceMock.createGlobalPlayerDocument.mockResolvedValue(testPlayers[0]);
     cloudServiceMock.completeCloudSessionMatch.mockResolvedValue(undefined);
     cloudServiceMock.importMappedLegacySessions.mockResolvedValue(undefined);
-    cloudServiceMock.loadCloudHistoryStats.mockResolvedValue({ sessions: [], players: [], pairs: [], matchups: [] });
+    cloudServiceMock.loadCloudHistoryStats.mockResolvedValue({ sessions: [], players: [], pairs: [], matchups: [], globalMatches: [] });
     cloudServiceMock.saveCloudSession.mockResolvedValue(undefined);
   });
 
@@ -1130,6 +1131,7 @@ describe('App', () => {
       players: [{ id: 'p1', displayName: 'Alice', elo: 1602, matchesPlayed: 3, winRate: 0.67, recentForm: ['W', 'L', 'W'] }],
       pairs: [{ id: 'p1__p2', displayNames: ['Alice', 'Bob'], elo: 1530, matchesPlayed: 2, winRate: 1 }],
       matchups: [{ id: 'p1__vs__p3', players: ['Alice', 'Carol'], matchesPlayed: 2, wins: 1, losses: 1 }],
+      globalMatches: [],
     };
     cloudServiceMock.loadCloudHistoryStats.mockResolvedValue(stats);
 

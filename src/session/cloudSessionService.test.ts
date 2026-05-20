@@ -156,7 +156,12 @@ describe('cloud session service', () => {
     const { loadCloudHistoryStats } = await import('./cloudSessionService');
     firestoreMocks.getDocs
       .mockResolvedValueOnce({ docs: [docSnapshot('session-1', { id: 'session-1', startedAt: '2026-01-01T10:00:00.000Z', matchCount: 2 })] })
-      .mockResolvedValueOnce({ docs: [docSnapshot('alice', { id: 'alice', displayName: 'Alice', globalIndividualElo: 1600, globalMatchCount: 2 })] })
+      .mockResolvedValueOnce({ docs: [
+        docSnapshot('alice', { id: 'alice', displayName: 'Alice', globalIndividualElo: 1600, globalMatchCount: 2 }),
+        docSnapshot('bob', { id: 'bob', displayName: 'Bob', globalIndividualElo: 1500, globalMatchCount: 1 }),
+        docSnapshot('carol', { id: 'carol', displayName: 'Carol', globalIndividualElo: 1490, globalMatchCount: 1 }),
+        docSnapshot('dave', { id: 'dave', displayName: 'Dave', globalIndividualElo: 1490, globalMatchCount: 1 }),
+      ] })
       .mockResolvedValueOnce({ docs: [docSnapshot('alice__bob', { id: 'alice__bob', displayNames: ['Alice', 'Bob'], globalPairElo: 1550, globalMatchCount: 1 })] })
       .mockResolvedValueOnce({ docs: [docSnapshot('match-1', {
         id: 'match-1',
@@ -167,14 +172,31 @@ describe('cloud session service', () => {
         teamAPairId: 'alice__bob',
         teamBPairId: 'carol__dave',
         winnerTeam: 'teamA',
+        finalScore: { teamA: 21, teamB: 18 },
+        submittedBy: 'uid-1',
       })] });
+    firestoreMocks.getDoc.mockResolvedValue(docSnapshot('summary', {
+      ratedMatchCount: 1,
+      statsVersion: 1,
+      players: { alice: { displayName: 'Alice', matchesPlayed: 1, wins: 1, losses: 0, winRate: 1, recentForm: ['W'] } },
+      pairs: {},
+      matchups: {},
+    }));
 
     const stats = await loadCloudHistoryStats({ uid: 'uid-1', db });
 
     expect(stats.sessions[0]).toEqual({ id: 'session-1', startedAt: '2026-01-01T10:00:00.000Z', matchCount: 2 });
     expect(stats.players[0]).toMatchObject({ id: 'alice', displayName: 'Alice', elo: 1600, matchesPlayed: 2, winRate: 1, recentForm: ['W'] });
     expect(stats.pairs[0]).toMatchObject({ id: 'alice__bob', displayNames: ['Alice', 'Bob'], elo: 1550, matchesPlayed: 1, winRate: 1 });
-    expect(stats.matchups[0]).toMatchObject({ id: 'alice__vs__carol', players: ['Alice', 'carol'], matchesPlayed: 1, wins: 1, losses: 0 });
+    expect(stats.matchups[0]).toMatchObject({ id: 'alice__vs__carol', players: ['Alice', 'Carol'], matchesPlayed: 1, wins: 1, losses: 0 });
+    expect(stats.globalMatches[0]).toMatchObject({
+      id: 'match-1',
+      teamA: ['Alice', 'Bob'],
+      teamB: ['Carol', 'Dave'],
+      finalScore: { teamA: 21, teamB: 18 },
+      submittedBy: 'uid-1',
+    });
+    expect(stats.personalStats?.ratedMatchCount).toBe(1);
   });
 });
 

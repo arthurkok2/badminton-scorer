@@ -1180,6 +1180,164 @@ button {
   font-weight: 900;
 }
 
+/* ── History & Stats Dashboard ───────────────────────────────────── */
+.history-stats-modal {
+  position: fixed;
+  inset: 12px;
+  z-index: 9000;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  width: min(1120px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  margin: auto;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: #101820;
+  color: #f5f7fa;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+}
+
+.history-stats-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.history-stats-title {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.history-stats-close {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f5f7fa;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.history-stats-tabs {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px 12px;
+  overflow-x: auto;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.history-stats-tab {
+  min-height: 36px;
+  flex: 0 0 auto;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: #172026;
+  color: #aabcc4;
+  cursor: pointer;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.history-stats-tab--active {
+  background: #1f766a;
+  color: #ffffff;
+}
+
+.history-stats-content {
+  min-height: 0;
+  overflow: auto;
+}
+
+.history-stats-panel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.history-stats-kpis,
+.history-stats-split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.history-stats-metric,
+.history-stats-section {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: #172026;
+}
+
+.history-stats-metric span,
+.history-stats-section h3,
+.history-stats-empty {
+  margin: 0;
+  color: #aabcc4;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.history-stats-metric strong {
+  font-size: 1.45rem;
+}
+
+.history-stats-section p {
+  margin: 0;
+  color: #f5f7fa;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.history-stats-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.history-stats-item {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 8px;
+  align-items: center;
+  min-height: 48px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #172026;
+}
+
+.history-stats-item span,
+.history-stats-item strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.history-stats-item span {
+  color: #aabcc4;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.history-stats-item strong,
+.history-stats-player-name,
+.history-stats-player-elo {
+  color: #f5f7fa;
+  font-weight: 900;
+}
+
 @media (max-width: 560px) {
   .match-suggestion-teams {
     grid-template-columns: 1fr;
@@ -1200,6 +1358,13 @@ button {
 
   .session-match-over {
     grid-template-columns: 1fr;
+  }
+
+  .history-stats-modal {
+    inset: 0;
+    width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
   }
 }
 

@@ -306,10 +306,13 @@ When signed out:
 When signed in:
 
 - The action opens the existing app modal pattern, styled to use most of the phone viewport for tabbed browsing.
-- The view uses tabs: `Sessions`, `Players`, `Pairs`, `Matchups`.
+- The view uses tabs: `Overview`, `Global Players`, `Global Pairs`, `Global Matches`, `My Sessions`, `My Stats`, and `Matchups`.
+- `Overview` summarizes the loaded Firebase-backed data with counts and top-ranked snapshots.
+- `Global Matches` surfaces the global match ledger with teams, score, winner, and match date.
+- `My Stats` surfaces the signed-in user's `users/{uid}/stats/summary` read model.
 - Session setup uses a global player picker with search and create-new-player actions. Typed names do not become session players until they are linked to a global player record.
 
-### Sessions Tab
+### My Sessions Tab
 
 Shows active and completed sessions newest first. Each row includes:
 
@@ -321,7 +324,7 @@ Shows active and completed sessions newest first. Each row includes:
 
 Selecting a session shows completed matches newest first with teams, winner, final score, and duration.
 
-### Players Tab
+### Global Players Tab
 
 Shows global player leaderboard rows with:
 
@@ -333,7 +336,7 @@ Shows global player leaderboard rows with:
 
 Selecting a player shows partner and opponent breakdowns.
 
-### Pairs Tab
+### Global Pairs Tab
 
 Shows global pair leaderboard rows with:
 
