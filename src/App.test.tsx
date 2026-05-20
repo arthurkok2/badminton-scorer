@@ -279,6 +279,54 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: /session setup/i })).toBeInTheDocument();
   });
 
+  it('clears player search results when cloud player search is denied', async () => {
+    const user = userEvent.setup();
+    cloudServiceMock.searchGlobalPlayers
+      .mockResolvedValueOnce(testPlayers)
+      .mockRejectedValueOnce(new Error('Missing or insufficient permissions.'));
+    render(<App />);
+
+    await chooseSettingsAction(user, /session mode/i);
+    await user.type(screen.getByRole('textbox', { name: /player search/i }), 'a');
+    expect(await screen.findByRole('button', { name: /add alice/i })).toBeInTheDocument();
+
+    await user.type(screen.getByRole('textbox', { name: /player search/i }), 'b');
+
+    await waitFor(() => expect(screen.queryByRole('button', { name: /add alice/i })).not.toBeInTheDocument());
+  });
+
+  it('does not query cloud players from stale session setup when anonymous', async () => {
+    const savedSession = {
+      id: 'session-stale',
+      startedAt: '2026-01-01T10:00:00.000Z',
+      players: testPlayers.map((player) => ({
+        id: player.id,
+        displayName: player.displayName,
+        gamesPlayed: 0,
+        consecutiveStreak: 0,
+        onBreak: false,
+      })),
+      matches: [],
+      pairingMatrix: { together: {}, against: {} },
+    };
+    vi.spyOn(sessionStorageModule, 'loadActiveSession').mockReturnValue(savedSession);
+    authMock.useAuth.mockReturnValue({
+      user: { uid: 'anon-uid', isAnonymous: true },
+      loading: false,
+      isAnonymous: true,
+      authUnavailable: false,
+      signInWithGoogle: vi.fn(),
+      signOut: vi.fn(),
+    });
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: /edit players/i }));
+    await user.type(screen.getByRole('textbox', { name: /player search/i }), 'a');
+
+    expect(cloudServiceMock.searchGlobalPlayers).not.toHaveBeenCalled();
+  });
+
   it('shows a sign-in prompt instead of session setup when not signed in', async () => {
     authMock.useAuth.mockReturnValue({
       user: null as unknown as { uid: string; isAnonymous: boolean },

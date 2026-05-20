@@ -411,19 +411,28 @@ export default function App() {
   }, [isAnonymous, user]);
 
   const handleSearchPlayers = useCallback((searchText: string) => {
-    void searchGlobalPlayers({ searchText }).then(results => {
-      setPlayerSearchResults(results);
-    });
-  }, []);
+    if (!user || isAnonymous) {
+      setPlayerSearchResults([]);
+      return;
+    }
+
+    void searchGlobalPlayers({ searchText })
+      .then(results => {
+        setPlayerSearchResults(results);
+      })
+      .catch(() => {
+        setPlayerSearchResults([]);
+      });
+  }, [isAnonymous, user]);
 
   const handleCreatePlayer = useCallback(async (displayName: string): Promise<GlobalPlayer | undefined> => {
-    if (!user) return undefined;
+    if (!user || isAnonymous) return undefined;
     try {
       return await createGlobalPlayerDocument({ displayName, uid: user.uid });
     } catch {
       return undefined;
     }
-  }, [user]);
+  }, [isAnonymous, user]);
 
   const handleImportSessions = useCallback((mapping: ReadonlyMap<string, GlobalPlayer>) => {
     if (!user) return;
