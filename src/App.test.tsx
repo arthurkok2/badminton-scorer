@@ -1062,6 +1062,17 @@ describe('App', () => {
     expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '{}')).toMatchObject({ animationsEnabled: false });
   });
 
+  it('switches to little fighters mode from display settings and persists it', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await openDisplaySettings(user);
+    await user.click(screen.getByRole('radio', { name: /little fighters display/i }));
+
+    expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? '{}')).toMatchObject({ displayMode: 'little-fighters' });
+    expect(screen.getByTestId('little-fighters-view')).toBeInTheDocument();
+  });
+
   it('shows import prompt when there are unimported sessions for signed-in user', async () => {
     const archivedSession = {
       id: 'session-abc',

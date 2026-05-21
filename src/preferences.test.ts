@@ -56,6 +56,7 @@ describe('preferences', () => {
       autoAnnounce: true,
       announcementMode: 'full',
       matchMode: 'singles',
+      displayMode: 'court',
       remoteMapping: 'server-receiver-default',
       animationsEnabled: true,
       showSessionHistoryDuringLiveMatches: true,

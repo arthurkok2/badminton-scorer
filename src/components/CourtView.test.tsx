@@ -127,4 +127,47 @@ describe('CourtView', () => {
     expect(screen.getByRole('button', { name: /award point to team a, score 21/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /award point to team b, score 10/i })).toBeDisabled();
   });
+
+  it('renders the little fighters mode with score, health, and serving markers', () => {
+    const match: MatchState = {
+      ...createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' }),
+      score: { teamA: 5, teamB: 3 },
+      servingTeamId: 'teamB',
+      serverId: 'B2',
+      courtPositions: {
+        A1: 'left',
+        A2: 'right',
+        B1: 'left',
+        B2: 'right',
+      },
+    };
+
+    render(<CourtView match={match} displayMode="little-fighters" onPointTeam={vi.fn()} />);
+
+    expect(screen.getByTestId('little-fighters-view')).toBeInTheDocument();
+    expect(screen.getByTestId('fighters-court-svg')).toBeInTheDocument();
+    expect(screen.getByRole('meter', { name: /team a health/i })).toHaveAttribute('aria-valuenow', '86');
+    expect(screen.getByRole('meter', { name: /team b health/i })).toHaveAttribute('aria-valuenow', '76');
+    expect(screen.getByText('Serve')).toBeInTheDocument();
+    expect(screen.getByTestId('fighter-B2')).toHaveClass('is-server');
+    expect(screen.getByTestId('fighter-B2')).toHaveAttribute('data-quadrant', 'top');
+    expect(screen.getByTestId('fighter-B1')).toHaveAttribute('data-quadrant', 'bottom');
+  });
+
+  it('animates the serving player attacking the other team after a point', () => {
+    const baseMatch = createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
+    const { rerender } = render(<CourtView match={baseMatch} displayMode="little-fighters" onPointTeam={vi.fn()} />);
+
+    const nextMatch: MatchState = {
+      ...baseMatch,
+      score: { teamA: 1, teamB: 0 },
+      servingTeamId: 'teamA',
+      serverId: 'A1',
+    };
+
+    rerender(<CourtView match={nextMatch} displayMode="little-fighters" onPointTeam={vi.fn()} />);
+
+    expect(screen.getByTestId('fighter-A1')).toHaveClass('is-attacking');
+    expect(screen.getByTestId('fighter-B1').closest('.fighter-team')).toHaveClass('is-under-attack');
+  });
 });

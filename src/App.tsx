@@ -656,6 +656,11 @@ export default function App() {
     [updatePreferences],
   );
 
+  const handleDisplayModeChange = useCallback(
+    (displayMode: AppPreferences['displayMode']) => updatePreferences((current) => ({ ...current, displayMode })),
+    [updatePreferences],
+  );
+
   const handleShowSessionHistoryDuringLiveMatchesChange = useCallback(
     (showSessionHistoryDuringLiveMatches: boolean) =>
       updatePreferences((current) => ({ ...current, showSessionHistoryDuringLiveMatches })),
@@ -736,8 +741,10 @@ export default function App() {
         />
       ) : activeModal === 'displaySettings' ? (
         <DisplaySettingsModal
+          displayMode={preferences.displayMode}
           animationsEnabled={preferences.animationsEnabled}
           showSessionHistoryDuringLiveMatches={preferences.showSessionHistoryDuringLiveMatches}
+          onDisplayModeChange={handleDisplayModeChange}
           onAnimationsEnabledChange={handleAnimationsEnabledChange}
           onShowSessionHistoryDuringLiveMatchesChange={handleShowSessionHistoryDuringLiveMatchesChange}
         />
@@ -853,7 +860,11 @@ export default function App() {
     <main className="app-shell">
       <AccountBar onAppMenuAction={handleAppMenuAction} availableAppMenuActions={availableAppMenuActions} />
       <div className="app-layout">
-        <CourtView match={match} onPointTeam={(teamId) => dispatch({ type: 'POINT_TEAM', teamId })} />
+        <CourtView
+          match={match}
+          displayMode={preferences.displayMode}
+          onPointTeam={(teamId) => dispatch({ type: 'POINT_TEAM', teamId })}
+        />
         <Controls
           onUndo={() => dispatch({ type: 'UNDO' })}
           onAnnounce={() => speakAnnouncement(match, preferencesRef.current.announcementMode)}

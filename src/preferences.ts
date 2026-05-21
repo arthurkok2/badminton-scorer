@@ -12,6 +12,7 @@ export interface AppPreferences {
   autoAnnounce: boolean;
   announcementMode: AnnouncementMode;
   matchMode: 'singles' | 'doubles';
+  displayMode: 'court' | 'little-fighters';
   remoteMapping: 'server-receiver-default';
   animationsEnabled: boolean;
   showSessionHistoryDuringLiveMatches: boolean;
@@ -24,6 +25,7 @@ export const DEFAULT_PREFERENCES: AppPreferences = {
   autoAnnounce: false,
   announcementMode: 'full',
   matchMode: 'doubles',
+  displayMode: 'court',
   remoteMapping: 'server-receiver-default',
   animationsEnabled: true,
   showSessionHistoryDuringLiveMatches: true,
@@ -56,6 +58,7 @@ function parsePreferences(value: unknown): AppPreferences {
     autoAnnounce: typeof value.autoAnnounce === 'boolean' ? value.autoAnnounce : DEFAULT_PREFERENCES.autoAnnounce,
     announcementMode: isAnnouncementMode(value.announcementMode) ? value.announcementMode : DEFAULT_PREFERENCES.announcementMode,
     matchMode: isMatchMode(value.matchMode) ? value.matchMode : DEFAULT_PREFERENCES.matchMode,
+    displayMode: isDisplayMode(value.displayMode) ? value.displayMode : DEFAULT_PREFERENCES.displayMode,
     remoteMapping: value.remoteMapping === 'server-receiver-default'
       ? value.remoteMapping
       : DEFAULT_PREFERENCES.remoteMapping,
@@ -197,6 +200,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isMatchMode(value: unknown): value is AppPreferences['matchMode'] {
   return value === 'singles' || value === 'doubles';
+}
+
+function isDisplayMode(value: unknown): value is AppPreferences['displayMode'] {
+  return value === 'court' || value === 'little-fighters';
 }
 
 function isAnnouncementMode(value: unknown): value is AnnouncementMode {

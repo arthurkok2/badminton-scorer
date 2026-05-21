@@ -281,6 +281,25 @@ button {
   gap: 12px;
 }
 
+.settings-group {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: #101820;
+}
+
+.settings-group legend {
+  padding: 0 6px;
+  color: #aabcc4;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
 .settings-section {
   display: grid;
   gap: 10px;
@@ -508,6 +527,11 @@ button {
   padding: 12px;
 }
 
+.fighters-section {
+  width: min(calc(100vw - 24px), 1400px);
+  margin-inline: calc(50% - min(calc(100vw - 24px), 1400px) / 2);
+}
+
 .court {
   position: relative;
   width: min(100%, 680px);
@@ -650,6 +674,320 @@ button {
   color: #151513;
 }
 
+.fighters-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent 22%),
+    linear-gradient(180deg, #b9d8f7 0%, #dce8ef 36%, #54754a 36%, #274d20 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    0 24px 48px rgba(0, 0, 0, 0.24);
+}
+
+.fighters-stage-backdrop,
+.fighters-stage-ground,
+.fighters-court-viewport,
+.fighters-hud,
+.fighters-arena {
+  position: absolute;
+  inset: 0;
+}
+
+.fighters-stage-backdrop {
+  background:
+    radial-gradient(circle at 16% 56%, #355924 0 10%, transparent 10.5%),
+    radial-gradient(circle at 27% 48%, #26421c 0 9%, transparent 9.5%),
+    radial-gradient(circle at 40% 57%, #355924 0 11%, transparent 11.5%),
+    radial-gradient(circle at 59% 50%, #26421c 0 10%, transparent 10.5%),
+    radial-gradient(circle at 74% 56%, #355924 0 10%, transparent 10.5%),
+    radial-gradient(circle at 87% 49%, #26421c 0 9%, transparent 9.5%);
+  opacity: 0.88;
+}
+
+.fighters-stage-ground {
+  top: auto;
+  height: 36%;
+  background:
+    linear-gradient(180deg, rgba(29, 50, 18, 0) 0%, rgba(29, 50, 18, 0.34) 14%, rgba(18, 44, 18, 0.84) 100%),
+    linear-gradient(90deg, rgba(130, 165, 78, 0.1), rgba(26, 59, 22, 0.24));
+}
+
+.fighters-court-viewport {
+  z-index: 1;
+  inset: 0;
+}
+
+.fighters-court-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.fighters-court-shadow {
+  fill: rgba(8, 22, 14, 0.34);
+}
+
+.fighters-court-surface {
+  fill: url(#fightersCourtSurface);
+}
+
+.fighters-court-highlight {
+  fill: rgba(255, 255, 255, 0.05);
+}
+
+.fighters-court-lines path,
+.fighters-court-boundary,
+.fighters-court-net {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: square;
+  stroke-linejoin: round;
+}
+
+.fighters-court-lines path,
+.fighters-court-boundary {
+  stroke: url(#fightersCourtLineGlow);
+  stroke-width: 4;
+}
+
+.fighters-court-net {
+  stroke: url(#fightersCourtNet);
+  stroke-width: 6;
+}
+
+.fighters-hud {
+  z-index: 3;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  padding: 16px;
+}
+
+.fighter-hud-team {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 12px;
+}
+
+.fighter-hud-team.align-right {
+  grid-template-columns: 1fr auto;
+}
+
+.fighter-hud-team.align-right .fighter-score-button {
+  order: 2;
+}
+
+.fighter-hud-team.align-right .fighter-health-stack {
+  order: 1;
+}
+
+.fighter-hud-team.is-under-attack .fighter-healthbar {
+  animation: fighter-hurt-flash 0.45s ease-out 1;
+}
+
+.fighter-score-button {
+  min-width: clamp(62px, 9vw, 92px);
+  min-height: clamp(62px, 9vw, 92px);
+  border: 2px solid rgba(32, 18, 34, 0.72);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(213, 222, 231, 0.94));
+  color: #101820;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.24);
+}
+
+.fighter-score-button span {
+  display: block;
+  font-size: clamp(2.4rem, 5vw, 4.2rem);
+  font-weight: 900;
+  line-height: 1;
+}
+
+.fighter-score-button.is-serving {
+  border-color: #f3d36b;
+  box-shadow:
+    0 10px 20px rgba(0, 0, 0, 0.24),
+    0 0 0 3px rgba(243, 211, 107, 0.4);
+}
+
+.fighter-score-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.fighter-health-stack {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fighter-team-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #fff7ef;
+  font-size: 0.92rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 0 rgba(45, 20, 20, 0.5);
+}
+
+.fighter-team-tag strong {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f3d36b;
+  color: #24190c;
+}
+
+.fighter-healthbar {
+  position: relative;
+  height: clamp(20px, 2.4vw, 26px);
+  overflow: hidden;
+  border: 3px solid #34192e;
+  border-radius: 999px;
+  background: rgba(35, 17, 33, 0.88);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.08);
+}
+
+.fighter-healthbar-fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 240ms ease-out;
+}
+
+.fighter-healthbar-fill.teamA {
+  background: linear-gradient(90deg, #f16d78, #ffb46a);
+}
+
+.fighter-healthbar-fill.teamB {
+  background: linear-gradient(90deg, #6ea8ff, #8ef1e3);
+}
+
+.fighters-arena {
+  z-index: 2;
+  inset: 0;
+}
+
+.fighter-team {
+  position: absolute;
+  inset: 0;
+}
+
+.fighter-team.is-under-attack .fighter-player:not(.is-attacking) .fighter-sprite {
+  animation: fighter-hurt-bounce 0.45s ease-out 1;
+}
+
+.fighter-player {
+  position: absolute;
+  --fighter-scale: 1;
+  display: grid;
+  justify-items: center;
+  transform-origin: bottom center;
+  transform: translate(-50%, -100%) scale(var(--fighter-scale));
+  transition: transform 140ms ease-out;
+}
+
+.fighter-player.lane-top {
+  --fighter-scale: 0.9;
+}
+
+.fighter-player.lane-bottom {
+  --fighter-scale: 1.04;
+}
+
+.fighter-player.is-server {
+  z-index: 3;
+}
+
+.fighter-player:not(.is-server) {
+  z-index: 2;
+}
+
+.fighter-player.is-attacking {
+  animation: fighter-lunge-left 0.6s cubic-bezier(0.2, 0.9, 0.2, 1) 1;
+}
+
+.fighter-team.align-right .fighter-player.is-attacking {
+  animation-name: fighter-lunge-right;
+}
+
+.fighter-sprite {
+  display: block;
+  width: clamp(126px, 14vw, 198px);
+  height: auto;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.28));
+}
+
+.fighter-nameplate {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-width: max-content;
+  padding: 6px 10px;
+  border: 2px solid rgba(43, 18, 16, 0.68);
+  border-radius: 10px;
+  background: rgba(16, 24, 32, 0.72);
+  color: #f6f1e7;
+  font-weight: 900;
+  text-align: center;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45);
+  transform: translate(-50%, 8px);
+}
+
+.fighter-player.lane-top .fighter-nameplate {
+  top: auto;
+  bottom: calc(100% + 10px);
+  transform: translate(-50%, 0);
+}
+
+.fighter-nameplate span {
+  font-size: clamp(0.82rem, 1.7vw, 1.15rem);
+  line-height: 1;
+}
+
+.fighter-nameplate strong {
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #f3d36b;
+  color: #24190c;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+@keyframes fighter-lunge-left {
+  0% { translate: 0 0; scale: 1; }
+  38% { translate: 66px -10px; scale: 1.06; }
+  100% { translate: 0 0; scale: 1; }
+}
+
+@keyframes fighter-lunge-right {
+  0% { translate: 0 0; scale: 1; }
+  38% { translate: -66px -10px; scale: 1.06; }
+  100% { translate: 0 0; scale: 1; }
+}
+
+@keyframes fighter-hurt-bounce {
+  0% { transform: translateX(0) translateY(0) scale(1); }
+  30% { transform: translateX(10px) translateY(-12px) scale(0.97); }
+  100% { transform: translateX(0) translateY(0) scale(1); }
+}
+
+@keyframes fighter-hurt-flash {
+  0% { filter: brightness(1); }
+  30% { filter: brightness(1.35); }
+  100% { filter: brightness(1); }
+}
+
 @media (max-width: 480px) {
   .court-score-button span {
     min-width: clamp(52px, 16vw, 84px);
@@ -678,6 +1016,45 @@ button {
 
   .player-chip span {
     font-size: 1rem;
+  }
+
+  .fighters-stage {
+    aspect-ratio: 10 / 11;
+  }
+
+  .fighters-hud {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .fighter-hud-team {
+    gap: 8px;
+  }
+
+  .fighter-score-button {
+    min-width: 52px;
+    min-height: 52px;
+    border-radius: 10px;
+  }
+
+  .fighter-healthbar {
+    height: 16px;
+  }
+
+  .fighter-sprite {
+    width: clamp(112px, 24vw, 156px);
+  }
+
+  .fighter-nameplate {
+    padding: 5px 8px;
+  }
+
+  .fighter-nameplate span {
+    font-size: 0.72rem;
+  }
+
+  .fighter-nameplate strong {
+    font-size: 0.6rem;
   }
 }
 
