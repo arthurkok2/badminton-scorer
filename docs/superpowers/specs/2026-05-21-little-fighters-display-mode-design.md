@@ -20,6 +20,7 @@ Add a persisted `displayMode` preference with two options:
 - Each team’s two fighters stack vertically on their side of the court to match the top and bottom service boxes.
 - All fighters stay on the same plane rather than being rendered on separate depth tiers.
 - The arena is drawn as one SVG isometric court projection so the outer boundary, net, service lines, and player anchors all share the same geometry.
+- The projection should be meaningfully deep, using a narrower far edge and a lower near edge so the arena fills the stage more convincingly.
 - The visible court lines mirror a side-on doubles court: outer boundary, net, short service lines near the net, long doubles service lines toward each back boundary, and center service split across each half.
 - Each team keeps a large tappable score button in the HUD.
 - Each team also gets a health bar whose remaining HP is derived from the opposing score.

@@ -18,10 +18,10 @@ const DOUBLES_LONG_SERVICE_FROM_BACK_CM = 76;
 const FIGHTER_ATTACK_MS = 700;
 const FIGHTER_STAGE_WIDTH = 1000;
 const FIGHTER_STAGE_HEIGHT = 560;
-const FIGHTER_COURT_TOP_LEFT = { x: 188, y: 168 };
-const FIGHTER_COURT_TOP_RIGHT = { x: 812, y: 168 };
-const FIGHTER_COURT_BOTTOM_LEFT = { x: 54, y: 468 };
-const FIGHTER_COURT_BOTTOM_RIGHT = { x: 946, y: 468 };
+const FIGHTER_COURT_TOP_LEFT = { x: 246, y: 176 };
+const FIGHTER_COURT_TOP_RIGHT = { x: 754, y: 176 };
+const FIGHTER_COURT_BOTTOM_LEFT = { x: 40, y: 500 };
+const FIGHTER_COURT_BOTTOM_RIGHT = { x: 960, y: 500 };
 const FIGHTER_SERVER_ADVANCE_CM = 92;
 const FIGHTER_SPRITES: Record<TeamId, string> = {
   teamA: `${import.meta.env.BASE_URL}sprites/fighter-team-a.png`,
@@ -126,6 +126,7 @@ function LittleFightersCourtDiagram() {
     { x: COURT_LENGTH_CM, y: COURT_WIDTH_CM / 2 },
   );
   const net = createProjectedLinePath({ x: NET_X_CM, y: 0 }, { x: NET_X_CM, y: COURT_WIDTH_CM });
+  const netMeshLines = createNetMeshLines();
 
   return (
     <svg
@@ -151,29 +152,37 @@ function LittleFightersCourtDiagram() {
         <filter id="fightersCourtShadow" x="-20%" y="-20%" width="140%" height="160%">
           <feGaussianBlur stdDeviation="18" />
         </filter>
+        <filter id="fightersCourtLineShadow" x="-10%" y="-10%" width="120%" height="120%">
+          <feDropShadow dx="0" dy="1" stdDeviation="1.6" floodColor="rgba(10, 26, 14, 0.34)" />
+        </filter>
       </defs>
       <ellipse
         className="fighters-court-shadow"
         cx={FIGHTER_STAGE_WIDTH / 2}
-        cy={FIGHTER_COURT_BOTTOM_LEFT.y + 24}
-        rx={418}
-        ry={58}
+        cy={FIGHTER_COURT_BOTTOM_LEFT.y + 34}
+        rx={436}
+        ry={66}
         filter="url(#fightersCourtShadow)"
       />
       <path className="fighters-court-surface" d={courtBoundary} />
       <path className="fighters-court-highlight" d={courtBoundary} />
-      <g className="fighters-court-lines">
+      <g className="fighters-court-lines" filter="url(#fightersCourtLineShadow)">
         <path className="fighters-court-boundary" d={courtBoundary} />
-        <path d={singlesTop} />
-        <path d={singlesBottom} />
-        <path d={shortServiceLeft} />
-        <path d={shortServiceRight} />
-        <path d={doublesLongServiceLeft} />
-        <path d={doublesLongServiceRight} />
-        <path d={centerTop} />
-        <path d={centerBottom} />
+        <path className="fighters-court-sideline" d={singlesTop} />
+        <path className="fighters-court-sideline" d={singlesBottom} />
+        <path className="fighters-court-service-line" d={shortServiceLeft} />
+        <path className="fighters-court-service-line" d={shortServiceRight} />
+        <path className="fighters-court-service-line" d={doublesLongServiceLeft} />
+        <path className="fighters-court-service-line" d={doublesLongServiceRight} />
+        <path className="fighters-court-center-line" d={centerTop} />
+        <path className="fighters-court-center-line" d={centerBottom} />
       </g>
       <path className="fighters-court-net" d={net} />
+      <g className="fighters-court-net-mesh">
+        {netMeshLines.map((meshLine, index) => (
+          <path key={index} d={meshLine} />
+        ))}
+      </g>
     </svg>
   );
 }
@@ -484,6 +493,19 @@ function createProjectedLinePath(start: { x: number; y: number }, end: { x: numb
   const startPoint = projectCourtPoint(start);
   const endPoint = projectCourtPoint(end);
   return `M ${startPoint.x} ${startPoint.y} L ${endPoint.x} ${endPoint.y}`;
+}
+
+function createNetMeshLines(): string[] {
+  const meshLines: string[] = [];
+  const netX = NET_X_CM;
+
+  for (let offsetY = 54; offsetY < COURT_WIDTH_CM; offsetY += 56) {
+    const left = projectCourtPoint({ x: netX - 12, y: offsetY });
+    const right = projectCourtPoint({ x: netX + 12, y: offsetY });
+    meshLines.push(`M ${left.x} ${left.y} L ${right.x} ${right.y}`);
+  }
+
+  return meshLines;
 }
 
 function projectCourtPoint(point: { x: number; y: number }): { x: number; y: number } {

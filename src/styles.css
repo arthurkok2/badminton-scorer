@@ -742,7 +742,8 @@ button {
 
 .fighters-court-lines path,
 .fighters-court-boundary,
-.fighters-court-net {
+.fighters-court-net,
+.fighters-court-net-mesh path {
   fill: none;
   vector-effect: non-scaling-stroke;
   stroke-linecap: square;
@@ -752,12 +753,30 @@ button {
 .fighters-court-lines path,
 .fighters-court-boundary {
   stroke: url(#fightersCourtLineGlow);
-  stroke-width: 4;
+  stroke-width: 5;
+}
+
+.fighters-court-sideline {
+  stroke-width: 4.5;
+}
+
+.fighters-court-service-line {
+  stroke-width: 4.5;
+}
+
+.fighters-court-center-line {
+  stroke-width: 5.5;
+  stroke-dasharray: 18 18;
 }
 
 .fighters-court-net {
   stroke: url(#fightersCourtNet);
-  stroke-width: 6;
+  stroke-width: 8;
+}
+
+.fighters-court-net-mesh path {
+  stroke: rgba(247, 250, 245, 0.7);
+  stroke-width: 2;
 }
 
 .fighters-hud {
