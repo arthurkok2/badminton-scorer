@@ -846,18 +846,18 @@ button {
 }
 
 .fighter-score-button {
-  min-width: clamp(62px, 9vw, 92px);
-  min-height: clamp(62px, 9vw, 92px);
-  border: 2px solid rgba(32, 18, 34, 0.72);
+  min-width: clamp(74px, 10vw, 118px);
+  min-height: clamp(74px, 10vw, 118px);
+  border: 3px solid rgba(32, 18, 34, 0.72);
   border-radius: 14px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(213, 222, 231, 0.94));
   color: #101820;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.24);
 }
 
-.fighter-score-button span {
+.fighter-score-number {
   display: block;
-  font-size: clamp(2.4rem, 5vw, 4.2rem);
+  font-size: clamp(3rem, 6vw, 5.4rem);
   font-weight: 900;
   line-height: 1;
 }
@@ -982,10 +982,10 @@ button {
   top: 58%;
   display: grid;
   justify-items: center;
-  gap: 4px;
+  gap: 6px;
   min-width: max-content;
-  padding: 6px 10px;
-  border: 2px solid rgba(43, 18, 16, 0.68);
+  padding: 10px 14px;
+  border: 3px solid rgba(43, 18, 16, 0.68);
   border-radius: 10px;
   background: rgba(16, 24, 32, 0.72);
   color: #f6f1e7;
@@ -996,25 +996,25 @@ button {
 
 .fighter-nameplate.nameplate-left {
   right: 100%;
-  transform: translate(8px, -50%);
+  transform: translate(34px, -50%);
 }
 
 .fighter-nameplate.nameplate-right {
   left: 100%;
-  transform: translate(-8px, -50%);
+  transform: translate(-34px, -50%);
 }
 
-.fighter-nameplate span {
-  font-size: clamp(0.82rem, 1.7vw, 1.15rem);
+.fighter-nameplate-name {
+  font-size: clamp(1.16rem, 2.45vw, 1.72rem);
   line-height: 1;
 }
 
 .fighter-nameplate strong {
-  padding: 2px 6px;
+  padding: 4px 9px;
   border-radius: 999px;
   background: #f3d36b;
   color: #24190c;
-  font-size: 0.72rem;
+  font-size: clamp(0.86rem, 1.5vw, 1.08rem);
   text-transform: uppercase;
 }
 
@@ -1100,15 +1100,15 @@ button {
   }
 
   .fighter-nameplate {
-    padding: 5px 8px;
+    padding: 6px 9px;
   }
 
-  .fighter-nameplate span {
-    font-size: 0.72rem;
+  .fighter-nameplate-name {
+    font-size: 0.96rem;
   }
 
   .fighter-nameplate strong {
-    font-size: 0.6rem;
+    font-size: 0.74rem;
   }
 }
 

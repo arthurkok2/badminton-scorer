@@ -210,6 +210,23 @@ describe('CourtView', () => {
     }
   });
 
+  it('uses enlarged tablet-readable score and player tag classes in little fighters mode', () => {
+    render(
+      <CourtView
+        match={createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' })}
+        displayMode="little-fighters"
+        onPointTeam={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('score-teamA').querySelector('.fighter-score-number')).toHaveTextContent('0');
+    expect(screen.getByTestId('score-teamB').querySelector('.fighter-score-number')).toHaveTextContent('0');
+
+    for (const playerId of ['A1', 'A2', 'B1', 'B2']) {
+      expect(screen.getByTestId(`fighter-${playerId}`).querySelector('.fighter-nameplate-name')).toBeInTheDocument();
+    }
+  });
+
   it('animates the serving player attacking the other team after a point', () => {
     const baseMatch = createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
     const { rerender } = render(<CourtView match={baseMatch} displayMode="little-fighters" onPointTeam={vi.fn()} />);

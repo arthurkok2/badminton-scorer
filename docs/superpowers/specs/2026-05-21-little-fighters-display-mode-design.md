@@ -30,6 +30,7 @@ Add a persisted `displayMode` preference with two options:
 - Nameplates should remain above court lines and below the HUD; top-row nameplates may sit below their sprites when that avoids HUD collision.
 - Fighter nameplates should use horizontal space and stay close to the sprites: Team A labels sit to the left of the sprite and Team B labels sit to the right of the sprite, rather than stacking below the players.
 - Each team keeps a large tappable score button in the HUD.
+- HUD score numerals and fighter nameplates should be sized for a larger tablet used as the primary display, with especially prominent player names and mobile-specific reductions only where needed to avoid crowding.
 - Each team also gets a health bar whose remaining HP is derived from the opposing score.
 - The serving team is marked in the HUD with a `Serve` badge and the active score tile highlight.
 - The serving player is labeled `Serving` in the arena, and nameplates should stay readable without colliding across rows.

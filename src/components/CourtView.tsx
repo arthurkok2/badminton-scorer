@@ -381,7 +381,7 @@ function FighterHudTeam({
         data-testid={`score-${teamId}`}
         onClick={() => onPointTeam(teamId)}
       >
-        <span aria-hidden="true">{score}</span>
+        <span className="fighter-score-number" aria-hidden="true">{score}</span>
       </button>
       <div className="fighter-health-stack">
         <div className="fighter-team-tag">
@@ -451,7 +451,7 @@ function FighterTeam({
           >
             <img className="fighter-sprite" src={FIGHTER_SPRITES[player.teamId]} alt="" aria-hidden="true" />
             <div className={player.teamId === 'teamA' ? 'fighter-nameplate nameplate-left' : 'fighter-nameplate nameplate-right'}>
-              <span>{player.name}</span>
+              <span className="fighter-nameplate-name">{player.name}</span>
               {isServer ? <strong>Serving</strong> : null}
             </div>
           </div>
