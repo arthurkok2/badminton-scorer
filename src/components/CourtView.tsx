@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
+import { Maximize2, Minimize2 } from 'lucide-react';
 import type { CourtSide, MatchState, Player, TeamId } from '../domain/matchTypes';
 
 interface CourtViewProps {
@@ -35,7 +36,7 @@ export function CourtView({ match, displayMode = 'court', onPointTeam }: CourtVi
   }
 
   return (
-    <section className="court-section" aria-label="Match court">
+    <CourtFullscreenSection className="court-section" ariaLabel="Match court">
       <div className="court">
         <CourtDiagram />
         <CourtScoreOverlay match={match} onPointTeam={onPointTeam} />
@@ -44,6 +45,55 @@ export function CourtView({ match, displayMode = 'court', onPointTeam }: CourtVi
           <CourtHalf match={match} teamId="teamB" />
         </div>
       </div>
+    </CourtFullscreenSection>
+  );
+}
+
+function CourtFullscreenSection({
+  ariaLabel,
+  children,
+  className,
+}: {
+  readonly ariaLabel: string;
+  readonly children: ReactNode;
+  readonly className: string;
+}) {
+  const sectionRef = useRef<HTMLElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const syncFullscreenState = () => {
+      setIsFullscreen(document.fullscreenElement === sectionRef.current);
+    };
+
+    document.addEventListener('fullscreenchange', syncFullscreenState);
+    syncFullscreenState();
+
+    return () => document.removeEventListener('fullscreenchange', syncFullscreenState);
+  }, []);
+
+  const handleFullscreenToggle = async () => {
+    try {
+      if (isFullscreen) {
+        await document.exitFullscreen?.();
+        return;
+      }
+
+      await sectionRef.current?.requestFullscreen?.();
+    } catch {
+      setIsFullscreen(document.fullscreenElement === sectionRef.current);
+    }
+  };
+
+  const label = isFullscreen ? 'Exit fullscreen court view' : 'Enter fullscreen court view';
+  const Icon = isFullscreen ? Minimize2 : Maximize2;
+
+  return (
+    <section ref={sectionRef} className={className} aria-label={ariaLabel}>
+      <button className="court-fullscreen-button" type="button" aria-label={label} title={label} onClick={handleFullscreenToggle}>
+        <Icon size={20} aria-hidden="true" />
+      </button>
+      {children}
     </section>
   );
 }
@@ -78,7 +128,7 @@ function LittleFightersView({ match, onPointTeam }: CourtViewProps) {
   }, [match]);
 
   return (
-    <section className="court-section fighters-section" aria-label="Little fighters match display">
+    <CourtFullscreenSection className="court-section fighters-section" ariaLabel="Little fighters match display">
       <div className="fighters-stage" data-testid="little-fighters-view">
         <div className="fighters-stage-backdrop" aria-hidden="true" />
         <div className="fighters-stage-ground" aria-hidden="true" />
@@ -97,7 +147,7 @@ function LittleFightersView({ match, onPointTeam }: CourtViewProps) {
           <LittleFightersCourtLineOverlay />
         </div>
       </div>
-    </section>
+    </CourtFullscreenSection>
   );
 }
 

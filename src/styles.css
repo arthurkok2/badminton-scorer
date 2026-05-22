@@ -524,12 +524,54 @@ button {
 }
 
 .court-section {
+  position: relative;
   padding: 12px;
+}
+
+.court-section:fullscreen {
+  display: grid;
+  width: 100vw;
+  height: 100vh;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  place-items: center;
+  background: #101820;
 }
 
 .fighters-section {
   width: min(calc(100vw - 24px), 1400px);
   margin-inline: calc(50% - min(calc(100vw - 24px), 1400px) / 2);
+}
+
+.fighters-section:fullscreen {
+  width: 100vw;
+  margin-inline: 0;
+}
+
+.court-fullscreen-button {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 10;
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 8px;
+  background: rgba(8, 18, 22, 0.72);
+  color: #f8fafc;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+  cursor: pointer;
+}
+
+.court-fullscreen-button:hover {
+  background: rgba(22, 38, 47, 0.88);
+}
+
+.court-fullscreen-button:focus-visible {
+  outline: 3px solid #f3d36b;
+  outline-offset: 2px;
 }
 
 .court {
@@ -541,6 +583,10 @@ button {
   border-radius: 8px;
   background: #1d6f65;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.court-section:fullscreen .court {
+  width: min(calc(100vw - 32px), calc((100vh - 32px) * 1340 / 610));
 }
 
 .court-diagram,
@@ -687,6 +733,10 @@ button {
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.18),
     0 24px 48px rgba(0, 0, 0, 0.24);
+}
+
+.court-section:fullscreen .fighters-stage {
+  width: min(calc(100vw - 32px), calc((100vh - 32px) * 16 / 9));
 }
 
 .fighters-stage-backdrop,

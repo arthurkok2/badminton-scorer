@@ -1,9 +1,45 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CourtView } from './CourtView';
 import { createMatch } from '../domain/matchEngine';
 import type { MatchState } from '../domain/matchTypes';
+
+let fullscreenElement: Element | null = null;
+
+function installFullscreenMock() {
+  fullscreenElement = null;
+  const requestFullscreen = vi.fn(function requestFullscreen(this: Element) {
+    fullscreenElement = this;
+    document.dispatchEvent(new Event('fullscreenchange'));
+    return Promise.resolve();
+  });
+  const exitFullscreen = vi.fn(() => {
+    fullscreenElement = null;
+    document.dispatchEvent(new Event('fullscreenchange'));
+    return Promise.resolve();
+  });
+
+  Object.defineProperty(HTMLElement.prototype, 'requestFullscreen', {
+    configurable: true,
+    value: requestFullscreen,
+  });
+  Object.defineProperty(document, 'exitFullscreen', {
+    configurable: true,
+    value: exitFullscreen,
+  });
+  Object.defineProperty(document, 'fullscreenElement', {
+    configurable: true,
+    get: () => fullscreenElement,
+  });
+
+  return { requestFullscreen, exitFullscreen };
+}
+
+afterEach(() => {
+  fullscreenElement = null;
+  vi.restoreAllMocks();
+});
 
 describe('CourtView', () => {
   it('renders a dimensionally scaled badminton court with all regulation lines', () => {
@@ -126,6 +162,28 @@ describe('CourtView', () => {
 
     expect(screen.getByRole('button', { name: /award point to team a, score 21/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /award point to team b, score 10/i })).toBeDisabled();
+  });
+
+  it('toggles fullscreen for the shared court section in both display modes', async () => {
+    const user = userEvent.setup();
+    const fullscreen = installFullscreenMock();
+    const match = createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
+    const { rerender } = render(<CourtView match={match} onPointTeam={vi.fn()} />);
+
+    const enterButton = screen.getByRole('button', { name: /enter fullscreen court view/i });
+    await user.click(enterButton);
+
+    expect(fullscreen.requestFullscreen).toHaveBeenCalledTimes(1);
+    expect(fullscreen.requestFullscreen.mock.instances[0]).toBe(screen.getByLabelText('Match court'));
+
+    await user.click(screen.getByRole('button', { name: /exit fullscreen court view/i }));
+
+    expect(fullscreen.exitFullscreen).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: /enter fullscreen court view/i })).toBeInTheDocument();
+
+    rerender(<CourtView match={match} displayMode="little-fighters" onPointTeam={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: /enter fullscreen court view/i })).toBeInTheDocument();
   });
 
   it('renders the little fighters mode with score, health, and serving markers', () => {
