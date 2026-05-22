@@ -18,11 +18,12 @@ const DOUBLES_LONG_SERVICE_FROM_BACK_CM = 76;
 const FIGHTER_ATTACK_MS = 700;
 const FIGHTER_STAGE_WIDTH = 1000;
 const FIGHTER_STAGE_HEIGHT = 560;
-const FIGHTER_COURT_TOP_LEFT = { x: 246, y: 176 };
-const FIGHTER_COURT_TOP_RIGHT = { x: 754, y: 176 };
-const FIGHTER_COURT_BOTTOM_LEFT = { x: 40, y: 500 };
-const FIGHTER_COURT_BOTTOM_RIGHT = { x: 960, y: 500 };
+const FIGHTER_COURT_TOP_LEFT = { x: 92, y: 194 };
+const FIGHTER_COURT_TOP_RIGHT = { x: 908, y: 194 };
+const FIGHTER_COURT_BOTTOM_LEFT = { x: 24, y: 506 };
+const FIGHTER_COURT_BOTTOM_RIGHT = { x: 976, y: 506 };
 const FIGHTER_SERVER_ADVANCE_CM = 92;
+const FIGHTER_BOTTOM_LANE_ADVANCE_CM = 40;
 const FIGHTER_SPRITES: Record<TeamId, string> = {
   teamA: `${import.meta.env.BASE_URL}sprites/fighter-team-a.png`,
   teamB: `${import.meta.env.BASE_URL}sprites/fighter-team-b.png`,
@@ -92,13 +93,48 @@ function LittleFightersView({ match, onPointTeam }: CourtViewProps) {
           <FighterTeam match={match} teamId="teamA" align="left" attackState={attackState} />
           <FighterTeam match={match} teamId="teamB" align="right" attackState={attackState} />
         </div>
+        <div className="fighters-court-line-overlay" aria-hidden="true">
+          <LittleFightersCourtLineOverlay />
+        </div>
       </div>
     </section>
   );
 }
 
+function LittleFightersCourtLineOverlay() {
+  const doublesTop = createProjectedLinePath({ x: 0, y: 0 }, { x: COURT_LENGTH_CM, y: 0 });
+  const doublesBottom = createProjectedLinePath({ x: 0, y: COURT_WIDTH_CM }, { x: COURT_LENGTH_CM, y: COURT_WIDTH_CM });
+  const singlesTop = createProjectedLinePath({ x: 0, y: SINGLES_SIDE_INSET_CM }, { x: COURT_LENGTH_CM, y: SINGLES_SIDE_INSET_CM });
+  const singlesBottom = createProjectedLinePath(
+    { x: 0, y: COURT_WIDTH_CM - SINGLES_SIDE_INSET_CM },
+    { x: COURT_LENGTH_CM, y: COURT_WIDTH_CM - SINGLES_SIDE_INSET_CM },
+  );
+  const centerLeft = createProjectedLinePath({ x: 0, y: COURT_WIDTH_CM / 2 }, { x: NET_X_CM - SHORT_SERVICE_FROM_NET_CM, y: COURT_WIDTH_CM / 2 });
+  const centerRight = createProjectedLinePath(
+    { x: NET_X_CM + SHORT_SERVICE_FROM_NET_CM, y: COURT_WIDTH_CM / 2 },
+    { x: COURT_LENGTH_CM, y: COURT_WIDTH_CM / 2 },
+  );
+  const net = createProjectedLinePath({ x: NET_X_CM, y: 0 }, { x: NET_X_CM, y: COURT_WIDTH_CM });
+
+  return (
+    <svg className="fighters-court-line-overlay-svg" viewBox={`0 0 ${FIGHTER_STAGE_WIDTH} ${FIGHTER_STAGE_HEIGHT}`} preserveAspectRatio="xMidYMid meet">
+      <g className="fighters-court-overlay-lines">
+        <path d={doublesTop} />
+        <path d={doublesBottom} />
+        <path d={singlesTop} />
+        <path d={singlesBottom} />
+        <path className="fighters-court-overlay-center-line" d={centerLeft} />
+        <path className="fighters-court-overlay-center-line" d={centerRight} />
+        <path className="fighters-court-overlay-net" d={net} />
+      </g>
+    </svg>
+  );
+}
+
 function LittleFightersCourtDiagram() {
   const courtBoundary = createProjectedBoundaryPath();
+  const doublesTop = createProjectedLinePath({ x: 0, y: 0 }, { x: COURT_LENGTH_CM, y: 0 });
+  const doublesBottom = createProjectedLinePath({ x: 0, y: COURT_WIDTH_CM }, { x: COURT_LENGTH_CM, y: COURT_WIDTH_CM });
   const singlesTop = createProjectedLinePath({ x: 0, y: SINGLES_SIDE_INSET_CM }, { x: COURT_LENGTH_CM, y: SINGLES_SIDE_INSET_CM });
   const singlesBottom = createProjectedLinePath(
     { x: 0, y: COURT_WIDTH_CM - SINGLES_SIDE_INSET_CM },
@@ -167,22 +203,28 @@ function LittleFightersCourtDiagram() {
       <path className="fighters-court-surface" d={courtBoundary} />
       <path className="fighters-court-highlight" d={courtBoundary} />
       <g className="fighters-court-lines" filter="url(#fightersCourtLineShadow)">
-        <path className="fighters-court-boundary" d={courtBoundary} />
-        <path className="fighters-court-sideline" d={singlesTop} />
-        <path className="fighters-court-sideline" d={singlesBottom} />
-        <path className="fighters-court-service-line" d={shortServiceLeft} />
-        <path className="fighters-court-service-line" d={shortServiceRight} />
-        <path className="fighters-court-service-line" d={doublesLongServiceLeft} />
-        <path className="fighters-court-service-line" d={doublesLongServiceRight} />
-        <path className="fighters-court-center-line" d={centerTop} />
-        <path className="fighters-court-center-line" d={centerBottom} />
+        <path className="fighters-court-boundary" data-testid="fighters-court-boundary" d={courtBoundary} />
+        <path className="fighters-court-sideline fighters-court-doubles-sideline" data-testid="fighters-doubles-sideline-top" d={doublesTop} />
+        <path
+          className="fighters-court-sideline fighters-court-doubles-sideline"
+          data-testid="fighters-doubles-sideline-bottom"
+          d={doublesBottom}
+        />
+        <path className="fighters-court-sideline" data-testid="fighters-singles-sideline-top" d={singlesTop} />
+        <path className="fighters-court-sideline" data-testid="fighters-singles-sideline-bottom" d={singlesBottom} />
+        <path className="fighters-court-service-line" data-testid="fighters-short-service-left" d={shortServiceLeft} />
+        <path className="fighters-court-service-line" data-testid="fighters-short-service-right" d={shortServiceRight} />
+        <path className="fighters-court-service-line" data-testid="fighters-doubles-long-service-left" d={doublesLongServiceLeft} />
+        <path className="fighters-court-service-line" data-testid="fighters-doubles-long-service-right" d={doublesLongServiceRight} />
+        <path className="fighters-court-center-line" data-testid="fighters-center-service-left" d={centerTop} />
+        <path className="fighters-court-center-line" data-testid="fighters-center-service-right" d={centerBottom} />
       </g>
-      <path className="fighters-court-net" d={net} />
       <g className="fighters-court-net-mesh">
         {netMeshLines.map((meshLine, index) => (
           <path key={index} d={meshLine} />
         ))}
       </g>
+      <path className="fighters-court-net" data-testid="fighters-court-net" d={net} />
     </svg>
   );
 }
@@ -408,7 +450,7 @@ function FighterTeam({
             }
           >
             <img className="fighter-sprite" src={FIGHTER_SPRITES[player.teamId]} alt="" aria-hidden="true" />
-            <div className="fighter-nameplate">
+            <div className={player.teamId === 'teamA' ? 'fighter-nameplate nameplate-left' : 'fighter-nameplate nameplate-right'}>
               <span>{player.name}</span>
               {isServer ? <strong>Serving</strong> : null}
             </div>
@@ -463,7 +505,7 @@ function getFighterLane(teamId: TeamId, side: CourtSide): 'top' | 'bottom' {
 
 function getFighterAnchor(match: MatchState, player: Player): { x: number; y: number } {
   const lane = getFighterLane(player.teamId, match.courtPositions[player.id]);
-  const laneCenterY = lane === 'top' ? COURT_WIDTH_CM * 0.25 : COURT_WIDTH_CM * 0.75;
+  const laneCenterY = getServiceCourtCenterY(lane);
   const baseCourtX = getTeamBaseCourtX(player.teamId);
   const serverOffset = player.id === match.serverId ? (player.teamId === 'teamA' ? FIGHTER_SERVER_ADVANCE_CM : -FIGHTER_SERVER_ADVANCE_CM) : 0;
 
@@ -471,6 +513,14 @@ function getFighterAnchor(match: MatchState, player: Player): { x: number; y: nu
     x: baseCourtX + serverOffset,
     y: laneCenterY,
   });
+}
+
+function getServiceCourtCenterY(lane: 'top' | 'bottom'): number {
+  if (lane === 'top') {
+    return (SINGLES_SIDE_INSET_CM + COURT_WIDTH_CM / 2) / 2;
+  }
+
+  return (COURT_WIDTH_CM / 2 + (COURT_WIDTH_CM - SINGLES_SIDE_INSET_CM)) / 2 + FIGHTER_BOTTOM_LANE_ADVANCE_CM;
 }
 
 function getTeamBaseCourtX(teamId: TeamId): number {
@@ -486,13 +536,13 @@ function createProjectedBoundaryPath(): string {
   const topRight = projectCourtPoint({ x: COURT_LENGTH_CM, y: 0 });
   const bottomRight = projectCourtPoint({ x: COURT_LENGTH_CM, y: COURT_WIDTH_CM });
   const bottomLeft = projectCourtPoint({ x: 0, y: COURT_WIDTH_CM });
-  return `M ${topLeft.x} ${topLeft.y} L ${topRight.x} ${topRight.y} L ${bottomRight.x} ${bottomRight.y} L ${bottomLeft.x} ${bottomLeft.y} Z`;
+  return `M ${formatCoordinate(topLeft.x)} ${formatCoordinate(topLeft.y)} L ${formatCoordinate(topRight.x)} ${formatCoordinate(topRight.y)} L ${formatCoordinate(bottomRight.x)} ${formatCoordinate(bottomRight.y)} L ${formatCoordinate(bottomLeft.x)} ${formatCoordinate(bottomLeft.y)} Z`;
 }
 
 function createProjectedLinePath(start: { x: number; y: number }, end: { x: number; y: number }): string {
   const startPoint = projectCourtPoint(start);
   const endPoint = projectCourtPoint(end);
-  return `M ${startPoint.x} ${startPoint.y} L ${endPoint.x} ${endPoint.y}`;
+  return `M ${formatCoordinate(startPoint.x)} ${formatCoordinate(startPoint.y)} L ${formatCoordinate(endPoint.x)} ${formatCoordinate(endPoint.y)}`;
 }
 
 function createNetMeshLines(): string[] {
@@ -523,4 +573,8 @@ function projectCourtPoint(point: { x: number; y: number }): { x: number; y: num
 
 function interpolate(start: number, end: number, t: number): number {
   return start + (end - start) * t;
+}
+
+function formatCoordinate(value: number): string {
+  return Number(value.toFixed(3)).toString();
 }

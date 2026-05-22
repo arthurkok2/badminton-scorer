@@ -154,6 +154,62 @@ describe('CourtView', () => {
     expect(screen.getByTestId('fighter-B1')).toHaveAttribute('data-quadrant', 'bottom');
   });
 
+  it('projects the little fighters court from regulation badminton dimensions', () => {
+    render(
+      <CourtView
+        match={createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' })}
+        displayMode="little-fighters"
+        onPointTeam={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('fighters-court-boundary')).toHaveAttribute('d', 'M 92 194 L 908 194 L 976 506 L 24 506 Z');
+    expect(screen.getByTestId('fighters-doubles-sideline-top')).toHaveAttribute('d', 'M 92 194 L 908 194');
+    expect(screen.getByTestId('fighters-doubles-sideline-bottom')).toHaveAttribute('d', 'M 24 506 L 976 506');
+    expect(screen.getByTestId('fighters-singles-sideline-top')).toHaveAttribute('d', 'M 86.872 217.528 L 913.128 217.528');
+    expect(screen.getByTestId('fighters-singles-sideline-bottom')).toHaveAttribute('d', 'M 29.128 482.472 L 970.872 482.472');
+    expect(screen.getByTestId('fighters-court-net')).toHaveAttribute('d', 'M 500 194 L 500 506');
+    expect(screen.getByTestId('fighters-short-service-left')).toHaveAttribute('d', 'M 379.427 194 L 359.331 506');
+    expect(screen.getByTestId('fighters-short-service-right')).toHaveAttribute('d', 'M 620.573 194 L 640.669 506');
+    expect(screen.getByTestId('fighters-doubles-long-service-left')).toHaveAttribute('d', 'M 138.281 194 L 77.994 506');
+    expect(screen.getByTestId('fighters-doubles-long-service-right')).toHaveAttribute('d', 'M 861.719 194 L 922.006 506');
+    expect(screen.getByTestId('fighters-center-service-left')).toHaveAttribute('d', 'M 58 350 L 369.379 350');
+    expect(screen.getByTestId('fighters-center-service-right')).toHaveAttribute('d', 'M 630.621 350 L 942 350');
+  });
+
+  it('places little fighters in the middle of their service courts', () => {
+    render(
+      <CourtView
+        match={createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' })}
+        displayMode="little-fighters"
+        onPointTeam={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('fighter-A1')).toHaveStyle({ left: '29.087745534621973%', top: '77.98126463700234%' });
+    expect(screen.getByTestId('fighter-A2')).toHaveStyle({ left: '24.72905701003181%', top: '50.67213114754099%' });
+    expect(screen.getByTestId('fighter-B1')).toHaveStyle({ left: '75.27094298996819%', top: '50.67213114754099%' });
+    expect(screen.getByTestId('fighter-B2')).toHaveStyle({ left: '77.24096305358455%', top: '77.98126463700234%' });
+  });
+
+  it('places little fighter nameplates beside each team instead of below the sprites', () => {
+    render(
+      <CourtView
+        match={createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' })}
+        displayMode="little-fighters"
+        onPointTeam={vi.fn()}
+      />,
+    );
+
+    for (const playerId of ['A1', 'A2']) {
+      expect(screen.getByTestId(`fighter-${playerId}`).querySelector('.fighter-nameplate')).toHaveClass('nameplate-left');
+    }
+
+    for (const playerId of ['B1', 'B2']) {
+      expect(screen.getByTestId(`fighter-${playerId}`).querySelector('.fighter-nameplate')).toHaveClass('nameplate-right');
+    }
+  });
+
   it('animates the serving player attacking the other team after a point', () => {
     const baseMatch = createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
     const { rerender } = render(<CourtView match={baseMatch} displayMode="little-fighters" onPointTeam={vi.fn()} />);

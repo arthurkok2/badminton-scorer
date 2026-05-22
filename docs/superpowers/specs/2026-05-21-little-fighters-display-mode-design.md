@@ -20,8 +20,15 @@ Add a persisted `displayMode` preference with two options:
 - Each team’s two fighters stack vertically on their side of the court to match the top and bottom service boxes.
 - All fighters stay on the same plane rather than being rendered on separate depth tiers.
 - The arena is drawn as one SVG isometric court projection so the outer boundary, net, service lines, and player anchors all share the same geometry.
-- The projection should be meaningfully deep, using a narrower far edge and a lower near edge so the arena fills the stage more convincingly.
-- The visible court lines mirror a side-on doubles court: outer boundary, net, short service lines near the net, long doubles service lines toward each back boundary, and center service split across each half.
+- The projection should resemble the 3D reference court: a wide shallow trapezoid with a near edge only moderately wider than the far edge, nearly horizontal baselines, and the net fixed at center court.
+- The visible court lines mirror a side-on doubles court from regulation dimensions: outer boundary, singles sidelines, net, short service lines 1.98m from the net, doubles long service lines 0.76m from each back boundary, and solid center service lines split across each half.
+- All projected court paths should be generated from the same regulation coordinate system as player anchors so visual line spacing and player placement cannot drift apart.
+- The regulation markings must be drawn as explicit foreground SVG paths, including doubles sidelines, singles sidelines, center service lines, and a readable solid net line; the boundary polygon and net mesh are not enough by themselves.
+- The fighters may overlap the court, so key regulation markings should also have a thin non-interactive overlay above the court surface while keeping sprites, nameplates, and the HUD above the overlay.
+- Player anchors should sit at the center of each projected service court, using the singles sideline, center service line, short service line, and doubles long service line as the service-box bounds.
+- Bottom-lane fighters may sit slightly below the exact service-court center so the front-row players read as closer to the near baseline in the perspective view.
+- Nameplates should remain above court lines and below the HUD; top-row nameplates may sit below their sprites when that avoids HUD collision.
+- Fighter nameplates should use horizontal space and stay close to the sprites: Team A labels sit to the left of the sprite and Team B labels sit to the right of the sprite, rather than stacking below the players.
 - Each team keeps a large tappable score button in the HUD.
 - Each team also gets a health bar whose remaining HP is derived from the opposing score.
 - The serving team is marked in the HUD with a `Serve` badge and the active score tile highlight.

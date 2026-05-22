@@ -692,6 +692,7 @@ button {
 .fighters-stage-backdrop,
 .fighters-stage-ground,
 .fighters-court-viewport,
+.fighters-court-line-overlay,
 .fighters-hud,
 .fighters-arena {
   position: absolute;
@@ -722,14 +723,25 @@ button {
   inset: 0;
 }
 
+.fighters-court-line-overlay {
+  z-index: 2;
+  pointer-events: none;
+}
+
 .fighters-court-svg {
   display: block;
   width: 100%;
   height: 100%;
 }
 
+.fighters-court-line-overlay-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .fighters-court-shadow {
-  fill: rgba(8, 22, 14, 0.34);
+  fill: rgba(8, 22, 14, 0.3);
 }
 
 .fighters-court-surface {
@@ -753,11 +765,15 @@ button {
 .fighters-court-lines path,
 .fighters-court-boundary {
   stroke: url(#fightersCourtLineGlow);
-  stroke-width: 5;
+  stroke-width: 4.5;
 }
 
 .fighters-court-sideline {
-  stroke-width: 4.5;
+  stroke-width: 5;
+}
+
+.fighters-court-doubles-sideline {
+  stroke-width: 5.8;
 }
 
 .fighters-court-service-line {
@@ -765,13 +781,13 @@ button {
 }
 
 .fighters-court-center-line {
-  stroke-width: 5.5;
-  stroke-dasharray: 18 18;
+  stroke: rgba(249, 253, 250, 0.98);
+  stroke-width: 5.8;
 }
 
 .fighters-court-net {
-  stroke: url(#fightersCourtNet);
-  stroke-width: 8;
+  stroke: #182126;
+  stroke-width: 7.5;
 }
 
 .fighters-court-net-mesh path {
@@ -779,8 +795,27 @@ button {
   stroke-width: 2;
 }
 
+.fighters-court-overlay-lines path {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+  stroke: rgba(255, 255, 255, 0.76);
+  stroke-linecap: square;
+  stroke-linejoin: round;
+  stroke-width: 2.4;
+}
+
+.fighters-court-overlay-lines .fighters-court-overlay-center-line {
+  stroke: rgba(255, 255, 255, 0.92);
+  stroke-width: 3.2;
+}
+
+.fighters-court-overlay-lines .fighters-court-overlay-net {
+  stroke: #11191e;
+  stroke-width: 5.5;
+}
+
 .fighters-hud {
-  z-index: 3;
+  z-index: 4;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 18px;
@@ -889,7 +924,7 @@ button {
 }
 
 .fighters-arena {
-  z-index: 2;
+  z-index: 3;
   inset: 0;
 }
 
@@ -914,18 +949,16 @@ button {
 
 .fighter-player.lane-top {
   --fighter-scale: 0.9;
+  z-index: 4;
 }
 
 .fighter-player.lane-bottom {
   --fighter-scale: 1.04;
-}
-
-.fighter-player.is-server {
   z-index: 3;
 }
 
-.fighter-player:not(.is-server) {
-  z-index: 2;
+.fighter-player.is-server {
+  z-index: 5;
 }
 
 .fighter-player.is-attacking {
@@ -946,8 +979,7 @@ button {
 
 .fighter-nameplate {
   position: absolute;
-  top: 100%;
-  left: 50%;
+  top: 58%;
   display: grid;
   justify-items: center;
   gap: 4px;
@@ -960,13 +992,16 @@ button {
   font-weight: 900;
   text-align: center;
   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45);
-  transform: translate(-50%, 8px);
 }
 
-.fighter-player.lane-top .fighter-nameplate {
-  top: auto;
-  bottom: calc(100% + 10px);
-  transform: translate(-50%, 0);
+.fighter-nameplate.nameplate-left {
+  right: 100%;
+  transform: translate(8px, -50%);
+}
+
+.fighter-nameplate.nameplate-right {
+  left: 100%;
+  transform: translate(-8px, -50%);
 }
 
 .fighter-nameplate span {
