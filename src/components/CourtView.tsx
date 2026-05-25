@@ -486,6 +486,7 @@ function FighterTeam({
               [
                 'fighter-player',
                 player.teamId,
+                player.teamId === 'teamB' ? 'is-flipped' : '',
                 isServer ? 'is-server' : '',
                 isAttacking ? 'is-attacking' : '',
                 `lane-${quadrant}`,

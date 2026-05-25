@@ -935,7 +935,7 @@ button {
   align-items: center;
   gap: 8px;
   color: #fff7ef;
-  font-size: 0.92rem;
+  font-size: clamp(1rem, 1.55vw, 1.18rem);
   font-weight: 900;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -943,7 +943,7 @@ button {
 }
 
 .fighter-team-tag strong {
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: 999px;
   background: #f3d36b;
   color: #24190c;
@@ -1021,10 +1021,14 @@ button {
 
 .fighter-sprite {
   display: block;
-  width: clamp(126px, 14vw, 198px);
+  width: clamp(152px, 17vw, 236px);
   height: auto;
   image-rendering: pixelated;
   filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.28));
+}
+
+.fighter-player.is-flipped .fighter-sprite {
+  transform: scaleX(-1);
 }
 
 .fighter-nameplate {
@@ -1032,9 +1036,9 @@ button {
   top: 58%;
   display: grid;
   justify-items: center;
-  gap: 6px;
+  gap: 8px;
   min-width: max-content;
-  padding: 10px 14px;
+  padding: 12px 16px;
   border: 3px solid rgba(43, 18, 16, 0.68);
   border-radius: 10px;
   background: rgba(16, 24, 32, 0.72);
@@ -1055,16 +1059,16 @@ button {
 }
 
 .fighter-nameplate-name {
-  font-size: clamp(1.16rem, 2.45vw, 1.72rem);
+  font-size: clamp(1.3rem, 2.8vw, 2rem);
   line-height: 1;
 }
 
 .fighter-nameplate strong {
-  padding: 4px 9px;
+  padding: 5px 10px;
   border-radius: 999px;
   background: #f3d36b;
   color: #24190c;
-  font-size: clamp(0.86rem, 1.5vw, 1.08rem);
+  font-size: clamp(0.94rem, 1.7vw, 1.18rem);
   text-transform: uppercase;
 }
 
@@ -1146,19 +1150,20 @@ button {
   }
 
   .fighter-sprite {
-    width: clamp(112px, 24vw, 156px);
+    width: clamp(128px, 28vw, 180px);
   }
 
   .fighter-nameplate {
-    padding: 6px 9px;
+    gap: 6px;
+    padding: 8px 11px;
   }
 
   .fighter-nameplate-name {
-    font-size: 0.96rem;
+    font-size: 1.05rem;
   }
 
   .fighter-nameplate strong {
-    font-size: 0.74rem;
+    font-size: 0.82rem;
   }
 }
 

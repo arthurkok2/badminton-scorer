@@ -239,6 +239,21 @@ describe('CourtView', () => {
     );
   });
 
+  it('flips only the team B little fighter sprites to face the net', () => {
+    render(
+      <CourtView
+        match={createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' })}
+        displayMode="little-fighters"
+        onPointTeam={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('fighter-A1')).not.toHaveClass('is-flipped');
+    expect(screen.getByTestId('fighter-A2')).not.toHaveClass('is-flipped');
+    expect(screen.getByTestId('fighter-B1')).toHaveClass('is-flipped');
+    expect(screen.getByTestId('fighter-B2')).toHaveClass('is-flipped');
+  });
+
   it('projects the little fighters court from regulation badminton dimensions', () => {
     render(
       <CourtView
