@@ -8,5 +8,6 @@ firebase-debug.log
 .firebase/
 ui-debug.log
 .claude/worktrees/
+.worktrees/
 memory/
 .superpowers/
