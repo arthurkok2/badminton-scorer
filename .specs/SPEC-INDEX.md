@@ -4,6 +4,7 @@ Master index of all specs across projects.
 
 | Date | Project | Spec | Title | Domain | Risk | Complexity |
 |------|---------|------|-------|--------|------|------------|
+| 2026-05-25 | BS | [2026-05-25-little-fighters-sprite-picker](2026/05/2026-05-25-little-fighters-sprite-picker.md) | Little Fighters Sprite Picker | ui | medium | medium |
 | 2026-05-24 | BS | [2026-05-24-badminton-roster-sprites](2026/05/2026-05-24-badminton-roster-sprites.md) | Badminton Roster Sprites for Little Fighters | ui | medium | medium |
 | 2026-05-09 | BS | [2026-05-09-badminton-score-design](2026/05/2026-05-09-badminton-score-design.md) | Badminton Scorer App Design | feature | medium | high |
 | 2026-05-11 | BS | [2026-05-11-controller-page-design](2026/05/2026-05-11-controller-page-design.md) | Controller Page Design | input | low | medium |
