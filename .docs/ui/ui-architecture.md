@@ -1,6 +1,6 @@
 ---
 title: UI — Components, Pages, Hooks, Styling, Preferences
-last-updated: 2026-05-23
+last-updated: 2026-05-24
 ---
 
 # UI Architecture
@@ -73,6 +73,7 @@ An isometric court projection rendered as SVG. Features:
 - HUD with large tappable score buttons per team, `Serve` badge on serving team
 - Fighter nameplates: Team A labels left of sprite, Team B labels right
 - Point feedback: scoring server animates with a lunge, opposing side flashes/bounces
+- Sprite theme: little-fighters uses a badminton-themed pixel-art roster; visible players render deterministic per-player sprites instead of one shared sprite per team
 
 ### Fullscreen Button
 
@@ -123,3 +124,4 @@ Plain CSS in `src/styles.css`. No CSS-in-JS or CSS modules. Uses custom properti
 - [Scoring Engine](../game-engine/scoring-engine.md) — game logic consumed by components
 - [Input Remotes](../input/input-remotes.md) — input sources wired in App.tsx
 - [Speech & Animations](../media/speech-animations.md) — audio and visual features
+
