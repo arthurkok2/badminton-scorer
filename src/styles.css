@@ -866,6 +866,7 @@ button {
 
 .fighters-hud {
   z-index: 4;
+  pointer-events: none;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 18px;
@@ -877,6 +878,7 @@ button {
   grid-template-columns: auto 1fr;
   align-items: start;
   gap: 12px;
+  pointer-events: auto;
 }
 
 .fighter-hud-team.align-right {

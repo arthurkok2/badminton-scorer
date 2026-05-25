@@ -36,6 +36,8 @@ describe('firestore.rules', () => {
     expect(rules).toContain('request.resource.data.displayName == resource.data.displayName');
     expect(rules).toContain('request.resource.data.searchName == resource.data.searchName');
     expect(rules).toContain('request.resource.data.createdBy == resource.data.createdBy');
+    expect(rules).toContain("'spriteId'");
+    expect(rules).toContain('isValidSpriteId');
   });
 
   it('allows first-match pair creation with a computed Elo and match count', () => {

@@ -64,6 +64,7 @@ Emulator startup: `npx firebase-tools@latest emulators:start --only firestore,au
 | `globalIndividualElo` | Starts at 1500 |
 | `globalMatchCount` | Completed global session matches |
 | `statsVersion` | Starts at 1 |
+| `spriteId` | Optional little-fighters roster choice saved on the global player profile |
 
 **`pairs/{pairId}`** — Global doubles pair records for pair Elo and matchup stats.
 
@@ -97,6 +98,7 @@ Emulator startup: `npx firebase-tools@latest emulators:start --only firestore,au
 - **Player identity** — Global player search via `searchGlobalPlayers(searchText)`. Duplicate detection by `searchName`. Player creation via `createGlobalPlayerDocument`.
 - **Session import** — When a signed-in user has legacy local sessions, `SessionImportPrompt` maps each legacy name to a `GlobalPlayer`, then uploads all sessions to `users/{uid}/sessions/`.
 - **Playing phase persistence** — In-progress session match state and phase are persisted so the session recovers to the correct screen on reload.
+- **Player sprite selection** — session-mode little-fighters sprite changes update `players/{playerId}.spriteId` in Firestore so the chosen look follows that player across devices; one-off matches keep sprite changes in local UI state only.
 
 ## Match State Persistence
 

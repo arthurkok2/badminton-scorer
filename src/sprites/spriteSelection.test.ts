@@ -1,33 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { PlayerId } from '../domain/matchTypes';
-import type { GlobalPlayer } from '../session/sessionTypes';
+import type { LittleFighterSpriteId } from './spriteCatalog';
 import { resolveLittleFighterSpriteIds } from './spriteSelection';
 
 describe('resolveLittleFighterSpriteIds', () => {
-  it('prefers one-off overrides, then global player sprite ids, then fallback slot sprites', () => {
-    const playerOne: GlobalPlayer = {
-      id: 'player-1',
-      displayName: 'Alice',
-      searchName: 'alice',
-      createdBy: 'uid-1',
-      claimStatus: 'guest',
-      globalIndividualElo: 1500,
-      globalMatchCount: 0,
-      statsVersion: 1,
-      spriteId: 'male-defense',
-    };
-
-    const playerTwo: GlobalPlayer = {
-      id: 'player-2',
-      displayName: 'Bob',
-      searchName: 'bob',
-      createdBy: 'uid-1',
-      claimStatus: 'guest',
-      globalIndividualElo: 1500,
-      globalMatchCount: 0,
-      statsVersion: 1,
-    };
-
+  it('prefers one-off overrides, then sprite id map entries, then fallback slot sprites', () => {
     const playerSlots: Readonly<Record<PlayerId, { readonly playerId?: string }>> = {
       A1: { playerId: 'player-1' },
       A2: { playerId: 'player-2' },
@@ -39,12 +16,11 @@ describe('resolveLittleFighterSpriteIds', () => {
       B1: 'female-drive',
     } as const;
 
-    const globalPlayersById: Readonly<Record<string, GlobalPlayer>> = {
-      'player-1': playerOne,
-      'player-2': playerTwo,
+    const spriteIdMap: Readonly<Record<string, LittleFighterSpriteId | undefined>> = {
+      'player-1': 'male-defense',
     };
 
-    expect(resolveLittleFighterSpriteIds({ playerSlots, oneOffOverrides, globalPlayersById })).toEqual({
+    expect(resolveLittleFighterSpriteIds({ playerSlots, oneOffOverrides, spriteIdMap })).toEqual({
       A1: 'male-defense',
       A2: 'male-clear',
       B1: 'female-drive',

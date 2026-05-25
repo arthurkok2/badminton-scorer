@@ -32,6 +32,7 @@ export interface GlobalSessionPlayer {
   readonly gamesPlayed: number;
   readonly consecutiveStreak: number;
   readonly onBreak: boolean;
+  readonly spriteId?: LittleFighterSpriteId;
 }
 
 export interface TeamSplit {

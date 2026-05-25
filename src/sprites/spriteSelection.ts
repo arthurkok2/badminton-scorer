@@ -1,5 +1,4 @@
 import type { PlayerId } from '../domain/matchTypes';
-import type { GlobalPlayer } from '../session/sessionTypes';
 import type { LittleFighterSpriteId } from './spriteCatalog';
 
 const FALLBACK_SLOT_SPRITES: Readonly<Record<PlayerId, LittleFighterSpriteId>> = {
@@ -12,15 +11,15 @@ const FALLBACK_SLOT_SPRITES: Readonly<Record<PlayerId, LittleFighterSpriteId>> =
 export function resolveLittleFighterSpriteIds(options: {
   readonly playerSlots: Readonly<Record<PlayerId, { readonly playerId?: string }>>;
   readonly oneOffOverrides: Partial<Record<PlayerId, LittleFighterSpriteId>>;
-  readonly globalPlayersById: Readonly<Record<string, GlobalPlayer>>;
+  readonly spriteIdMap: Readonly<Record<string, LittleFighterSpriteId | undefined>>;
 }): Record<PlayerId, LittleFighterSpriteId> {
-  const { playerSlots, oneOffOverrides, globalPlayersById } = options;
+  const { playerSlots, oneOffOverrides, spriteIdMap } = options;
 
   return {
-    A1: resolveSlotSpriteId('A1', playerSlots, oneOffOverrides, globalPlayersById),
-    A2: resolveSlotSpriteId('A2', playerSlots, oneOffOverrides, globalPlayersById),
-    B1: resolveSlotSpriteId('B1', playerSlots, oneOffOverrides, globalPlayersById),
-    B2: resolveSlotSpriteId('B2', playerSlots, oneOffOverrides, globalPlayersById),
+    A1: resolveSlotSpriteId('A1', playerSlots, oneOffOverrides, spriteIdMap),
+    A2: resolveSlotSpriteId('A2', playerSlots, oneOffOverrides, spriteIdMap),
+    B1: resolveSlotSpriteId('B1', playerSlots, oneOffOverrides, spriteIdMap),
+    B2: resolveSlotSpriteId('B2', playerSlots, oneOffOverrides, spriteIdMap),
   };
 }
 
@@ -28,10 +27,10 @@ function resolveSlotSpriteId(
   playerId: PlayerId,
   playerSlots: Readonly<Record<PlayerId, { readonly playerId?: string }>>,
   oneOffOverrides: Partial<Record<PlayerId, LittleFighterSpriteId>>,
-  globalPlayersById: Readonly<Record<string, GlobalPlayer>>,
+  spriteIdMap: Readonly<Record<string, LittleFighterSpriteId | undefined>>,
 ): LittleFighterSpriteId {
   const globalPlayerId = playerSlots[playerId].playerId;
-  const globalPlayer = globalPlayerId ? globalPlayersById[globalPlayerId] : undefined;
+  const savedSpriteId = globalPlayerId ? spriteIdMap[globalPlayerId] : undefined;
 
-  return oneOffOverrides[playerId] ?? globalPlayer?.spriteId ?? FALLBACK_SLOT_SPRITES[playerId];
+  return oneOffOverrides[playerId] ?? savedSpriteId ?? FALLBACK_SLOT_SPRITES[playerId];
 }

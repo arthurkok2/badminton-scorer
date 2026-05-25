@@ -164,6 +164,11 @@ export default function App() {
   const [spriteSaveState, setSpriteSaveState] = useState<'idle' | 'saving' | 'error'>('idle');
   const [spriteSaveError, setSpriteSaveError] = useState<string | undefined>(undefined);
 
+  useEffect(() => {
+    setSpriteSaveState('idle');
+    setSpriteSaveError(undefined);
+  }, [activeSpritePickerPlayerId]);
+
   const connectionRef = useRef<BluetoothRemoteConnection | undefined>(undefined);
   const keyboardConnectionRef = useRef<KeyboardRemoteConnection | undefined>(undefined);
   const gamepadConnectionRef = useRef<GamepadRemoteConnection | undefined>(undefined);
@@ -540,7 +545,7 @@ export default function App() {
     setSpriteSaveError(undefined);
 
     try {
-      const updatedPlayer = await updateGlobalPlayerSpriteId({ playerId: globalPlayerId, spriteId, uid: user.uid });
+      const updatedPlayer = await updateGlobalPlayerSpriteId({ playerId: globalPlayerId, spriteId });
       setSavedPlayers((current) => current.map((player) => (player.id === updatedPlayer.id ? updatedPlayer : player)));
       setSpriteSaveState('idle');
       setActiveSpritePickerPlayerId(undefined);
@@ -550,7 +555,10 @@ export default function App() {
     }
   }
 
-  const globalPlayersById = Object.fromEntries(savedPlayers.map((player) => [player.id, player]));
+  const spriteIdMap: Readonly<Record<string, LittleFighterSpriteId | undefined>> = Object.fromEntries([
+    ...savedPlayers.map((player) => [player.id, player.spriteId] as const),
+    ...(activeSession?.players ?? []).map((player) => [player.id, player.spriteId] as const),
+  ]);
   const resolvedSpriteIds = resolveLittleFighterSpriteIds({
     playerSlots: {
       A1: { playerId: getGlobalPlayerIdForMatchSlot('A1') },
@@ -559,7 +567,7 @@ export default function App() {
       B2: { playerId: getGlobalPlayerIdForMatchSlot('B2') },
     },
     oneOffOverrides: oneOffSpriteOverrides,
-    globalPlayersById,
+    spriteIdMap,
   });
   const fighterSprites = {
     A1: LITTLE_FIGHTER_SPRITES_BY_ID[resolvedSpriteIds.A1],

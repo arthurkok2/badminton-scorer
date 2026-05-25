@@ -516,7 +516,7 @@ function FighterTeam({
                 aria-label={`Choose sprite for ${player.name}`}
                 onClick={() => onPlayerSpriteClick(player.id)}
               >
-                <img className="fighter-sprite" src={fighterSprites[player.id]?.src ?? FIGHTER_SPRITES[player.id]} alt="" aria-hidden="true" />
+                <img className="fighter-sprite" key={fighterSprites[player.id]?.src ?? FIGHTER_SPRITES[player.id]} src={fighterSprites[player.id]?.src ?? FIGHTER_SPRITES[player.id]} alt="" aria-hidden="true" />
               </button>
             ) : (
               <img className="fighter-sprite" src={FIGHTER_SPRITES[player.id]} alt="" aria-hidden="true" />

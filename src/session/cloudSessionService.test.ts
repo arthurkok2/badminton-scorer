@@ -152,6 +152,32 @@ describe('cloud session service', () => {
     }));
   });
 
+  it('updates a global player sprite id and returns the patched player', async () => {
+    const { updateGlobalPlayerSpriteId } = await import('./cloudSessionService');
+    firestoreMocks.getDoc.mockResolvedValueOnce({
+      exists: () => true,
+      data: () => ({
+        id: 'alice',
+        displayName: 'Alice',
+        searchName: 'alice',
+        createdBy: 'uid-1',
+        claimStatus: 'guest',
+        globalIndividualElo: 1500,
+        globalMatchCount: 0,
+        statsVersion: 1,
+        spriteId: 'female-net',
+      }),
+    });
+
+    const player = await updateGlobalPlayerSpriteId({ playerId: 'alice', spriteId: 'female-net', db });
+
+    expect(firestoreMocks.updateDoc).toHaveBeenCalledWith(expect.anything(), {
+      spriteId: 'female-net',
+      updatedAt: expect.anything(),
+    });
+    expect(player.spriteId).toBe('female-net');
+  });
+
   it('loads cloud history stats from Firestore documents', async () => {
     const { loadCloudHistoryStats } = await import('./cloudSessionService');
     firestoreMocks.getDocs

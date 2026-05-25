@@ -74,6 +74,8 @@ An isometric court projection rendered as SVG. Features:
 - Fighter nameplates: Team A labels left of sprite, Team B labels right
 - Point feedback: scoring server animates with a lunge, opposing side flashes/bounces
 - Sprite theme: little-fighters uses a badminton-themed pixel-art roster; visible players render deterministic per-player sprites instead of one shared sprite per team
+- Sprite editing: clicking a fighter opens a sprite picker modal for that player
+- Persistence: one-off matches use temporary per-slot overrides; session matches save sprite choice to the global player profile
 
 ### Fullscreen Button
 

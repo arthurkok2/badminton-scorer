@@ -1225,7 +1225,29 @@ describe('App', () => {
     expect(cloudServiceMock.updateGlobalPlayerSpriteId).toHaveBeenCalledWith({
       playerId: 'p1',
       spriteId: 'female-net',
-      uid: 'uid-1',
     });
+  });
+
+  it('stays in the modal with an error message when a session sprite save fails', async () => {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ displayMode: 'little-fighters' }));
+    authMock.useAuth.mockReturnValue({
+      user: { uid: 'uid-1', isAnonymous: false },
+      loading: false,
+      isAnonymous: false,
+      authUnavailable: false,
+      signInWithGoogle: vi.fn(),
+      signOut: vi.fn(),
+    });
+    cloudServiceMock.updateGlobalPlayerSpriteId.mockRejectedValue(new Error('network error'));
+
+    const user = userEvent.setup();
+    render(<App />);
+
+    await startSessionWithPlayers(user, ['Alice', 'Bob', 'Carol', 'Dave']);
+    await user.click(screen.getByRole('button', { name: /choose sprite for alice/i }));
+    await user.click(screen.getByRole('button', { name: /female net/i }));
+
+    expect(screen.getByText(/could not save that sprite right now/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /female net/i })).toBeInTheDocument();
   });
 });

@@ -50,7 +50,14 @@ service cloud.firestore {
     function playerDocKeys() {
       return ['id', 'displayName', 'searchName', 'createdBy', 'createdAt',
               'updatedAt', 'claimStatus', 'linkedUid', 'globalIndividualElo',
-              'globalMatchCount', 'statsVersion'];
+              'globalMatchCount', 'statsVersion', 'spriteId'];
+    }
+
+    function isValidSpriteId(v) {
+      return v is string && v in [
+        'female-ace', 'female-drop', 'female-drive', 'female-net',
+        'male-clear', 'male-defense', 'male-jump-smash', 'male-serve'
+      ];
     }
 
     function pairDocKeys() {
@@ -177,6 +184,10 @@ service cloud.firestore {
         && request.resource.data.statsVersion == 1
         && request.resource.data.createdAt == request.time
         && request.resource.data.updatedAt == request.time
+        && (
+          !('spriteId' in request.resource.data)
+          || isValidSpriteId(request.resource.data.spriteId)
+        )
         && request.resource.data.keys().hasOnly(playerDocKeys());
       allow update: if isNamedSignedIn()
         && request.resource.data.id == resource.data.id
@@ -188,6 +199,10 @@ service cloud.firestore {
         && isValidElo(request.resource.data.globalIndividualElo)
         && request.resource.data.globalMatchCount is number
         && request.resource.data.globalMatchCount >= resource.data.globalMatchCount
+        && (
+          !('spriteId' in request.resource.data)
+          || isValidSpriteId(request.resource.data.spriteId)
+        )
         && request.resource.data.keys().hasOnly(playerDocKeys());
       allow delete: if false;
     }

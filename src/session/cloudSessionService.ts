@@ -9,6 +9,7 @@ import {
   runTransaction,
   serverTimestamp,
   setDoc,
+  updateDoc,
   where,
   type Firestore,
 } from 'firebase/firestore';
@@ -649,10 +650,24 @@ function incrementMatchup(
   }
 }
 
-export async function updateGlobalPlayerSpriteId(_options: {
+export async function updateGlobalPlayerSpriteId(options: {
   readonly playerId: string;
   readonly spriteId: LittleFighterSpriteId;
-  readonly uid: string;
+  readonly db?: Firestore;
 }): Promise<GlobalPlayer> {
-  throw new Error('updateGlobalPlayerSpriteId not yet implemented');
+  const db = resolveDb(options.db);
+  const playerRef = doc(collection(db, 'players'), options.playerId);
+  const updatedAt = serverTimestamp();
+
+  await updateDoc(playerRef, {
+    spriteId: options.spriteId,
+    updatedAt,
+  });
+
+  const snapshot = await getDoc(playerRef);
+  if (!snapshot.exists()) {
+    throw new Error('Player sprite update succeeded but the player record could not be reloaded.');
+  }
+
+  return snapshot.data() as GlobalPlayer;
 }
