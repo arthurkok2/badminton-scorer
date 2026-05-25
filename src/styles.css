@@ -2165,3 +2165,44 @@ button {
   80%  { opacity: 1; }
   100% { opacity: 0; }
 }
+
+.fighter-sprite-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.sprite-picker {
+  display: grid;
+  gap: 12px;
+}
+
+.sprite-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.sprite-picker-tile {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: #101820;
+  color: #f5f7fa;
+  cursor: pointer;
+}
+
+.sprite-picker-tile.is-selected {
+  border-color: #68d391;
+  box-shadow: 0 0 0 2px rgba(104, 211, 145, 0.22);
+}
+
+.sprite-picker-tile img {
+  width: 100%;
+  max-width: 140px;
+  margin: 0 auto;
+  image-rendering: pixelated;
+}

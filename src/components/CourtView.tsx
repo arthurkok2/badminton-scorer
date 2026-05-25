@@ -2,11 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import type { CourtSide, MatchState, Player, PlayerId, TeamId } from '../domain/matchTypes';
+import type { LittleFighterSpriteOption } from '../sprites/spriteCatalog';
 
 interface CourtViewProps {
   readonly match: MatchState;
   readonly displayMode?: 'court' | 'little-fighters';
   readonly onPointTeam: (teamId: TeamId) => void;
+  readonly fighterSprites?: Readonly<Record<PlayerId, LittleFighterSpriteOption>>;
+  readonly onPlayerSpriteClick?: (playerId: PlayerId) => void;
 }
 
 const COURT_LENGTH_CM = 1340;
@@ -32,9 +35,9 @@ const FIGHTER_SPRITES: Record<PlayerId, string> = {
   B2: `${import.meta.env.BASE_URL}sprites/badminton-male-jump-smash.png`,
 };
 
-export function CourtView({ match, displayMode = 'court', onPointTeam }: CourtViewProps) {
+export function CourtView({ match, displayMode = 'court', onPointTeam, fighterSprites, onPlayerSpriteClick }: CourtViewProps) {
   if (displayMode === 'little-fighters') {
-    return <LittleFightersView match={match} onPointTeam={onPointTeam} />;
+    return <LittleFightersView match={match} onPointTeam={onPointTeam} fighterSprites={fighterSprites} onPlayerSpriteClick={onPlayerSpriteClick} />;
   }
 
   return (
@@ -100,7 +103,7 @@ function CourtFullscreenSection({
   );
 }
 
-function LittleFightersView({ match, onPointTeam }: CourtViewProps) {
+function LittleFightersView({ match, onPointTeam, fighterSprites, onPlayerSpriteClick }: CourtViewProps) {
   const previousScoreRef = useRef(match.score);
   const [attackState, setAttackState] = useState<{ attackingTeamId: TeamId; attackerId: string } | null>(null);
 
@@ -142,8 +145,8 @@ function LittleFightersView({ match, onPointTeam }: CourtViewProps) {
           <FighterHudTeam match={match} teamId="teamB" align="right" attackState={attackState} onPointTeam={onPointTeam} />
         </div>
         <div className="fighters-arena" aria-label="Player positions">
-          <FighterTeam match={match} teamId="teamA" align="left" attackState={attackState} />
-          <FighterTeam match={match} teamId="teamB" align="right" attackState={attackState} />
+          <FighterTeam match={match} teamId="teamA" align="left" attackState={attackState} fighterSprites={fighterSprites} onPlayerSpriteClick={onPlayerSpriteClick} />
+          <FighterTeam match={match} teamId="teamB" align="right" attackState={attackState} fighterSprites={fighterSprites} onPlayerSpriteClick={onPlayerSpriteClick} />
         </div>
         <div className="fighters-court-line-overlay" aria-hidden="true">
           <LittleFightersCourtLineOverlay />
@@ -460,11 +463,15 @@ function FighterTeam({
   teamId,
   align,
   attackState,
+  fighterSprites,
+  onPlayerSpriteClick,
 }: {
   readonly match: MatchState;
   readonly teamId: TeamId;
   readonly align: 'left' | 'right';
   readonly attackState: { attackingTeamId: TeamId; attackerId: string } | null;
+  readonly fighterSprites?: Readonly<Record<PlayerId, LittleFighterSpriteOption>>;
+  readonly onPlayerSpriteClick?: (playerId: PlayerId) => void;
 }) {
   const players = match.teams[teamId].players;
   const isUnderAttack = attackState !== null && attackState.attackingTeamId !== teamId;
@@ -502,7 +509,18 @@ function FighterTeam({
               } satisfies CSSProperties
             }
           >
-            <img className="fighter-sprite" src={FIGHTER_SPRITES[player.id]} alt="" aria-hidden="true" />
+            {fighterSprites && onPlayerSpriteClick ? (
+              <button
+                className="fighter-sprite-button"
+                type="button"
+                aria-label={`Choose sprite for ${player.name}`}
+                onClick={() => onPlayerSpriteClick(player.id)}
+              >
+                <img className="fighter-sprite" src={fighterSprites[player.id]?.src ?? FIGHTER_SPRITES[player.id]} alt="" aria-hidden="true" />
+              </button>
+            ) : (
+              <img className="fighter-sprite" src={FIGHTER_SPRITES[player.id]} alt="" aria-hidden="true" />
+            )}
             <div className={player.teamId === 'teamA' ? 'fighter-nameplate nameplate-left' : 'fighter-nameplate nameplate-right'}>
               <span className="fighter-nameplate-name">{player.name}</span>
               {isServer ? <strong>Serving</strong> : null}

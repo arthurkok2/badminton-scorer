@@ -24,6 +24,7 @@ import type {
   LegacyMatchRecord,
   MatchRecord,
 } from './sessionTypes';
+import type { LittleFighterSpriteId } from '../sprites/spriteCatalog';
 
 export interface CloudSessionSummary {
   readonly id: string;
@@ -646,4 +647,12 @@ function incrementMatchup(
   } else {
     matchups[id].losses += 1;
   }
+}
+
+export async function updateGlobalPlayerSpriteId(_options: {
+  readonly playerId: string;
+  readonly spriteId: LittleFighterSpriteId;
+  readonly uid: string;
+}): Promise<GlobalPlayer> {
+  throw new Error('updateGlobalPlayerSpriteId not yet implemented');
 }

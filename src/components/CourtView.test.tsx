@@ -327,6 +327,30 @@ describe('CourtView', () => {
     }
   });
 
+  it('calls onPlayerSpriteClick when a little fighter sprite is clicked', async () => {
+    const user = userEvent.setup();
+    const onPlayerSpriteClick = vi.fn();
+
+    render(
+      <CourtView
+        match={createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' })}
+        displayMode="little-fighters"
+        onPointTeam={vi.fn()}
+        fighterSprites={{
+          A1: { id: 'female-ace', name: 'Female Ace', src: '/sprites/badminton-female-ace.png' },
+          A2: { id: 'male-clear', name: 'Male Clear', src: '/sprites/badminton-male-clear.png' },
+          B1: { id: 'female-drive', name: 'Female Drive', src: '/sprites/badminton-female-drive.png' },
+          B2: { id: 'male-jump-smash', name: 'Male Jump Smash', src: '/sprites/badminton-male-jump-smash.png' },
+        }}
+        onPlayerSpriteClick={onPlayerSpriteClick}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /choose sprite for player 1/i }));
+
+    expect(onPlayerSpriteClick).toHaveBeenCalledWith('A1');
+  });
+
   it('animates the serving player attacking the other team after a point', () => {
     const baseMatch = createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
     const { rerender } = render(<CourtView match={baseMatch} displayMode="little-fighters" onPointTeam={vi.fn()} />);

@@ -3,6 +3,9 @@ import { Controls } from './components/Controls';
 import { CourtView } from './components/CourtView';
 import { createMatch } from './domain/matchEngine';
 import type { MatchMode, MatchState, PlayerId, TeamId } from './domain/matchTypes';
+import { LITTLE_FIGHTER_SPRITES, LITTLE_FIGHTER_SPRITES_BY_ID, type LittleFighterSpriteId } from './sprites/spriteCatalog';
+import { resolveLittleFighterSpriteIds } from './sprites/spriteSelection';
+import { SpritePickerModal } from './components/SpritePickerModal';
 import { applyCommand, type AppCommand } from './input/commands';
 import {
   connectBluetoothRemote,
@@ -35,6 +38,7 @@ import {
   importMappedLegacySessions,
   loadCloudHistoryStats,
   saveCloudSession,
+  updateGlobalPlayerSpriteId,
   type CloudHistoryStats,
 } from './session/cloudSessionService';
 import {
@@ -154,6 +158,11 @@ export default function App() {
   const [importLegacyNames, setImportLegacyNames] = useState<string[]>([]);
   const [cloudHistoryStats, setCloudHistoryStats] = useState<CloudHistoryStats | undefined>(undefined);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [savedPlayers, setSavedPlayers] = useState<GlobalPlayer[]>([]);
+  const [activeSpritePickerPlayerId, setActiveSpritePickerPlayerId] = useState<PlayerId | undefined>(undefined);
+  const [oneOffSpriteOverrides, setOneOffSpriteOverrides] = useState<Partial<Record<PlayerId, LittleFighterSpriteId>>>({});
+  const [spriteSaveState, setSpriteSaveState] = useState<'idle' | 'saving' | 'error'>('idle');
+  const [spriteSaveError, setSpriteSaveError] = useState<string | undefined>(undefined);
 
   const connectionRef = useRef<BluetoothRemoteConnection | undefined>(undefined);
   const keyboardConnectionRef = useRef<KeyboardRemoteConnection | undefined>(undefined);
@@ -331,6 +340,7 @@ export default function App() {
       }
 
       clearMatchState();
+      setOneOffSpriteOverrides({});
       updatePreferences((current) => ({ ...current, matchMode: mode }));
       setMatchView((current) =>
         applyMatchViewAction(current, { type: 'RESET_MODE', mode, playerNames: preferencesRef.current.playerNames }),
@@ -345,6 +355,7 @@ export default function App() {
     }
 
     clearMatchState();
+    setOneOffSpriteOverrides({});
     setMatchView((current) =>
       applyMatchViewAction(current, {
         type: 'RESET_MODE',
@@ -424,6 +435,7 @@ export default function App() {
   const handleStartSession = useCallback((players: readonly GlobalPlayer[]) => {
     const session = createSession(players);
     saveActiveSession(session);
+    setSavedPlayers([...players]);
     if (user && !isAnonymous) {
       void saveCloudSession({ uid: user.uid, session, status: 'active' }).catch(() => {
         setSessionSyncError('Could not sync session to cloud.');
@@ -504,6 +516,57 @@ export default function App() {
   const handleDismissImport = useCallback(() => {
     setShowImportPrompt(false);
   }, []);
+
+  const getGlobalPlayerIdForMatchSlot = useCallback((slot: PlayerId): string | undefined => {
+    if (!currentPlayedSplit) return undefined;
+    const index = slot === 'A1' ? 0 : slot === 'A2' ? 1 : slot === 'B1' ? 0 : 1;
+    const players = slot === 'A1' || slot === 'A2' ? currentPlayedSplit.teamA : currentPlayedSplit.teamB;
+    return players[index]?.id;
+  }, [currentPlayedSplit]);
+
+  async function handleSelectPlayerSprite(spriteId: LittleFighterSpriteId) {
+    if (!activeSpritePickerPlayerId) return;
+
+    if (appMode !== 'session') {
+      setOneOffSpriteOverrides((current) => ({ ...current, [activeSpritePickerPlayerId]: spriteId }));
+      setActiveSpritePickerPlayerId(undefined);
+      return;
+    }
+
+    const globalPlayerId = getGlobalPlayerIdForMatchSlot(activeSpritePickerPlayerId);
+    if (!user?.uid || !globalPlayerId) return;
+
+    setSpriteSaveState('saving');
+    setSpriteSaveError(undefined);
+
+    try {
+      const updatedPlayer = await updateGlobalPlayerSpriteId({ playerId: globalPlayerId, spriteId, uid: user.uid });
+      setSavedPlayers((current) => current.map((player) => (player.id === updatedPlayer.id ? updatedPlayer : player)));
+      setSpriteSaveState('idle');
+      setActiveSpritePickerPlayerId(undefined);
+    } catch {
+      setSpriteSaveState('error');
+      setSpriteSaveError('Could not save that sprite right now.');
+    }
+  }
+
+  const globalPlayersById = Object.fromEntries(savedPlayers.map((player) => [player.id, player]));
+  const resolvedSpriteIds = resolveLittleFighterSpriteIds({
+    playerSlots: {
+      A1: { playerId: getGlobalPlayerIdForMatchSlot('A1') },
+      A2: { playerId: getGlobalPlayerIdForMatchSlot('A2') },
+      B1: { playerId: getGlobalPlayerIdForMatchSlot('B1') },
+      B2: { playerId: getGlobalPlayerIdForMatchSlot('B2') },
+    },
+    oneOffOverrides: oneOffSpriteOverrides,
+    globalPlayersById,
+  });
+  const fighterSprites = {
+    A1: LITTLE_FIGHTER_SPRITES_BY_ID[resolvedSpriteIds.A1],
+    A2: LITTLE_FIGHTER_SPRITES_BY_ID[resolvedSpriteIds.A2],
+    B1: LITTLE_FIGHTER_SPRITES_BY_ID[resolvedSpriteIds.B1],
+    B2: LITTLE_FIGHTER_SPRITES_BY_ID[resolvedSpriteIds.B2],
+  };
 
   const handleStartMatch = useCallback((split: TeamSplit) => {
     const playerNames = {
@@ -864,6 +927,8 @@ export default function App() {
           match={match}
           displayMode={preferences.displayMode}
           onPointTeam={(teamId) => dispatch({ type: 'POINT_TEAM', teamId })}
+          fighterSprites={fighterSprites}
+          onPlayerSpriteClick={setActiveSpritePickerPlayerId}
         />
         <Controls
           onUndo={() => dispatch({ type: 'UNDO' })}
@@ -899,6 +964,24 @@ export default function App() {
         />
       )}
       {activeModalDialog}
+      {activeSpritePickerPlayerId && (() => {
+        const teamId: TeamId = activeSpritePickerPlayerId.startsWith('B') ? 'teamB' : 'teamA';
+        const player = match.teams[teamId].players.find((p) => p.id === activeSpritePickerPlayerId);
+        const playerName = player?.name ?? activeSpritePickerPlayerId;
+        const selectedSpriteId = resolvedSpriteIds[activeSpritePickerPlayerId];
+        return (
+          <AppModal title="Choose player sprite" onClose={() => setActiveSpritePickerPlayerId(undefined)}>
+            <SpritePickerModal
+              playerName={playerName}
+              selectedSpriteId={selectedSpriteId}
+              spriteOptions={LITTLE_FIGHTER_SPRITES}
+              saveState={spriteSaveState}
+              errorMessage={spriteSaveError}
+              onSelect={handleSelectPlayerSprite}
+            />
+          </AppModal>
+        );
+      })()}
         {showHistoryStats ? (
           <HistoryStatsModal
             sessions={cloudHistoryStats?.sessions ?? []}

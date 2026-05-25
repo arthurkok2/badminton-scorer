@@ -2,7 +2,7 @@ import type { PlayerId } from '../domain/matchTypes';
 import type { GlobalPlayer } from '../session/sessionTypes';
 import type { LittleFighterSpriteId } from './spriteCatalog';
 
-export const FALLBACK_SLOT_SPRITES: Readonly<Record<PlayerId, LittleFighterSpriteId>> = {
+const FALLBACK_SLOT_SPRITES: Readonly<Record<PlayerId, LittleFighterSpriteId>> = {
   A1: 'female-ace',
   A2: 'male-clear',
   B1: 'female-drive',

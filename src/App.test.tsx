@@ -102,6 +102,9 @@ const cloudServiceMock = vi.hoisted(() => ({
     globalMatches: [],
   })),
   saveCloudSession: vi.fn(() => Promise.resolve(undefined)),
+  updateGlobalPlayerSpriteId: vi.fn(() => Promise.resolve(
+    { id: 'p1', displayName: 'Alice', searchName: 'alice', createdBy: 'uid-1', claimStatus: 'guest', spriteId: 'female-ace', globalIndividualElo: 1500, globalMatchCount: 0, statsVersion: 1 },
+  )),
 }));
 
 vi.mock('./session/cloudSessionService', () => ({
@@ -111,6 +114,7 @@ vi.mock('./session/cloudSessionService', () => ({
   importMappedLegacySessions: cloudServiceMock.importMappedLegacySessions,
   loadCloudHistoryStats: cloudServiceMock.loadCloudHistoryStats,
   saveCloudSession: cloudServiceMock.saveCloudSession,
+  updateGlobalPlayerSpriteId: cloudServiceMock.updateGlobalPlayerSpriteId,
 }));
 
 const STORAGE_KEY = 'badminton-scorer-preferences';
@@ -162,6 +166,10 @@ async function openRemoteControls(user: ReturnType<typeof userEvent.setup>) {
 async function openDiagnostics(user: ReturnType<typeof userEvent.setup>) {
   await openSettingsMenu(user);
   await user.click(screen.getByRole('menuitem', { name: /diagnostics/i }));
+}
+
+async function startSessionWithPlayers(user: ReturnType<typeof userEvent.setup>, _playerNames: readonly string[]) {
+  await startSessionMatch(user);
 }
 
 async function startSessionMatch(user: ReturnType<typeof userEvent.setup>) {
@@ -1154,5 +1162,70 @@ describe('App', () => {
 
     expect(await screen.findByText('Alice')).toBeInTheDocument();
     expect(screen.getByText('1602')).toBeInTheDocument();
+  });
+
+  it('opens the sprite picker from little fighters mode and applies a temporary one-off override', async () => {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ displayMode: 'little-fighters' }));
+    const user = userEvent.setup();
+
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: /choose sprite for player 1/i }));
+    await user.click(screen.getByRole('button', { name: /male serve/i }));
+
+    expect(screen.getByTestId('fighter-A1').querySelector('.fighter-sprite')).toHaveAttribute(
+      'src',
+      expect.stringContaining('badminton-male-serve.png'),
+    );
+  });
+
+  it('clears one-off sprite overrides when starting a new match', async () => {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ displayMode: 'little-fighters' }));
+    const user = userEvent.setup();
+
+    render(<App />);
+
+    await user.click(screen.getByRole('button', { name: /choose sprite for player 1/i }));
+    await user.click(screen.getByRole('button', { name: /male serve/i }));
+    expect(screen.getByTestId('fighter-A1').querySelector('.fighter-sprite')).toHaveAttribute(
+      'src',
+      expect.stringContaining('badminton-male-serve.png'),
+    );
+
+    await chooseSettingsAction(user, /new match/i);
+
+    expect(screen.getByTestId('fighter-A1').querySelector('.fighter-sprite')).toHaveAttribute(
+      'src',
+      expect.stringContaining('badminton-female-ace.png'),
+    );
+  });
+
+  it('saves a session player sprite to the global player record when selected from the picker', async () => {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ displayMode: 'little-fighters' }));
+    authMock.useAuth.mockReturnValue({
+      user: { uid: 'uid-1', isAnonymous: false },
+      loading: false,
+      isAnonymous: false,
+      authUnavailable: false,
+      signInWithGoogle: vi.fn(),
+      signOut: vi.fn(),
+    });
+    cloudServiceMock.updateGlobalPlayerSpriteId.mockResolvedValue({
+      ...testPlayers[0],
+      spriteId: 'female-net',
+    });
+
+    const user = userEvent.setup();
+    render(<App />);
+
+    await startSessionWithPlayers(user, ['Alice', 'Bob', 'Carol', 'Dave']);
+    await user.click(screen.getByRole('button', { name: /choose sprite for alice/i }));
+    await user.click(screen.getByRole('button', { name: /female net/i }));
+
+    expect(cloudServiceMock.updateGlobalPlayerSpriteId).toHaveBeenCalledWith({
+      playerId: 'p1',
+      spriteId: 'female-net',
+      uid: 'uid-1',
+    });
   });
 });
