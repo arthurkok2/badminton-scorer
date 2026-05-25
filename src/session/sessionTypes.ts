@@ -1,3 +1,5 @@
+import type { LittleFighterSpriteId } from '../sprites/spriteCatalog';
+
 // src/session/sessionTypes.ts
 
 /**
@@ -11,6 +13,7 @@ export interface GlobalPlayer {
   readonly createdBy: string;
   readonly claimStatus: 'guest' | 'claimed' | 'verified';
   readonly linkedUid?: string;
+  readonly spriteId?: LittleFighterSpriteId;
   readonly globalIndividualElo: number;
   readonly globalMatchCount: number;
   readonly statsVersion: number;

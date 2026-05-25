@@ -1,3 +1,4 @@
+import type { LittleFighterSpriteId } from '../sprites/spriteCatalog';
 import type { EloSnapshot } from './elo';
 
 export interface GlobalPlayerDocument {
@@ -9,6 +10,7 @@ export interface GlobalPlayerDocument {
   readonly updatedAt: unknown;
   readonly claimStatus: 'guest' | 'claimed' | 'verified';
   readonly linkedUid?: string;
+  readonly spriteId?: LittleFighterSpriteId;
   readonly globalIndividualElo: number;
   readonly globalMatchCount: number;
   readonly statsVersion: number;
