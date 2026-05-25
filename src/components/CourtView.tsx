@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { Maximize2, Minimize2 } from 'lucide-react';
-import type { CourtSide, MatchState, Player, TeamId } from '../domain/matchTypes';
+import type { CourtSide, MatchState, Player, PlayerId, TeamId } from '../domain/matchTypes';
 
 interface CourtViewProps {
   readonly match: MatchState;
@@ -25,9 +25,11 @@ const FIGHTER_COURT_BOTTOM_LEFT = { x: 24, y: 506 };
 const FIGHTER_COURT_BOTTOM_RIGHT = { x: 976, y: 506 };
 const FIGHTER_SERVER_ADVANCE_CM = 92;
 const FIGHTER_BOTTOM_LANE_ADVANCE_CM = 40;
-const FIGHTER_SPRITES: Record<TeamId, string> = {
-  teamA: `${import.meta.env.BASE_URL}sprites/fighter-team-a.png`,
-  teamB: `${import.meta.env.BASE_URL}sprites/fighter-team-b.png`,
+const FIGHTER_SPRITES: Record<PlayerId, string> = {
+  A1: `${import.meta.env.BASE_URL}sprites/badminton-female-ace.png`,
+  A2: `${import.meta.env.BASE_URL}sprites/badminton-male-clear.png`,
+  B1: `${import.meta.env.BASE_URL}sprites/badminton-female-drive.png`,
+  B2: `${import.meta.env.BASE_URL}sprites/badminton-male-jump-smash.png`,
 };
 
 export function CourtView({ match, displayMode = 'court', onPointTeam }: CourtViewProps) {
@@ -499,7 +501,7 @@ function FighterTeam({
               } satisfies CSSProperties
             }
           >
-            <img className="fighter-sprite" src={FIGHTER_SPRITES[player.teamId]} alt="" aria-hidden="true" />
+            <img className="fighter-sprite" src={FIGHTER_SPRITES[player.id]} alt="" aria-hidden="true" />
             <div className={player.teamId === 'teamA' ? 'fighter-nameplate nameplate-left' : 'fighter-nameplate nameplate-right'}>
               <span className="fighter-nameplate-name">{player.name}</span>
               {isServer ? <strong>Serving</strong> : null}

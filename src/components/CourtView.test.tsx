@@ -212,6 +212,33 @@ describe('CourtView', () => {
     expect(screen.getByTestId('fighter-B1')).toHaveAttribute('data-quadrant', 'bottom');
   });
 
+  it('renders deterministic badminton roster sprites for each little fighter slot', () => {
+    render(
+      <CourtView
+        match={createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' })}
+        displayMode="little-fighters"
+        onPointTeam={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('fighter-A1').querySelector('.fighter-sprite')).toHaveAttribute(
+      'src',
+      expect.stringContaining('badminton-female-ace.png'),
+    );
+    expect(screen.getByTestId('fighter-A2').querySelector('.fighter-sprite')).toHaveAttribute(
+      'src',
+      expect.stringContaining('badminton-male-clear.png'),
+    );
+    expect(screen.getByTestId('fighter-B1').querySelector('.fighter-sprite')).toHaveAttribute(
+      'src',
+      expect.stringContaining('badminton-female-drive.png'),
+    );
+    expect(screen.getByTestId('fighter-B2').querySelector('.fighter-sprite')).toHaveAttribute(
+      'src',
+      expect.stringContaining('badminton-male-jump-smash.png'),
+    );
+  });
+
   it('projects the little fighters court from regulation badminton dimensions', () => {
     render(
       <CourtView
