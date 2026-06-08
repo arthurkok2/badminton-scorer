@@ -840,7 +840,7 @@ export default function App() {
           settingsLocked={settingsLocked}
           onMatchModeChange={handleMatchModeChange}
           onSetInitialServer={handleSetInitialServer}
-          onRerollFirstServer={handleRerollFirstServer}
+          onRequestServeSpin={handleRequestServeSpin}
           onPlayerNameChange={appMode === 'session' ? () => undefined : handlePlayerNameChange}
         />
       ) : activeModal === 'announcementSettings' ? (

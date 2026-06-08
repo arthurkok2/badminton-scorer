@@ -12,7 +12,7 @@ function renderModal(overrides = {}) {
     playerNames: { ...DEFAULT_PLAYER_NAMES },
     onMatchModeChange: vi.fn(),
     onSetInitialServer: vi.fn(),
-    onRerollFirstServer: vi.fn(),
+    onRequestServeSpin: vi.fn(),
     onPlayerNameChange: vi.fn(),
     ...overrides,
   };
@@ -42,7 +42,7 @@ describe('MatchSettingsModal', () => {
 
     expect(props.onMatchModeChange).toHaveBeenCalledWith('singles');
     expect(props.onPlayerNameChange).toHaveBeenCalledWith('A1', 'Alice');
-    expect(props.onRerollFirstServer).toHaveBeenCalledTimes(1);
+    expect(props.onRequestServeSpin).toHaveBeenCalledTimes(1);
     expect(props.onSetInitialServer).toHaveBeenCalledWith('teamB', 'B1');
   });
 

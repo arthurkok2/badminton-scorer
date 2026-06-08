@@ -7,7 +7,7 @@ interface MatchSettingsModalProps {
   readonly settingsLocked?: boolean;
   readonly onMatchModeChange: (mode: MatchMode) => void;
   readonly onSetInitialServer: (teamId: TeamId, playerId: PlayerId) => void;
-  readonly onRerollFirstServer: () => void;
+  readonly onRequestServeSpin: () => void;
   readonly onPlayerNameChange: (playerId: PlayerId, name: string) => void;
 }
 
@@ -18,7 +18,7 @@ export function MatchSettingsModal({
   settingsLocked = false,
   onMatchModeChange,
   onSetInitialServer,
-  onRerollFirstServer,
+  onRequestServeSpin,
   onPlayerNameChange,
 }: MatchSettingsModalProps) {
   const canSetInitialServer = match.score.teamA === 0 && match.score.teamB === 0 && match.history.length === 0;
@@ -68,7 +68,7 @@ export function MatchSettingsModal({
               onPlayerNameChange={onPlayerNameChange}
             />
           </div>
-          <button type="button" disabled={settingsLocked} onClick={onRerollFirstServer}>
+          <button type="button" disabled={settingsLocked} onClick={onRequestServeSpin}>
             Reroll first server
           </button>
           <button type="button" disabled={settingsLocked} onClick={() => onSetInitialServer('teamA', 'A1')}>
