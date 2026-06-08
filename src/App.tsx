@@ -72,7 +72,7 @@ import { useAuth } from './auth';
 import type { ActiveSession, GlobalPlayer, MatchSuggestion as MatchSuggestionData, TeamSplit } from './session/sessionTypes';
 import { detectAnimationEvent } from './animations/detectAnimationEvent';
 import { AnimationOverlay } from './components/AnimationOverlay';
-import { ServeSpinOverlay } from './components/ServeSpinOverlay';
+import { pickRandomServer, ServeSpinOverlay } from './components/ServeSpinOverlay';
 import type { AnimationEvent } from './animations/types';
 import type { AppMenuAction } from './components/AppMenu';
 
@@ -374,20 +374,8 @@ export default function App() {
     if (preferencesRef.current.animationsEnabled) {
       setShowServeSpin(true);
     } else {
-      const choices: Array<{ teamId: TeamId; playerId: PlayerId }> =
-        preferencesRef.current.matchMode === 'singles'
-          ? [
-              { teamId: 'teamA' as TeamId, playerId: 'A1' as PlayerId },
-              { teamId: 'teamB' as TeamId, playerId: 'B1' as PlayerId },
-            ]
-          : [
-              { teamId: 'teamA' as TeamId, playerId: 'A1' as PlayerId },
-              { teamId: 'teamA' as TeamId, playerId: 'A2' as PlayerId },
-              { teamId: 'teamB' as TeamId, playerId: 'B1' as PlayerId },
-              { teamId: 'teamB' as TeamId, playerId: 'B2' as PlayerId },
-            ];
-      const choice = choices[Math.floor(Math.random() * choices.length)];
-      dispatch({ type: 'SET_INITIAL_SERVER', teamId: choice.teamId, playerId: choice.playerId });
+      const { teamId, playerId } = pickRandomServer(preferencesRef.current.matchMode);
+      dispatch({ type: 'SET_INITIAL_SERVER', teamId, playerId });
     }
   }, [matchView.match, dispatch]);
 
@@ -411,20 +399,8 @@ export default function App() {
   );
 
   const handleRerollFirstServer = useCallback(() => {
-    const choices: ReadonlyArray<{ teamId: TeamId; playerId: PlayerId }> =
-      preferencesRef.current.matchMode === 'singles'
-        ? [
-            { teamId: 'teamA', playerId: 'A1' },
-            { teamId: 'teamB', playerId: 'B1' },
-          ]
-        : [
-            { teamId: 'teamA', playerId: 'A1' },
-            { teamId: 'teamA', playerId: 'A2' },
-            { teamId: 'teamB', playerId: 'B1' },
-            { teamId: 'teamB', playerId: 'B2' },
-          ];
-    const choice = choices[Math.floor(Math.random() * choices.length)];
-    dispatch({ type: 'SET_INITIAL_SERVER', teamId: choice.teamId, playerId: choice.playerId });
+    const { teamId, playerId } = pickRandomServer(preferencesRef.current.matchMode);
+    dispatch({ type: 'SET_INITIAL_SERVER', teamId, playerId });
   }, [dispatch]);
 
   const handleRequestServeSpin = useCallback(() => {
@@ -630,8 +606,11 @@ export default function App() {
 
     if (preferencesRef.current.animationsEnabled) {
       setShowServeSpin(true);
+    } else {
+      const { teamId, playerId } = pickRandomServer('doubles');
+      dispatch({ type: 'SET_INITIAL_SERVER', teamId, playerId });
     }
-  }, []);
+  }, [dispatch]);
 
   const handleMatchEnded = useCallback((winnerTeam: 'teamA' | 'teamB') => {
     if (!activeSession || !currentPlayedSplit) return;

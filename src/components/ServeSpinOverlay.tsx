@@ -6,7 +6,7 @@ interface Props {
   readonly onComplete: (teamId: TeamId, playerId: PlayerId) => void;
 }
 
-function rollResult(mode: MatchMode): { teamId: TeamId; playerId: PlayerId } {
+export function pickRandomServer(mode: MatchMode): { teamId: TeamId; playerId: PlayerId } {
   const choices: Array<{ teamId: TeamId; playerId: PlayerId }> =
     mode === 'singles'
       ? [
@@ -23,7 +23,7 @@ function rollResult(mode: MatchMode): { teamId: TeamId; playerId: PlayerId } {
 }
 
 export function ServeSpinOverlay({ mode, onComplete }: Props) {
-  const resultRef = useRef(rollResult(mode));
+  const resultRef = useRef(pickRandomServer(mode));
   const [landed, setLanded] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const doneRef = useRef(false);
