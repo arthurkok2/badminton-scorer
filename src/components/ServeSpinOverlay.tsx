@@ -27,8 +27,11 @@ export function ServeSpinOverlay({ mode, onComplete }: Props) {
   const [landed, setLanded] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const doneRef = useRef(false);
+  const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
+    let mounted = true;
+
     function onAnimEnd() {
       if (doneRef.current) return;
       doneRef.current = true;
@@ -41,13 +44,18 @@ export function ServeSpinOverlay({ mode, onComplete }: Props) {
       });
 
       setTimeout(() => {
-        onComplete(resultRef.current.teamId, resultRef.current.playerId);
+        if (mounted) {
+          onComplete(resultRef.current.teamId, resultRef.current.playerId);
+        }
       }, 1400);
     }
 
-    const el = document.querySelector('.serve-spin-shuttle--spinning');
+    const el = svgRef.current;
     el?.addEventListener('animationend', onAnimEnd);
-    return () => el?.removeEventListener('animationend', onAnimEnd);
+    return () => {
+      mounted = false;
+      el?.removeEventListener('animationend', onAnimEnd);
+    };
   }, [onComplete]);
 
   const finalDeg =
@@ -58,6 +66,7 @@ export function ServeSpinOverlay({ mode, onComplete }: Props) {
   return (
     <div className="serve-spin-overlay" role="img" aria-label="Spinning shuttle to determine first server">
       <svg
+        ref={svgRef}
         className={`serve-spin-shuttle ${landed ? 'serve-spin-shuttle--landed' : 'serve-spin-shuttle--spinning'}`}
         style={landed ? { transform: `rotate(${finalDeg}deg)` } : undefined}
         viewBox="0 0 60 80"
