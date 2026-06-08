@@ -72,6 +72,7 @@ import { useAuth } from './auth';
 import type { ActiveSession, GlobalPlayer, MatchSuggestion as MatchSuggestionData, TeamSplit } from './session/sessionTypes';
 import { detectAnimationEvent } from './animations/detectAnimationEvent';
 import { AnimationOverlay } from './components/AnimationOverlay';
+import { ServeSpinOverlay } from './components/ServeSpinOverlay';
 import type { AnimationEvent } from './animations/types';
 import type { AppMenuAction } from './components/AppMenu';
 
@@ -180,6 +181,7 @@ export default function App() {
   const toastIdRef = useRef(0);
   const match = matchView.match;
   const [activeAnimation, setActiveAnimation] = useState<AnimationEvent | null>(null);
+  const [showServeSpin, setShowServeSpin] = useState(false);
   const prevMatchRef = useRef<MatchState>(matchView.match);
 
   const handleAnimationDismiss = useCallback(() => setActiveAnimation(null), []);
@@ -368,7 +370,26 @@ export default function App() {
         playerNames: preferencesRef.current.playerNames,
       }),
     );
-  }, [matchView.match]);
+
+    if (preferencesRef.current.animationsEnabled) {
+      setShowServeSpin(true);
+    } else {
+      const choices: Array<{ teamId: TeamId; playerId: PlayerId }> =
+        preferencesRef.current.matchMode === 'singles'
+          ? [
+              { teamId: 'teamA' as TeamId, playerId: 'A1' as PlayerId },
+              { teamId: 'teamB' as TeamId, playerId: 'B1' as PlayerId },
+            ]
+          : [
+              { teamId: 'teamA' as TeamId, playerId: 'A1' as PlayerId },
+              { teamId: 'teamA' as TeamId, playerId: 'A2' as PlayerId },
+              { teamId: 'teamB' as TeamId, playerId: 'B1' as PlayerId },
+              { teamId: 'teamB' as TeamId, playerId: 'B2' as PlayerId },
+            ];
+      const choice = choices[Math.floor(Math.random() * choices.length)];
+      dispatch({ type: 'SET_INITIAL_SERVER', teamId: choice.teamId, playerId: choice.playerId });
+    }
+  }, [matchView.match, dispatch]);
 
   const handleSetInitialServer = useCallback(
     (teamId: TeamId, playerId: PlayerId) => {
@@ -405,6 +426,22 @@ export default function App() {
     const choice = choices[Math.floor(Math.random() * choices.length)];
     dispatch({ type: 'SET_INITIAL_SERVER', teamId: choice.teamId, playerId: choice.playerId });
   }, [dispatch]);
+
+  const handleRequestServeSpin = useCallback(() => {
+    if (!preferencesRef.current.animationsEnabled) {
+      handleRerollFirstServer();
+      return;
+    }
+    setShowServeSpin(true);
+  }, [handleRerollFirstServer]);
+
+  const handleServeSpinComplete = useCallback(
+    (teamId: TeamId, playerId: PlayerId) => {
+      setShowServeSpin(false);
+      dispatch({ type: 'SET_INITIAL_SERVER', teamId, playerId });
+    },
+    [dispatch],
+  );
 
   const handleSwitchToSession = useCallback(() => {
     if (!user || isAnonymous) {
@@ -590,6 +627,10 @@ export default function App() {
     setCurrentPlayedSplit(split);
     setCurrentSessionMatchStartedAt(startedAt);
     setSessionPhase('playing');
+
+    if (preferencesRef.current.animationsEnabled) {
+      setShowServeSpin(true);
+    }
   }, []);
 
   const handleMatchEnded = useCallback((winnerTeam: 'teamA' | 'teamB') => {
@@ -1003,6 +1044,9 @@ export default function App() {
         ) : null}
       {toastViewport}
       <AnimationOverlay event={activeAnimation} onDismiss={handleAnimationDismiss} />
+      {showServeSpin && (
+        <ServeSpinOverlay mode={match.mode} onComplete={handleServeSpinComplete} />
+      )}
     </main>
   );
 }
