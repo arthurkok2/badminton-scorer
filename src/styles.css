@@ -2208,3 +2208,56 @@ button {
   margin: 0 auto;
   image-rendering: pixelated;
 }
+
+/* Serve spin overlay */
+.serve-spin-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+  animation: serve-spin-fade-in 0.3s ease-out forwards;
+}
+
+@keyframes serve-spin-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.serve-spin-shuttle {
+  width: 80px;
+  height: 100px;
+  will-change: transform;
+}
+
+.serve-spin-shuttle--spinning {
+  animation: serve-shuttle-spin 2.8s cubic-bezier(0.15, 0.9, 0.3, 1) forwards;
+}
+
+.serve-spin-shuttle--landed {
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+@keyframes serve-shuttle-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(5760deg); }
+}
+
+.serve-spin-result {
+  margin-top: 24px;
+  font-size: 2rem;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.35s ease-out, transform 0.35s ease-out;
+}
+
+.serve-spin-result--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
