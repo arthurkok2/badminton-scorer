@@ -5,7 +5,7 @@ export type WatchRemoteCommandType = 'POINT_TEAM' | 'UNDO' | 'ANNOUNCE';
 
 interface WatchRemoteCommandMetadata {
   readonly sourceId: string;
-  readonly sourceKind: 'wear' | 'web';
+  readonly sourceKind: 'wear' | 'web' | 'garmin';
   readonly createdAt: unknown;
   readonly appliedAt?: unknown;
   readonly rejectedAt?: unknown;
