@@ -182,7 +182,7 @@ function isWatchRemoteCommand(data: unknown): data is WatchRemoteCommandDocument
     data.createdAt === undefined ||
     data.createdAt === null ||
     typeof data.sourceId !== 'string' ||
-    (data.sourceKind !== 'wear' && data.sourceKind !== 'web')
+    (data.sourceKind !== 'wear' && data.sourceKind !== 'web' && data.sourceKind !== 'garmin')
   ) {
     return false;
   }
