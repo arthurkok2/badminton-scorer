@@ -35,3 +35,4 @@ Master index of all specs across projects.
 | 2026-05-21 | BS | [2026-05-21-little-fighters-display-mode-design](2026/05/2026-05-21-little-fighters-display-mode-design.md) | Little Fighters Display Mode | ui | low | medium |
 | 2026-05-22 | BS | [2026-05-22-court-fullscreen-button-design](2026/05/2026-05-22-court-fullscreen-button-design.md) | Court Fullscreen Button Design | ui | low | low |
 | 2026-06-24 | BS | [2026-06-24-garmin-connect-iq-remote](2026/06/2026-06-24-garmin-connect-iq-remote.md) | Garmin Connect IQ Remote Controller | input | medium | medium |
+| 2026-06-28 | BS | [2026-06-28-server-picker-design](2026/06/2026-06-28-server-picker-design.md) | Physical Toss Server Picker | ui | low | low |
