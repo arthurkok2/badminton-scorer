@@ -40,6 +40,12 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
+  // Never intercept Firestore emulator traffic — the streaming channels
+  // use non-GET methods and long-lived connections that the SW cannot proxy.
+  if (url.hostname === 'localhost' && url.port === '8080') {
+    return;
+  }
+
   if (event.request.mode === 'navigate' || event.request.destination === 'document') {
     event.respondWith(fetch(event.request).catch(() => navigationFallback()));
     return;

@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<iq:manifest xmlns:iq="com.garmin.connectiq" version="3">
+  <iq:application
+    entry="GarminRemoteApp"
+    id="a3b4c5d6-e7f8-1234-abcd-badminton0001"
+    launcherIcon="@Drawables.LauncherIcon"
+    minSdkVersion="3.2.0"
+    name="@Strings.AppName"
+    type="watch-app"
+    version="1.0.0">
+
+    <!-- Forerunner 265 -->
+    <iq:products>
+      <iq:product id="fr265"/>
+      <iq:product id="fr265s"/>
+    </iq:products>
+
+    <iq:permissions>
+      <!-- Required for makeWebRequest() via Garmin Connect relay -->
+      <iq:uses-permission id="Communications"/>
+      <!-- Required for vibration feedback -->
+      <iq:uses-permission id="Attention"/>
+    </iq:permissions>
+
+    <iq:languages>
+      <iq:language id="eng"/>
+    </iq:languages>
+  </iq:application>
+</iq:manifest>

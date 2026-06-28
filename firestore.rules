@@ -21,7 +21,8 @@ service cloud.firestore {
     }
 
     function isValidSourceKind(k) {
-      return k is string && k in ['wear', 'web'];
+      // 'garmin' added for Connect IQ watch app which uses Firestore REST API
+      return k is string && k in ['wear', 'web', 'garmin'];
     }
 
     function isNamedSignedIn() {
@@ -117,14 +118,19 @@ service cloud.firestore {
       match /commands/{commandId} {
         allow read: if true;
 
+        // Auth is intentionally not required for command creation.
+        // The Garmin Connect IQ remote uses the Firestore REST API and cannot
+        // perform Firebase auth. Commands are append-only and low-risk: the host
+        // validates and applies/rejects every command, and malicious writes
+        // require knowing the short-lived 4-char room code.
+        // See: .specs/2026/06/2026-06-24-garmin-connect-iq-remote.md
         allow create: if
-          isNamedSignedIn()
-          && isValidCommandType(request.resource.data.type)
+          isValidCommandType(request.resource.data.type)
           && isValidSourceKind(request.resource.data.sourceKind)
           && request.resource.data.sourceId is string
           && request.resource.data.sourceId.size() >= 1
           && request.resource.data.sourceId.size() <= 128
-          && request.resource.data.createdAt == request.time
+          && request.resource.data.createdAt is timestamp
           && !('appliedAt' in request.resource.data)
           && !('rejectedAt' in request.resource.data)
           && !('rejectionReason' in request.resource.data)

@@ -1,6 +1,6 @@
 ---
 title: Input — All Remote Control Surfaces
-last-updated: 2026-05-23
+last-updated: 2026-06-24
 ---
 
 # Input Remotes
@@ -62,7 +62,7 @@ All remote paths use a unified gesture mapping:
 
 ### Firestore Remote
 
-`src/remote/` implements a Firestore-based relay for companion devices (Wear OS watches, browser `/controller` page):
+`src/remote/` implements a Firestore-based relay for companion devices (Wear OS watches, Garmin watches, browser `/controller` page):
 
 - **Host** (`firestoreRemoteService.ts`) — creates rooms, publishes `MatchState`, processes commands, marks applied/rejected
 - **Controller client** (`firestoreControllerService.ts`) — subscribes to room state, writes commands
@@ -83,9 +83,24 @@ All remote paths use a unified gesture mapping:
 
 `matches/{code}`: `code`, `active`, `hostId`, `createdAt`, `updatedAt`, `hostHeartbeatAt`, `matchState`, `matchMode`, `winnerTeamId`, `lastAppliedCommandId`
 
-`matches/{code}/commands/{commandId}`: `type` (POINT_TEAM | UNDO | ANNOUNCE), `teamId`, `sourceId`, `sourceKind` (wear | web), `createdAt`, `appliedAt?`, `rejectedAt?`, `rejectionReason?`
+`matches/{code}/commands/{commandId}`: `type` (POINT_TEAM | UNDO | ANNOUNCE), `teamId`, `sourceId`, `sourceKind` (wear | web | garmin), `createdAt`, `appliedAt?`, `rejectedAt?`, `rejectionReason?`
 
 Commands are append-only from controllers; only the host marks them applied/rejected.
+
+#### Garmin Connect IQ Remote
+
+A separate Connect IQ watch app (`GarminRemote/`) targets the Garmin Forerunner 265. It posts commands to the same Firestore room via the **Firestore REST API** rather than the Firebase SDK, routing HTTP requests through the Garmin Connect app on the user's paired phone.
+
+```
+Watch button press
+  → Garmin Connect app on phone (Bluetooth)
+    → Firestore REST API (internet)
+      → Scorer app (existing command processing)
+```
+
+Because the Garmin SDK cannot perform Firebase authentication, the Firestore `commands` `allow create` rule does not require auth. Field validation (`hasOnly`, enum checks, no outcome fields on create) remains in place. See the security rationale in `.specs/2026/06/2026-06-24-garmin-connect-iq-remote.md`.
+
+Button mapping: UP → Team A point, DOWN → Team B point, hold BACK → Undo.
 
 ### Connection Pattern
 
@@ -109,11 +124,12 @@ All commands are reduced through `applyCommand()` in `src/input/commands.ts`, wh
 ## Data Flow
 
 ```
-BLE button press  ─┐
-Keyboard shortcut ─┤
-Gamepad button   ──┤──→ AppCommand ──→ applyCommand() ──→ new MatchState
-Gesture swipe    ──┤
-Firestore remote ──┘
+BLE button press   ─┐
+Keyboard shortcut  ─┤
+Gamepad button    ──┤──→ AppCommand ──→ applyCommand() ──→ new MatchState
+Gesture swipe     ──┤
+Firestore remote  ──┤  (Wear OS, browser controller, Garmin watch)
+                   ─┘
 ```
 
 ## Related Docs
