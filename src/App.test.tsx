@@ -632,7 +632,9 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: /doubles/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /singles/i })).toBeDisabled();
     expect(screen.getByRole('textbox', { name: /team a player 1 name/i })).toBeDisabled();
-    expect(screen.getByRole('button', { name: /team b .* serves/i })).toBeDisabled();
+    expect(
+      within(screen.getByRole('group', { name: /first server setup/i })).getByRole('button', { name: /team b .* serves/i }),
+    ).toBeDisabled();
   });
 
   it('returns an unstarted session match to the suggestion screen', async () => {
