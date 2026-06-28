@@ -12,7 +12,6 @@ function renderModal(overrides = {}) {
     playerNames: { ...DEFAULT_PLAYER_NAMES },
     onMatchModeChange: vi.fn(),
     onSetInitialServer: vi.fn(),
-    onRequestServeSpin: vi.fn(),
     onPlayerNameChange: vi.fn(),
     ...overrides,
   };
@@ -37,12 +36,10 @@ describe('MatchSettingsModal', () => {
     fireEvent.change(screen.getByRole('textbox', { name: /team a player 1 name/i }), {
       target: { value: 'Alice' },
     });
-    await user.click(screen.getByRole('button', { name: /reroll first server/i }));
     await user.click(screen.getByRole('button', { name: /team b player 3 serves/i }));
 
     expect(props.onMatchModeChange).toHaveBeenCalledWith('singles');
     expect(props.onPlayerNameChange).toHaveBeenCalledWith('A1', 'Alice');
-    expect(props.onRequestServeSpin).toHaveBeenCalledTimes(1);
     expect(props.onSetInitialServer).toHaveBeenCalledWith('teamB', 'B1');
   });
 
@@ -64,7 +61,6 @@ describe('MatchSettingsModal', () => {
     expect(screen.getByRole('button', { name: /doubles/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /singles/i })).toBeDisabled();
     expect(screen.getByRole('textbox', { name: /team a player 1 name/i })).toBeDisabled();
-    expect(screen.getByRole('button', { name: /reroll first server/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /team b player 3 serves/i })).toBeDisabled();
     expect(screen.getByText(/session match settings are locked/i)).toBeInTheDocument();
   });
