@@ -2264,6 +2264,15 @@ button {
   -webkit-tap-highlight-color: transparent;
 }
 
+.server-picker-button:hover {
+  filter: brightness(1.1);
+}
+
+.server-picker-button:focus-visible {
+  outline: 3px solid #f3d36b;
+  outline-offset: 2px;
+}
+
 .server-picker-button--teamA {
   background: linear-gradient(135deg, #d14b55, #e87a52);
 }
