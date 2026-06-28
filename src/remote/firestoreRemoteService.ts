@@ -137,9 +137,12 @@ export async function updateHostHeartbeat(options: { code: string; db?: Firestor
 }
 
 export async function endWatchRemoteRoom(options: { code: string; db?: Firestore }): Promise<void> {
+  const timestamp = serverTimestamp();
+
   await updateDoc(roomDoc(resolveDb(options.db), options.code), {
     active: false,
-    updatedAt: serverTimestamp(),
+    hostHeartbeatAt: timestamp,
+    updatedAt: timestamp,
   });
 }
 

@@ -112,17 +112,17 @@ export function useWatchRemoteHost(options: {
             if (command.type === 'POINT_TEAM') {
               dispatch({ type: 'POINT_TEAM', teamId: command.teamId });
               setLastCommandLabel(`POINT_TEAM ${command.teamId}`);
-              void service.markApplied({ code: roomCode, commandId: id, match: matchRef.current });
+              service.markApplied({ code: roomCode, commandId: id, match: matchRef.current }).catch(() => {});
             } else if (command.type === 'UNDO') {
               dispatch({ type: 'UNDO' });
               setLastCommandLabel('UNDO');
-              void service.markApplied({ code: roomCode, commandId: id, match: matchRef.current });
+              service.markApplied({ code: roomCode, commandId: id, match: matchRef.current }).catch(() => {});
             } else if (command.type === 'ANNOUNCE') {
               announce();
               setLastCommandLabel('ANNOUNCE');
-              void service.markApplied({ code: roomCode, commandId: id, match: matchRef.current });
+              service.markApplied({ code: roomCode, commandId: id, match: matchRef.current }).catch(() => {});
             } else {
-              void service.markRejected({ code: roomCode, commandId: id, reason: 'unsupported command type' });
+              service.markRejected({ code: roomCode, commandId: id, reason: 'unsupported command type' }).catch(() => {});
             }
           }
         },
@@ -167,7 +167,12 @@ export function useWatchRemoteHost(options: {
     unsubscribeRef.current = undefined;
 
     if (roomCode !== undefined) {
-      await service.endRoom({ code: roomCode });
+      try {
+        await service.endRoom({ code: roomCode });
+      } catch {
+        // Always clean up local state even if the Firestore call fails
+        // (e.g. PERMISSION_DENIED from expired/stale auth token).
+      }
     }
 
     localStorage.removeItem(STORAGE_KEY);

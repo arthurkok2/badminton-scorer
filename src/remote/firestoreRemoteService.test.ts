@@ -274,6 +274,7 @@ describe('firestore remote service', () => {
       { kind: 'doc', parent: { kind: 'collection', parent: db, path: 'matches' }, id: 'ABCD' },
       {
         active: false,
+        hostHeartbeatAt: { kind: 'serverTimestamp' },
         updatedAt: { kind: 'serverTimestamp' },
       },
     );
