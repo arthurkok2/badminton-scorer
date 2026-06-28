@@ -796,7 +796,6 @@ export default function App() {
           settingsLocked={settingsLocked}
           onMatchModeChange={handleMatchModeChange}
           onSetInitialServer={handleSetInitialServer}
-
           onPlayerNameChange={appMode === 'session' ? () => undefined : handlePlayerNameChange}
         />
       ) : activeModal === 'announcementSettings' ? (
@@ -1003,7 +1002,7 @@ export default function App() {
       {showServerPicker && (
         <ServerPickerOverlay
           mode={match.mode}
-          playerNames={preferences.playerNames}
+          playerNames={sessionPlayerNames ?? preferences.playerNames}
           onComplete={handleServerPickerComplete}
         />
       )}
