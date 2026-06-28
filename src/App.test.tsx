@@ -632,7 +632,6 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: /doubles/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /singles/i })).toBeDisabled();
     expect(screen.getByRole('textbox', { name: /team a player 1 name/i })).toBeDisabled();
-    expect(screen.getByRole('button', { name: /reroll first server/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /team b .* serves/i })).toBeDisabled();
   });
 

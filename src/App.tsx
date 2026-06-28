@@ -72,7 +72,7 @@ import { useAuth } from './auth';
 import type { ActiveSession, GlobalPlayer, MatchSuggestion as MatchSuggestionData, TeamSplit } from './session/sessionTypes';
 import { detectAnimationEvent } from './animations/detectAnimationEvent';
 import { AnimationOverlay } from './components/AnimationOverlay';
-import { pickRandomServer, ServeSpinOverlay } from './components/ServeSpinOverlay';
+import { ServerPickerOverlay } from './components/ServerPickerOverlay';
 import type { AnimationEvent } from './animations/types';
 import type { AppMenuAction } from './components/AppMenu';
 
@@ -181,7 +181,7 @@ export default function App() {
   const toastIdRef = useRef(0);
   const match = matchView.match;
   const [activeAnimation, setActiveAnimation] = useState<AnimationEvent | null>(null);
-  const [showServeSpin, setShowServeSpin] = useState(false);
+  const [showServerPicker, setShowServerPicker] = useState(false);
   const prevMatchRef = useRef<MatchState>(matchView.match);
 
   const handleAnimationDismiss = useCallback(() => setActiveAnimation(null), []);
@@ -371,12 +371,7 @@ export default function App() {
       }),
     );
 
-    if (preferencesRef.current.animationsEnabled) {
-      setShowServeSpin(true);
-    } else {
-      const { teamId, playerId } = pickRandomServer(preferencesRef.current.matchMode);
-      dispatch({ type: 'SET_INITIAL_SERVER', teamId, playerId });
-    }
+    setShowServerPicker(true);
   }, [matchView.match, dispatch]);
 
   const handleSetInitialServer = useCallback(
@@ -398,22 +393,9 @@ export default function App() {
     [updatePreferences],
   );
 
-  const handleRerollFirstServer = useCallback(() => {
-    const { teamId, playerId } = pickRandomServer(preferencesRef.current.matchMode);
-    dispatch({ type: 'SET_INITIAL_SERVER', teamId, playerId });
-  }, [dispatch]);
-
-  const handleRequestServeSpin = useCallback(() => {
-    if (!preferencesRef.current.animationsEnabled) {
-      handleRerollFirstServer();
-      return;
-    }
-    setShowServeSpin(true);
-  }, [handleRerollFirstServer]);
-
-  const handleServeSpinComplete = useCallback(
+  const handleServerPickerComplete = useCallback(
     (teamId: TeamId, playerId: PlayerId) => {
-      setShowServeSpin(false);
+      setShowServerPicker(false);
       dispatch({ type: 'SET_INITIAL_SERVER', teamId, playerId });
     },
     [dispatch],
@@ -604,12 +586,7 @@ export default function App() {
     setCurrentSessionMatchStartedAt(startedAt);
     setSessionPhase('playing');
 
-    if (preferencesRef.current.animationsEnabled) {
-      setShowServeSpin(true);
-    } else {
-      const { teamId, playerId } = pickRandomServer('doubles');
-      dispatch({ type: 'SET_INITIAL_SERVER', teamId, playerId });
-    }
+    setShowServerPicker(true);
   }, [dispatch]);
 
   const handleMatchEnded = useCallback((winnerTeam: 'teamA' | 'teamB') => {
@@ -819,7 +796,7 @@ export default function App() {
           settingsLocked={settingsLocked}
           onMatchModeChange={handleMatchModeChange}
           onSetInitialServer={handleSetInitialServer}
-          onRequestServeSpin={handleRequestServeSpin}
+
           onPlayerNameChange={appMode === 'session' ? () => undefined : handlePlayerNameChange}
         />
       ) : activeModal === 'announcementSettings' ? (
@@ -1023,8 +1000,12 @@ export default function App() {
         ) : null}
       {toastViewport}
       <AnimationOverlay event={activeAnimation} onDismiss={handleAnimationDismiss} />
-      {showServeSpin && (
-        <ServeSpinOverlay mode={match.mode} onComplete={handleServeSpinComplete} />
+      {showServerPicker && (
+        <ServerPickerOverlay
+          mode={match.mode}
+          playerNames={preferences.playerNames}
+          onComplete={handleServerPickerComplete}
+        />
       )}
     </main>
   );
