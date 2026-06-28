@@ -27,6 +27,8 @@ service cloud.firestore {
 
     function isNamedSignedIn() {
       return request.auth != null
+        && request.auth.uid != null
+        && 'firebase' in request.auth.token
         && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
 
@@ -103,8 +105,8 @@ service cloud.firestore {
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.hostId == resource.data.hostId
         && request.resource.data.active is bool
-        && request.resource.data.updatedAt == request.time
-        && request.resource.data.hostHeartbeatAt == request.time
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.hostHeartbeatAt is timestamp
         && isValidMatchMode(request.resource.data.matchMode)
         && request.resource.data.matchState is map
         && (
