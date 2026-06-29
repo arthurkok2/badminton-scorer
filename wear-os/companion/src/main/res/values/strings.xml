@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Badminton Remote</string>
+    <string name="room_code_hint">Room Code</string>
+    <string name="connect">Connect</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="connected_to">Connected to %1$s</string>
+    <string name="watch_connected">Watch connected</string>
+    <string name="watch_disconnected">Watch not connected</string>
+    <string name="waiting_for_connection">Waiting for connection&#8230;</string>
+    <string name="team_a_label">Team A</string>
+    <string name="team_b_label">Team B</string>
+</resources>
