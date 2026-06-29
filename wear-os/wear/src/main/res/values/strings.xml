@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Badminton</string>
+    <string name="waiting_for_connection">Waiting for connection</string>
+    <string name="connect_from_phone">Connect to a match from\nthe companion app</string>
+    <string name="match_over">Match Over</string>
+    <string name="score_team_a">Score Team A</string>
+    <string name="score_team_b">Score Team B</string>
+    <string name="undo">Undo</string>
+    <string name="serving_indicator">●</string>
+</resources>

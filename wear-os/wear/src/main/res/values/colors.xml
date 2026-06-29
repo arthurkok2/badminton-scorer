@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="team_a_green">#4CAF50</color>
+    <color name="team_b_blue">#2196F3</color>
+    <color name="connected_green">#4CAF50</color>
+    <color name="serving_color">#FFEB3B</color>
+    <color name="bg_dark">#1A1A2E</color>
+    <color name="surface_dark">#16213E</color>
+</resources>
