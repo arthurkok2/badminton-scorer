@@ -38,14 +38,16 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation("androidx.activity:activity-compose:1.9.3")
 
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
+
     implementation(platform("androidx.compose:compose-bom:2024.12.01"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
 
-    implementation(platform("androidx.wear.compose:compose-bom:1.5.0"))
-    implementation("androidx.wear.compose:compose-material3")
-    implementation("androidx.wear.compose:compose-foundation")
-    implementation("androidx.wear.compose:compose-navigation")
+    val wear_compose_version = "1.6.2"
+    implementation("androidx.wear.compose:compose-material3:$wear_compose_version")
+    implementation("androidx.wear.compose:compose-foundation:$wear_compose_version")
+    implementation("androidx.wear.compose:compose-navigation:$wear_compose_version")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")

@@ -40,6 +40,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import com.google.android.gms.wearable.CapabilityClient
@@ -169,12 +170,12 @@ fun CompanionScreen(
     var roomCode by remember { mutableStateOf(lastCode ?: "") }
     var isWatchConnected by remember { mutableStateOf(false) }
 
+    val context = LocalContext.current
     LaunchedEffect(Unit) {
         // Check if a Wear OS watch is reachable via Data Layer
         try {
-            val capabilityInfo = Wearable.getCapabilityClient(
-                androidx.compose.ui.platform.LocalContext.current
-            ).getCapability("remote_control", CapabilityClient.FILTER_REACHABLE).await()
+            val capabilityInfo = Wearable.getCapabilityClient(context)
+                .getCapability("remote_control", CapabilityClient.FILTER_REACHABLE).await()
             isWatchConnected = capabilityInfo.nodes.isNotEmpty()
         } catch (_: Exception) {
             isWatchConnected = false
