@@ -6,6 +6,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.os.IBinder
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.google.android.gms.tasks.Task
 import com.google.android.gms.tasks.Tasks
@@ -30,6 +31,7 @@ class RemoteForegroundService : Service() {
     private var dataListenerRegistered = false
 
     companion object {
+        private const val TAG = "RemoteService"
         const val CHANNEL_ID = "badminton_remote"
         const val NOTIFICATION_ID = 1
         const val EXTRA_ROOM_CODE = "room_code"
@@ -45,6 +47,7 @@ class RemoteForegroundService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.d(TAG, "onStartCommand: action=${intent?.action}")
         when (intent?.action) {
             ACTION_DISCONNECT -> disconnect()
             ACTION_STOP -> stopSelf()
@@ -67,20 +70,29 @@ class RemoteForegroundService : Service() {
     }
 
     private fun connect(code: String) {
+        Log.d(TAG, "connect: roomCode=$code")
         roomCode = code
 
-        val notification = buildNotification(code)
+        val notification = buildNotification("Connecting to room $code...")
         startForeground(NOTIFICATION_ID, notification)
 
         registerDataLayerListener()
 
         serviceScope.launch {
+            Log.d(TAG, "Starting Firebase observation for $code")
             firebaseClient.observeRoom(code)
-                .catch { e -> pushConnectionStatus(DataLayerProtocol.ConnectionStatus.INACTIVE) }
+                .catch { e ->
+                    Log.e(TAG, "Error observing room $code", e)
+                    pushConnectionStatus(DataLayerProtocol.ConnectionStatus.INACTIVE)
+                }
                 .collect { result ->
                     result.onSuccess { roomDoc ->
+                        Log.d(TAG, "Received match state for $code: active=${roomDoc.active}")
+                        updateNotification("Connected to room $code")
                         pushMatchState(roomDoc)
-                    }.onFailure {
+                        pushConnectionStatus(DataLayerProtocol.ConnectionStatus.ACTIVE)
+                    }.onFailure { e ->
+                        Log.w(TAG, "Failed to observe room $code: ${e.message}")
                         pushConnectionStatus(DataLayerProtocol.ConnectionStatus.INACTIVE)
                     }
                 }
@@ -88,6 +100,7 @@ class RemoteForegroundService : Service() {
     }
 
     private fun disconnect() {
+        Log.d(TAG, "disconnect")
         roomCode = null
         pushConnectionStatus(DataLayerProtocol.ConnectionStatus.INACTIVE)
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -96,6 +109,7 @@ class RemoteForegroundService : Service() {
 
     private fun registerDataLayerListener() {
         if (dataListenerRegistered) return
+        Log.d(TAG, "Registering Data Layer listener")
         dataListenerRegistered = true
         dataClient.addListener { events ->
             for (event in events) {
@@ -111,6 +125,7 @@ class RemoteForegroundService : Service() {
     private fun handleCommandFromWatch(dataItem: com.google.android.gms.wearable.DataItem) {
         val mapItem = DataMapItem.fromDataItem(dataItem)
         val json = mapItem.dataMap.getString("payload") ?: return
+        Log.d(TAG, "Received command from watch: $json")
         val command = DataLayerProtocol.commandFromJson(json) ?: return
         val code = roomCode ?: return
 
@@ -120,24 +135,34 @@ class RemoteForegroundService : Service() {
     }
 
     private fun pushMatchState(roomDoc: MatchRoomDocument) {
+        Log.d(TAG, "Pushing match state to watch")
         val json = DataLayerProtocol.matchStateToJson(roomDoc)
         val request = PutDataMapRequest.create(DataLayerProtocol.PATH_MATCH_STATE).apply {
             dataMap.putString("payload", json)
+            dataMap.putLong("timestamp", System.currentTimeMillis())
         }
         dataClient.putDataItem(request.asPutDataRequest())
     }
 
     private fun pushConnectionStatus(status: DataLayerProtocol.ConnectionStatus) {
+        Log.d(TAG, "Pushing connection status to watch: $status")
         val json = DataLayerProtocol.connectionStatusToJson(status)
         val request = PutDataMapRequest.create(DataLayerProtocol.PATH_CONNECTION_STATUS).apply {
             dataMap.putString("payload", json)
+            dataMap.putLong("timestamp", System.currentTimeMillis())
         }
         dataClient.putDataItem(request.asPutDataRequest())
     }
 
-    private fun buildNotification(code: String) = NotificationCompat.Builder(this, CHANNEL_ID)
+    private fun updateNotification(text: String) {
+        val notification = buildNotification(text)
+        val manager = getSystemService(NotificationManager::class.java)
+        manager.notify(NOTIFICATION_ID, notification)
+    }
+
+    private fun buildNotification(text: String) = NotificationCompat.Builder(this, CHANNEL_ID)
         .setContentTitle("Badminton Remote Active")
-        .setContentText("Connected to room $code")
+        .setContentText(text)
         .setSmallIcon(android.R.drawable.ic_dialog_info)
         .setOngoing(true)
         .addAction(

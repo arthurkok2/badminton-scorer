@@ -1,6 +1,7 @@
 package com.badminton.scorer.watch
 
 import android.content.Context
+import android.util.Log
 import com.google.android.gms.wearable.DataClient
 import com.google.android.gms.wearable.DataEventBuffer
 import com.google.android.gms.wearable.DataMapItem
@@ -14,8 +15,10 @@ import kotlinx.coroutines.tasks.await
 class WearDataLayerClient(context: Context) {
 
     private val dataClient: DataClient = Wearable.getDataClient(context)
+    private val TAG = "WearDataLayer"
 
     fun observeMatchState(): Flow<MatchStatePayload> = callbackFlow {
+        Log.d(TAG, "observeMatchState started")
         val listener = DataClient.OnDataChangedListener { events ->
             for (event in events) {
                 if (event.type == com.google.android.gms.wearable.DataEvent.TYPE_CHANGED &&
@@ -23,6 +26,7 @@ class WearDataLayerClient(context: Context) {
                 ) {
                     val mapItem = DataMapItem.fromDataItem(event.dataItem)
                     val json = mapItem.dataMap.getString("payload") ?: continue
+                    Log.d(TAG, "Received match state JSON")
                     val payload = parseMatchStateJson(json) ?: continue
                     trySend(payload)
                 }
@@ -33,6 +37,7 @@ class WearDataLayerClient(context: Context) {
     }
 
     fun observeConnectionStatus(): Flow<ConnectionStatusPayload> = callbackFlow {
+        Log.d(TAG, "observeConnectionStatus started")
         val listener = DataClient.OnDataChangedListener { events ->
             for (event in events) {
                 if (event.type == com.google.android.gms.wearable.DataEvent.TYPE_CHANGED &&
@@ -40,6 +45,7 @@ class WearDataLayerClient(context: Context) {
                 ) {
                     val mapItem = DataMapItem.fromDataItem(event.dataItem)
                     val json = mapItem.dataMap.getString("payload") ?: continue
+                    Log.d(TAG, "Received connection status JSON: $json")
                     val payload = parseConnectionStatusJson(json) ?: continue
                     trySend(payload)
                 }
@@ -50,6 +56,7 @@ class WearDataLayerClient(context: Context) {
     }
 
     suspend fun sendCommand(command: WatchCommand) {
+        Log.d(TAG, "Sending command: ${command.commandType}")
         val json = commandToJson(command)
         val request = PutDataMapRequest.create("/command").apply {
             dataMap.putString("payload", json)

@@ -1,6 +1,7 @@
 package com.badminton.scorer.watch
 
 import android.app.Application
+import android.util.Log
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -27,6 +28,7 @@ class RemoteViewModel(application: Application) : AndroidViewModel(application) 
 
     private val dataLayerClient = WearDataLayerClient(application)
     private val vibrator: Vibrator
+    private val TAG = "RemoteViewModel"
 
     private val _state = MutableStateFlow(RemoteScreenState())
     val state: StateFlow<RemoteScreenState> = _state.asStateFlow()
@@ -46,6 +48,7 @@ class RemoteViewModel(application: Application) : AndroidViewModel(application) 
 
         viewModelScope.launch {
             dataLayerClient.observeConnectionStatus().collect { status ->
+                Log.d(TAG, "Connection status update: isActive=${status.isActive}")
                 _state.value = _state.value.copy(
                     isActive = status.isActive,
                     isDataLayerConnected = true
@@ -58,6 +61,7 @@ class RemoteViewModel(application: Application) : AndroidViewModel(application) 
 
         viewModelScope.launch {
             dataLayerClient.observeMatchState().collect { match ->
+                Log.d(TAG, "Match state update received")
                 _state.value = _state.value.copy(
                     teamAName = match.teamAName,
                     teamAScore = match.teamAScore,

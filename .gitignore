@@ -12,3 +12,6 @@ ui-debug.log
 memory/
 .superpowers/
 google-services.json
+.gradle/
+.idea/
+build/

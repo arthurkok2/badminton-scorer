@@ -6,6 +6,7 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -61,8 +62,20 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private val signInLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = com.google.android.gms.auth.api.signin.GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        if (task.isSuccessful) {
+            val account = task.result
+            val credential = com.google.firebase.auth.GoogleAuthProvider.getCredential(account.idToken, null)
+            firebaseAuth.signInWithCredential(credential)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.d("MainActivity", "onCreate")
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
@@ -95,6 +108,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startRemoteService(code: String) {
+        Log.d("MainActivity", "startRemoteService: code=$code")
         val intent = Intent(this, RemoteForegroundService::class.java).apply {
             putExtra(RemoteForegroundService.EXTRA_ROOM_CODE, code)
         }
@@ -116,7 +130,11 @@ class MainActivity : ComponentActivity() {
     private val firebaseAuth = com.google.firebase.auth.FirebaseAuth.getInstance()
 
     private fun signInSilently() {
-        if (firebaseAuth.currentUser != null) return // already signed in
+        Log.d("MainActivity", "signInSilently")
+        if (firebaseAuth.currentUser != null) {
+            Log.d("MainActivity", "Already signed in as ${firebaseAuth.currentUser?.uid}")
+            return // already signed in
+        }
 
         val gso = com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder(
             com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN
@@ -130,30 +148,25 @@ class MainActivity : ComponentActivity() {
         googleSignInClient.silentSignIn().addOnCompleteListener { task ->
             if (task.isSuccessful) {
                 val account = task.result
+                Log.d("MainActivity", "Google silent sign-in successful: ${account.email}")
                 val credential = com.google.firebase.auth.GoogleAuthProvider.getCredential(account.idToken, null)
                 firebaseAuth.signInWithCredential(credential).addOnCompleteListener { authTask ->
-                    if (!authTask.isSuccessful) {
+                    if (authTask.isSuccessful) {
+                        Log.d("MainActivity", "Firebase sign-in successful: ${firebaseAuth.currentUser?.uid}")
+                    } else {
+                        Log.e("MainActivity", "Firebase sign-in failed", authTask.exception)
                         // Silent sign-in failed; fall back to explicit sign-in
                         signInExplicitly(googleSignInClient)
                     }
                 }
             } else {
+                Log.w("MainActivity", "Google silent sign-in failed", task.exception)
                 signInExplicitly(googleSignInClient)
             }
         }
     }
 
     private fun signInExplicitly(googleSignInClient: com.google.android.gms.auth.api.signin.GoogleSignInClient) {
-        val signInLauncher = registerForActivityResult(
-            ActivityResultContracts.StartActivityForResult()
-        ) { result ->
-            val task = com.google.android.gms.auth.api.signin.GoogleSignIn.getSignedInAccountFromIntent(result.data)
-            if (task.isSuccessful) {
-                val account = task.result
-                val credential = com.google.firebase.auth.GoogleAuthProvider.getCredential(account.idToken, null)
-                firebaseAuth.signInWithCredential(credential)
-            }
-        }
         signInLauncher.launch(googleSignInClient.signInIntent)
     }
 }
@@ -169,16 +182,64 @@ fun CompanionScreen(
     var state by remember { mutableStateOf(CompanionState.SETUP) }
     var roomCode by remember { mutableStateOf(lastCode ?: "") }
     var isWatchConnected by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val context = LocalContext.current
+    val dataClient = remember { Wearable.getDataClient(context) }
+
     LaunchedEffect(Unit) {
         // Check if a Wear OS watch is reachable via Data Layer
         try {
             val capabilityInfo = Wearable.getCapabilityClient(context)
                 .getCapability("remote_control", CapabilityClient.FILTER_REACHABLE).await()
             isWatchConnected = capabilityInfo.nodes.isNotEmpty()
-        } catch (_: Exception) {
+            Log.d("MainActivity", "Watch connected: $isWatchConnected")
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error checking watch capability", e)
             isWatchConnected = false
+        }
+
+        // Check current connection status in case service is already running
+        try {
+            // Note: This might only find local data items if they were synced
+            val dataItems = dataClient.dataItems.await()
+            for (item in dataItems) {
+                if (item.uri.path == DataLayerProtocol.PATH_CONNECTION_STATUS) {
+                    val mapItem = com.google.android.gms.wearable.DataMapItem.fromDataItem(item)
+                    val json = mapItem.dataMap.getString("payload") ?: continue
+                    if (json.contains("\"status\":\"ACTIVE\"")) {
+                        state = CompanionState.CONNECTED
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error fetching initial data items", e)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        dataClient.addListener { events ->
+            for (event in events) {
+                if (event.type == com.google.android.gms.wearable.DataEvent.TYPE_CHANGED &&
+                    event.dataItem.uri.path == DataLayerProtocol.PATH_CONNECTION_STATUS
+                ) {
+                    val mapItem = com.google.android.gms.wearable.DataMapItem.fromDataItem(event.dataItem)
+                    val json = mapItem.dataMap.getString("payload") ?: continue
+                    Log.d("MainActivity", "Connection status from Data Layer: $json")
+                    if (json.contains("\"status\":\"ACTIVE\"")) {
+                        if (state == CompanionState.CONNECTING) {
+                            Toast.makeText(context, "Connected!", Toast.LENGTH_SHORT).show()
+                        }
+                        state = CompanionState.CONNECTED
+                        errorMessage = null
+                    } else {
+                        if (state == CompanionState.CONNECTING) {
+                            errorMessage = "Failed to connect. Check room code."
+                        }
+                        state = CompanionState.SETUP
+                    }
+                }
+            }
         }
     }
 
@@ -192,14 +253,19 @@ fun CompanionScreen(
         when (state) {
             CompanionState.SETUP -> SetupContent(
                 roomCode = roomCode,
-                onRoomCodeChange = { roomCode = it },
+                onRoomCodeChange = { 
+                    roomCode = it
+                    errorMessage = null
+                },
                 onConnect = {
                     if (roomCode.length == 4) {
+                        errorMessage = null
                         state = CompanionState.CONNECTING
                         onConnect(roomCode.uppercase())
                     }
                 },
-                isWatchConnected = isWatchConnected
+                isWatchConnected = isWatchConnected,
+                errorMessage = errorMessage
             )
 
             CompanionState.CONNECTING -> ConnectingContent()
@@ -220,7 +286,8 @@ fun SetupContent(
     roomCode: String,
     onRoomCodeChange: (String) -> Unit,
     onConnect: () -> Unit,
-    isWatchConnected: Boolean
+    isWatchConnected: Boolean,
+    errorMessage: String? = null
 ) {
     Text(
         text = "Badminton Remote",
@@ -242,7 +309,8 @@ fun SetupContent(
         textStyle = androidx.compose.ui.text.TextStyle(
             fontSize = 32.sp,
             textAlign = TextAlign.Center,
-            letterSpacing = 8.sp
+            letterSpacing = 8.sp,
+            color = MaterialTheme.colorScheme.onSurface
         ),
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
         decorationBox = { innerTextField ->
@@ -257,6 +325,15 @@ fun SetupContent(
             }
         }
     )
+
+    if (errorMessage != null) {
+        Text(
+            text = errorMessage,
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 8.dp)
+        )
+    }
 
     Spacer(modifier = Modifier.height(24.dp))
 

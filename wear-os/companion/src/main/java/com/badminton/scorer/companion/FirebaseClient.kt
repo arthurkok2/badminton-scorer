@@ -1,6 +1,7 @@
 package com.badminton.scorer.companion
 
 import com.google.firebase.Timestamp
+import android.util.Log
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -14,22 +15,27 @@ class FirebaseClient(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) {
     companion object {
+        private const val TAG = "FirebaseClient"
         private const val ROOM_COLLECTION = "matches"
         private const val COMMAND_COLLECTION = "commands"
     }
 
     fun observeRoom(code: String): Flow<Result<MatchRoomDocument>> = callbackFlow {
+        Log.d(TAG, "observeRoom: code=$code")
         val docRef = firestore.collection(ROOM_COLLECTION).document(code)
         val listener = docRef.addSnapshotListener { snapshot, error ->
             if (error != null) {
+                Log.e(TAG, "Snapshot error for $code", error)
                 trySend(Result.failure(error))
                 return@addSnapshotListener
             }
             if (snapshot == null || !snapshot.exists()) {
+                Log.w(TAG, "Snapshot for $code does not exist")
                 trySend(Result.failure(Exception("Room not found")))
                 return@addSnapshotListener
             }
 
+            Log.d(TAG, "Snapshot received for $code")
             val data = snapshot.data ?: emptyMap()
             val active = data["active"] as? Boolean ?: false
             if (!active) {
