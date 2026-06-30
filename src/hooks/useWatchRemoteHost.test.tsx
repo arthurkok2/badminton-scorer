@@ -111,7 +111,7 @@ describe('useWatchRemoteHost', () => {
 
     expect(service.createRoom).toHaveBeenCalledOnce();
     expect(service.createRoom).toHaveBeenCalledWith(expect.objectContaining({ hostId: 'test-host-uid' }));
-    expect(service.publishState).toHaveBeenCalledOnce();
+    expect(service.publishState).toHaveBeenCalledTimes(2);
     expect(service.publishState).toHaveBeenCalledWith(expect.objectContaining({ hostId: 'test-host-uid' }));
     expect(service.subscribeToCommands).toHaveBeenCalledOnce();
     expect(result.current.status).toBe('active');

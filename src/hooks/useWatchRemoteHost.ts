@@ -1,7 +1,7 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../auth';
 import type { MatchState } from '../domain/matchTypes';
-import type { AppCommand } from '../input/commands';
+import { applyCommand, type AppCommand } from '../input/commands';
 import type { PendingWatchRemoteCommand, WatchRemoteHostStatus } from '../remote/firestoreRemoteTypes';
 import {
   createWatchRemoteRoom,
@@ -102,6 +102,7 @@ export function useWatchRemoteHost(options: {
       const unsubscribe = service.subscribeToCommands({
         code: roomCode,
         onCommands: (commands) => {
+          let currentMatch = matchRef.current;
           for (const pending of commands) {
             const { id, command } = pending;
 
@@ -110,17 +111,19 @@ export function useWatchRemoteHost(options: {
             processedCommandIds.current.add(id);
 
             if (command.type === 'POINT_TEAM') {
+              currentMatch = applyCommand(currentMatch, { type: 'POINT_TEAM', teamId: command.teamId });
               dispatch({ type: 'POINT_TEAM', teamId: command.teamId });
               setLastCommandLabel(`POINT_TEAM ${command.teamId}`);
-              service.markApplied({ code: roomCode, commandId: id, match: matchRef.current }).catch(() => {});
+              service.markApplied({ code: roomCode, commandId: id, match: currentMatch }).catch(() => {});
             } else if (command.type === 'UNDO') {
+              currentMatch = applyCommand(currentMatch, { type: 'UNDO' });
               dispatch({ type: 'UNDO' });
               setLastCommandLabel('UNDO');
-              service.markApplied({ code: roomCode, commandId: id, match: matchRef.current }).catch(() => {});
+              service.markApplied({ code: roomCode, commandId: id, match: currentMatch }).catch(() => {});
             } else if (command.type === 'ANNOUNCE') {
               announce();
               setLastCommandLabel('ANNOUNCE');
-              service.markApplied({ code: roomCode, commandId: id, match: matchRef.current }).catch(() => {});
+              service.markApplied({ code: roomCode, commandId: id, match: currentMatch }).catch(() => {});
             } else {
               service.markRejected({ code: roomCode, commandId: id, reason: 'unsupported command type' }).catch(() => {});
             }
@@ -183,6 +186,13 @@ export function useWatchRemoteHost(options: {
     processedCommandIds.current.clear();
     updateStatus('inactive');
   }, [service]);
+
+  useEffect(() => {
+    const roomCode = codeRef.current;
+    const currentStatus = statusRef.current;
+    if (currentStatus !== 'active' || roomCode === undefined || !user) return;
+    service.publishState({ code: roomCode, match, hostId: user.uid }).catch(() => {});
+  }, [match, service, user]);
 
   return { status, code, error, lastCommandLabel, start, stop };
 }
