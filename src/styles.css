@@ -2280,3 +2280,33 @@ button {
 .server-picker-button--teamB {
   background: linear-gradient(135deg, #4d82c4, #4ab8a6);
 }
+
+/* Pose Camera */
+.pose-camera-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pose-camera-active {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.15);
+}
+
+.pose-feedback {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+.pose-feedback-flash {
+  background: #4ade80;
+}
+
+.pose-camera-error {
+  color: #f87171;
+  font-size: 12px;
+  white-space: nowrap;
+}
