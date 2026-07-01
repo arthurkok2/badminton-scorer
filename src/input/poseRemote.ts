@@ -25,12 +25,69 @@ export interface Landmark {
   visibility: number;
 }
 
-export function createPoseInterpreter(_options: PoseInterpreterOptions): PoseInterpreter {
-  return {
-    processLandmarks: () => {},
-    reset: () => {},
-    destroy: () => {},
-  };
+const COOLDOWN_MS = 2000;
+const DEBOUNCE_FRAMES = 5;
+const MIN_KEYPOINTS = 17;
+
+function gestureToCommand(gesture: GestureType): AppCommand {
+  switch (gesture) {
+    case 'teamA':
+      return { type: 'POINT_TEAM', teamId: 'teamA' };
+    case 'teamB':
+      return { type: 'POINT_TEAM', teamId: 'teamB' };
+    case 'undo':
+      return { type: 'UNDO' };
+  }
+}
+
+export function createPoseInterpreter(options: PoseInterpreterOptions): PoseInterpreter {
+  const now = options.now ?? (() => Date.now());
+  let trackedGesture: GestureType | null = null;
+  let consecutiveFrames = 0;
+  let lastDispatchTime = -COOLDOWN_MS;
+
+  function processLandmarks(allPersonLandmarks: Landmark[][]): void {
+    if (now() - lastDispatchTime < COOLDOWN_MS) return;
+
+    let gestureThisFrame: GestureType | null = null;
+
+    for (const landmarks of allPersonLandmarks) {
+      if (landmarks.length < MIN_KEYPOINTS) continue;
+
+      const arms = classifyBothArms(landmarks);
+      gestureThisFrame = detectGesture(arms.left, arms.right);
+      if (gestureThisFrame !== null) break;
+    }
+
+    if (gestureThisFrame === trackedGesture && gestureThisFrame !== null) {
+      consecutiveFrames++;
+    } else if (gestureThisFrame !== null) {
+      trackedGesture = gestureThisFrame;
+      consecutiveFrames = 1;
+    } else {
+      trackedGesture = null;
+      consecutiveFrames = 0;
+    }
+
+    if (consecutiveFrames >= DEBOUNCE_FRAMES && trackedGesture !== null) {
+      options.dispatch(gestureToCommand(trackedGesture));
+      lastDispatchTime = now();
+      trackedGesture = null;
+      consecutiveFrames = 0;
+    }
+  }
+
+  function reset(): void {
+    trackedGesture = null;
+    consecutiveFrames = 0;
+  }
+
+  function destroy(): void {
+    reset();
+    lastDispatchTime = -COOLDOWN_MS;
+  }
+
+  return { processLandmarks, reset, destroy };
 }
 
 const LEFT_SHOULDER = 11;

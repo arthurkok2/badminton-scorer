@@ -1,6 +1,7 @@
 // src/input/poseRemote.test.ts
 import { describe, it, expect } from 'vitest';
-import { classifyArm, classifyBothArms, detectGesture } from './poseRemote';
+import { classifyArm, classifyBothArms, createPoseInterpreter, detectGesture } from './poseRemote';
+import type { AppCommand } from './commands';
 import type { Landmark } from './poseRemote';
 
 function lm(x: number, y: number): Landmark {
@@ -151,5 +152,233 @@ describe('detectGesture', () => {
 
   it('returns null for both horizontal_out (ambiguous)', () => {
     expect(detectGesture('horizontal_out', 'horizontal_out')).toBeNull();
+  });
+});
+
+function fullBodyLandmarks(pose: {
+  leftWrist?: Landmark;
+  leftElbow?: Landmark;
+  leftShoulder?: Landmark;
+  rightWrist?: Landmark;
+  rightElbow?: Landmark;
+  rightShoulder?: Landmark;
+}): Landmark[] {
+  const arr: Landmark[] = new Array(33).fill(null).map(() => lm(0.5, 0.5));
+  arr[23] = lm(0.3, 0.8);
+  arr[24] = lm(0.7, 0.8);
+  arr[11] = pose.leftShoulder ?? lm(0.4, 0.5);
+  arr[12] = pose.rightShoulder ?? lm(0.6, 0.5);
+  arr[13] = pose.leftElbow ?? lm(0.4, 0.6);
+  arr[14] = pose.rightElbow ?? lm(0.6, 0.6);
+  arr[15] = pose.leftWrist ?? lm(0.4, 0.7);
+  arr[16] = pose.rightWrist ?? lm(0.6, 0.7);
+  return arr;
+}
+
+function teamALandmarks(): Landmark[] {
+  return fullBodyLandmarks({
+    leftWrist: lm(0.05, 0.5),
+    leftElbow: lm(0.2, 0.5),
+    leftShoulder: lm(0.35, 0.5),
+    rightWrist: lm(0.65, 0.15),
+    rightElbow: lm(0.65, 0.3),
+    rightShoulder: lm(0.65, 0.5),
+  });
+}
+
+function teamBLandmarks(): Landmark[] {
+  return fullBodyLandmarks({
+    leftWrist: lm(0.35, 0.15),
+    leftElbow: lm(0.35, 0.3),
+    leftShoulder: lm(0.35, 0.5),
+    rightWrist: lm(0.95, 0.5),
+    rightElbow: lm(0.8, 0.5),
+    rightShoulder: lm(0.65, 0.5),
+  });
+}
+
+function undoLandmarks(): Landmark[] {
+  return fullBodyLandmarks({
+    leftWrist: lm(0.35, 0.15),
+    leftElbow: lm(0.35, 0.3),
+    leftShoulder: lm(0.35, 0.5),
+    rightWrist: lm(0.65, 0.15),
+    rightElbow: lm(0.65, 0.3),
+    rightShoulder: lm(0.65, 0.5),
+  });
+}
+
+describe('createPoseInterpreter', () => {
+  it('dispatches POINT_TEAM teamA after 5 consecutive frames of the teamA gesture', () => {
+    const commands: AppCommand[] = [];
+    const interpreter = createPoseInterpreter({ dispatch: (c) => commands.push(c) });
+
+    const landmarks = teamALandmarks();
+
+    for (let i = 0; i < 4; i++) {
+      interpreter.processLandmarks([landmarks]);
+    }
+    expect(commands).toEqual([]);
+
+    interpreter.processLandmarks([landmarks]);
+    expect(commands).toEqual([{ type: 'POINT_TEAM', teamId: 'teamA' }]);
+  });
+
+  it('dispatches POINT_TEAM teamB after 5 consecutive frames', () => {
+    const commands: AppCommand[] = [];
+    const interpreter = createPoseInterpreter({ dispatch: (c) => commands.push(c) });
+
+    const landmarks = teamBLandmarks();
+
+    for (let i = 0; i < 5; i++) {
+      interpreter.processLandmarks([landmarks]);
+    }
+
+    expect(commands).toEqual([{ type: 'POINT_TEAM', teamId: 'teamB' }]);
+  });
+
+  it('dispatches UNDO after 5 consecutive frames', () => {
+    const commands: AppCommand[] = [];
+    const interpreter = createPoseInterpreter({ dispatch: (c) => commands.push(c) });
+
+    const landmarks = undoLandmarks();
+
+    for (let i = 0; i < 5; i++) {
+      interpreter.processLandmarks([landmarks]);
+    }
+
+    expect(commands).toEqual([{ type: 'UNDO' }]);
+  });
+
+  it('resets debounce counter when gesture changes mid-stream', () => {
+    const commands: AppCommand[] = [];
+    const interpreter = createPoseInterpreter({ dispatch: (c) => commands.push(c) });
+
+    for (let i = 0; i < 2; i++) {
+      interpreter.processLandmarks([teamALandmarks()]);
+    }
+
+    interpreter.processLandmarks([[lm(0.5, 0.7)]]);
+
+    for (let i = 0; i < 5; i++) {
+      interpreter.processLandmarks([teamALandmarks()]);
+    }
+
+    expect(commands).toEqual([{ type: 'POINT_TEAM', teamId: 'teamA' }]);
+  });
+
+  it('respects 2-second cooldown after dispatch', () => {
+    const commands: AppCommand[] = [];
+    let currentTime = 0;
+    const interpreter = createPoseInterpreter({
+      dispatch: (c) => commands.push(c),
+      now: () => currentTime,
+    });
+
+    for (let i = 0; i < 5; i++) {
+      interpreter.processLandmarks([teamALandmarks()]);
+    }
+    expect(commands).toHaveLength(1);
+
+    currentTime = 500;
+    for (let i = 0; i < 5; i++) {
+      interpreter.processLandmarks([teamBLandmarks()]);
+    }
+    expect(commands).toHaveLength(1);
+
+    currentTime = 2500;
+    for (let i = 0; i < 5; i++) {
+      interpreter.processLandmarks([teamBLandmarks()]);
+    }
+    expect(commands).toHaveLength(2);
+    expect(commands[1]).toEqual({ type: 'POINT_TEAM', teamId: 'teamB' });
+  });
+
+  it('first person in frame wins — second person ignored', () => {
+    const commands: AppCommand[] = [];
+    const interpreter = createPoseInterpreter({ dispatch: (c) => commands.push(c) });
+
+    for (let i = 0; i < 5; i++) {
+      interpreter.processLandmarks([teamALandmarks(), teamBLandmarks()]);
+    }
+
+    expect(commands).toEqual([{ type: 'POINT_TEAM', teamId: 'teamA' }]);
+  });
+
+  it('reset clears internal state', () => {
+    const commands: AppCommand[] = [];
+    const interpreter = createPoseInterpreter({ dispatch: (c) => commands.push(c) });
+
+    for (let i = 0; i < 3; i++) {
+      interpreter.processLandmarks([teamALandmarks()]);
+    }
+
+    interpreter.reset();
+
+    for (let i = 0; i < 5; i++) {
+      interpreter.processLandmarks([teamALandmarks()]);
+    }
+
+    expect(commands).toEqual([{ type: 'POINT_TEAM', teamId: 'teamA' }]);
+  });
+
+  it('does not dispatch when no person has a valid gesture', () => {
+    const commands: AppCommand[] = [];
+    const interpreter = createPoseInterpreter({ dispatch: (c) => commands.push(c) });
+
+    const neutral = [lm(0.5, 0.7)];
+
+    for (let i = 0; i < 10; i++) {
+      interpreter.processLandmarks([neutral]);
+    }
+
+    expect(commands).toEqual([]);
+  });
+
+  it('skips frame when landmarks have insufficient keypoints', () => {
+    const commands: AppCommand[] = [];
+    const interpreter = createPoseInterpreter({ dispatch: (c) => commands.push(c) });
+
+    const incomplete: Landmark[] = new Array(12).fill(null).map(() => lm(0.5, 0.5));
+
+    for (let i = 0; i < 10; i++) {
+      interpreter.processLandmarks([incomplete]);
+    }
+
+    expect(commands).toEqual([]);
+  });
+
+  it('destroy clears cooldown and resets state', () => {
+    const commands: AppCommand[] = [];
+    let currentTime = 0;
+    const interpreter = createPoseInterpreter({
+      dispatch: (c) => commands.push(c),
+      now: () => currentTime,
+    });
+
+    // Dispatch a command (sets cooldown)
+    for (let i = 0; i < 5; i++) {
+      interpreter.processLandmarks([teamALandmarks()]);
+    }
+    expect(commands).toHaveLength(1);
+
+    // Still within cooldown — gestures should be ignored
+    currentTime = 500;
+    for (let i = 0; i < 5; i++) {
+      interpreter.processLandmarks([teamBLandmarks()]);
+    }
+    expect(commands).toHaveLength(1);
+
+    // Destroy clears cooldown
+    interpreter.destroy();
+
+    // Same interpreter, same time — should now dispatch (cooldown cleared)
+    // Need 5 frames of the new gesture
+    for (let i = 0; i < 5; i++) {
+      interpreter.processLandmarks([teamBLandmarks()]);
+    }
+
+    expect(commands).toHaveLength(2);
+    expect(commands[1]).toEqual({ type: 'POINT_TEAM', teamId: 'teamB' });
   });
 });
