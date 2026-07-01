@@ -18,6 +18,7 @@ The input layer provides multiple control surfaces for the scorer, all normalize
 | Keyboard remote | `src/input/keyboardRemote.ts` |
 | Gamepad remote | `src/input/gamepadRemote.ts` |
 | Gesture remote | `src/input/gestureRemote.ts` |
+| Pose remote | `src/input/poseRemote.ts` |
 | Firestore remote host | `src/remote/firestoreRemoteService.ts` |
 | Firestore controller client | `src/remote/firestoreControllerService.ts` |
 | Controller page | `src/pages/ControllerPage.tsx` |
@@ -53,6 +54,7 @@ All remote paths use a unified gesture mapping:
 | Keyboard | `src/input/keyboardRemote.ts` | Keydown event listeners for HID camera remotes (VolumeUp / key 175) |
 | Gamepad | `src/input/gamepadRemote.ts` | Gamepad API, polls connected controllers at ~60fps |
 | Gesture | `src/input/gestureRemote.ts` | Touch gesture recognition on the court display |
+| Pose (Camera) | `src/input/poseRemote.ts` | Camera-based pose detection via MediaPipe PoseLandmarker |
 
 **BLE:** Targets Android Chrome (Web Bluetooth). Device-specific adapter code translates button events into the shared gesture mapping. Connection states: Unsupported → Disconnected → Connecting → Connected. When Web Bluetooth is unavailable, the app explains Android Chrome is required.
 
@@ -128,9 +130,27 @@ BLE button press   ─┐
 Keyboard shortcut  ─┤
 Gamepad button    ──┤──→ AppCommand ──→ applyCommand() ──→ new MatchState
 Gesture swipe     ──┤
+Pose detection     ──┤
 Firestore remote  ──┤  (Wear OS, browser controller, Garmin watch)
                    ─┘
 ```
+
+### Pose Remote (Camera Gestures)
+
+Camera-based pose detection using MediaPipe PoseLandmarker — all processing on-device, no cloud.
+
+**Gesture mapping:**
+- Left arm horizontal out + right arm vertical up → Point Team A
+- Right arm horizontal out + left arm vertical up → Point Team B
+- Both arms vertical up → Undo
+
+**Activation:** Camera icon toggle button near court controls, OFF by default. When active, the toggle shows a `CameraOff` icon with a green highlight.
+
+**Feedback:** A small indicator dot flashes green on recognized gesture. 
+
+**Cooldown/debounce:** 5-frame persistence (~300ms) before recognition fires; 2-second post-dispatch cooldown prevents double triggers.
+
+**Privacy:** Requires `getUserMedia` camera permission. All processing runs locally on-device. Camera pauses when the page is hidden (visibility change).
 
 ## Related Docs
 
