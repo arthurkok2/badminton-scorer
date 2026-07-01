@@ -34,13 +34,34 @@ export function createPoseInterpreter(_options: PoseInterpreterOptions): PoseInt
 }
 
 export function classifyArm(
-  _shoulder: Landmark,
-  _elbow: Landmark,
-  _wrist: Landmark,
-  _hip: Landmark,
-  _bodyCenterX: number,
-  _isLeft: boolean,
+  shoulder: Landmark,
+  elbow: Landmark,
+  wrist: Landmark,
+  hip: Landmark,
+  bodyCenterX: number,
+  isLeft: boolean,
 ): ArmClassification {
+  const shoulderHipDY = Math.abs(shoulder.y - hip.y);
+  if (shoulderHipDY === 0) return 'neutral';
+
+  // Check horizontal_out
+  const yTolerance = shoulderHipDY * 0.15;
+  const yOk = Math.abs(wrist.y - shoulder.y) < yTolerance;
+  if (yOk) {
+    const outwardOk = isLeft
+      ? wrist.x < bodyCenterX && wrist.x < elbow.x
+      : wrist.x > bodyCenterX && wrist.x > elbow.x;
+    if (outwardOk) return 'horizontal_out';
+  }
+
+  // Check vertical_up
+  const yAbove = shoulder.y - wrist.y;
+  const yThreshold = shoulderHipDY * 0.20;
+  const xThreshold = shoulderHipDY * 0.25;
+  if (yAbove >= yThreshold && Math.abs(wrist.x - shoulder.x) < xThreshold) {
+    return 'vertical_up';
+  }
+
   return 'neutral';
 }
 
