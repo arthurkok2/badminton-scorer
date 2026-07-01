@@ -2283,9 +2283,17 @@ button {
 
 /* Pose Camera */
 .pose-camera-controls {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.pose-pip-container {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 4px;
 }
 
 .pose-camera-active {

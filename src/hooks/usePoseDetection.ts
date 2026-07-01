@@ -3,6 +3,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 export interface UsePoseDetectionOptions {
   onLandmarks?: (landmarks: any[]) => void;
   loadPoseLandmarker?: () => Promise<any>;
+  container?: HTMLElement | null;
 }
 
 export interface UsePoseDetectionResult {
@@ -29,7 +30,7 @@ async function defaultLoadPoseLandmarker() {
 }
 
 export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePoseDetectionResult {
-  const { onLandmarks, loadPoseLandmarker = defaultLoadPoseLandmarker } = options;
+  const { onLandmarks, loadPoseLandmarker = defaultLoadPoseLandmarker, container } = options;
   const [isActive, setIsActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSupported] = useState(() => {
@@ -40,6 +41,8 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
 
   const streamRef = useRef<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const containerRef = useRef(container);
+  containerRef.current = container;
   const poseLandmarkerRef = useRef<any>(null);
   const rafRef = useRef<number | null>(null);
   const isActiveRef = useRef(false);
@@ -62,6 +65,8 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
 
     if (videoRef.current) {
       videoRef.current.srcObject = null;
+      videoRef.current.remove();
+      videoRef.current = null;
     }
 
     if (poseLandmarkerRef.current) {
@@ -78,6 +83,10 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
       }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+        videoRef.current.remove();
       }
       if (poseLandmarkerRef.current) {
         poseLandmarkerRef.current.close();
@@ -119,6 +128,20 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
         throw err;
       }
       videoRef.current = video;
+
+      const target = containerRef.current;
+      if (target) {
+        video.style.width = '80px';
+        video.style.height = '60px';
+        video.style.position = 'absolute';
+        video.style.bottom = '8px';
+        video.style.right = '8px';
+        video.style.borderRadius = '6px';
+        video.style.objectFit = 'cover';
+        video.style.border = '1px solid rgba(255,255,255,0.2)';
+        video.style.zIndex = '10';
+        target.appendChild(video);
+      }
 
       isActiveRef.current = true;
       setIsActive(true);

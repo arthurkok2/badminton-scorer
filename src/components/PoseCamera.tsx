@@ -1,4 +1,4 @@
-import { useCallback, useRef, useEffect } from 'react';
+import { useCallback, useRef, useEffect, useState } from 'react';
 import { Camera, CameraOff } from 'lucide-react';
 import { usePoseDetection } from '../hooks/usePoseDetection';
 import type { PoseInterpreter } from '../input/poseRemote';
@@ -13,6 +13,7 @@ interface PoseCameraProps {
 export function PoseCamera({ onCommand }: PoseCameraProps) {
   const interpreterRef = useRef<PoseInterpreter>(null!);
   const feedbackRef = useRef<HTMLDivElement>(null);
+  const [pipContainer, setPipContainer] = useState<HTMLDivElement | null>(null);
 
   const handleLandmarks = useCallback((landmarks: NormalizedLandmark[][]) => {
     interpreterRef.current.processLandmarks(landmarks);
@@ -20,6 +21,7 @@ export function PoseCamera({ onCommand }: PoseCameraProps) {
 
   const { isSupported, isActive, error, start, stop } = usePoseDetection({
     onLandmarks: handleLandmarks,
+    container: pipContainer,
   });
 
   useEffect(() => {
@@ -44,6 +46,7 @@ export function PoseCamera({ onCommand }: PoseCameraProps) {
 
   return (
     <div className="pose-camera-controls">
+      <div ref={setPipContainer} className="pose-pip-container" />
       <button
         className={`icon-button ${isActive ? 'pose-camera-active' : ''}`}
         type="button"
