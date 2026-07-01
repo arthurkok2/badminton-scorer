@@ -1,6 +1,6 @@
 // src/input/poseRemote.test.ts
 import { describe, it, expect } from 'vitest';
-import { classifyArm } from './poseRemote';
+import { classifyArm, classifyBothArms, detectGesture } from './poseRemote';
 import type { Landmark } from './poseRemote';
 
 function lm(x: number, y: number): Landmark {
@@ -98,5 +98,58 @@ describe('classifyArm', () => {
 
       expect(classifyArm(shoulder, elbow, wrist, hip, bodyCenterX, true)).toBe('neutral');
     });
+  });
+});
+
+describe('classifyBothArms', () => {
+  it('classifies both arms from full landmarks array', () => {
+    const landmarks: Landmark[] = new Array(33).fill(null).map(() => lm(0.5, 0.5));
+    landmarks[11] = lm(0.3, 0.5);
+    landmarks[13] = lm(0.15, 0.5);
+    landmarks[15] = lm(0.05, 0.5);
+    landmarks[23] = lm(0.3, 0.8);
+    landmarks[12] = lm(0.7, 0.5);
+    landmarks[14] = lm(0.7, 0.35);
+    landmarks[16] = lm(0.7, 0.15);
+    landmarks[24] = lm(0.7, 0.8);
+
+    const result = classifyBothArms(landmarks);
+
+    expect(result.left).toBe('horizontal_out');
+    expect(result.right).toBe('vertical_up');
+  });
+
+  it('returns neutral for both when landmarks are missing (visibility < 0.5)', () => {
+    const landmarks: Landmark[] = new Array(33).fill(null).map(() => ({ x: 0.5, y: 0.5, z: 0, visibility: 0 }));
+    landmarks[11] = { x: 0.3, y: 0.5, z: 0, visibility: 0.3 };
+    landmarks[13] = { x: 0.15, y: 0.5, z: 0, visibility: 0.3 };
+    landmarks[15] = { x: 0.05, y: 0.5, z: 0, visibility: 0.3 };
+
+    const result = classifyBothArms(landmarks);
+
+    expect(result.left).toBe('neutral');
+    expect(result.right).toBe('neutral');
+  });
+});
+
+describe('detectGesture', () => {
+  it('returns teamA for left horizontal_out + right vertical_up', () => {
+    expect(detectGesture('horizontal_out', 'vertical_up')).toBe('teamA');
+  });
+
+  it('returns teamB for right horizontal_out + left vertical_up', () => {
+    expect(detectGesture('vertical_up', 'horizontal_out')).toBe('teamB');
+  });
+
+  it('returns undo for both vertical_up', () => {
+    expect(detectGesture('vertical_up', 'vertical_up')).toBe('undo');
+  });
+
+  it('returns null for both neutral', () => {
+    expect(detectGesture('neutral', 'neutral')).toBeNull();
+  });
+
+  it('returns null for both horizontal_out (ambiguous)', () => {
+    expect(detectGesture('horizontal_out', 'horizontal_out')).toBeNull();
   });
 });
