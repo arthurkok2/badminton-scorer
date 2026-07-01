@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Controls } from './components/Controls';
 import { CourtView } from './components/CourtView';
+import { PoseCamera } from './components/PoseCamera';
 import { createMatch } from './domain/matchEngine';
 import type { MatchMode, MatchState, PlayerId, TeamId } from './domain/matchTypes';
 import { LITTLE_FIGHTER_SPRITES, LITTLE_FIGHTER_SPRITES_BY_ID, type LittleFighterSpriteId } from './sprites/spriteCatalog';
@@ -934,6 +935,7 @@ export default function App() {
           fighterSprites={fighterSprites}
           onPlayerSpriteClick={setActiveSpritePickerPlayerId}
         />
+        <PoseCamera onCommand={dispatch} />
         <Controls
           onUndo={() => dispatch({ type: 'UNDO' })}
           onAnnounce={() => speakAnnouncement(match, preferencesRef.current.announcementMode)}
