@@ -2306,8 +2306,9 @@ button {
 }
 
 .pose-camera-active {
+  border-color: #4ade80;
   color: #4ade80;
-  background: rgba(74, 222, 128, 0.15);
+  box-shadow: 0 0 12px rgba(74, 222, 128, 0.35);
 }
 
 .pose-feedback {

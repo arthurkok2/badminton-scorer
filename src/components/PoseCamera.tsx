@@ -190,7 +190,7 @@ export function PoseCamera({ onCommand, onStatus }: PoseCameraProps) {
         <div ref={setPipContainer} className="pose-pip-container" />
         {typeof document !== 'undefined' && createPortal(
           <button
-            className={`icon-button ${isActive ? 'pose-camera-active' : ''}`}
+            className={`app-menu-button ${isActive ? 'pose-camera-active' : ''}`}
             type="button"
             onClick={isActive ? stop : start}
             aria-label={isActive ? 'Disable camera gestures' : 'Enable camera gestures'}
