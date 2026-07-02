@@ -240,11 +240,11 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
 
         try {
           const results = recognizerRef.current.recognizeForVideo(video, performance.now());
-          if (results.gestures && results.gestures.length > 0 && onResultRef.current) {
+          if (onResultRef.current) {
             onResultRef.current({
-              gestures: results.gestures.map((g: any[]) => g.map((c: any) => ({ categoryName: c.categoryName, score: c.score }))),
-              handedness: results.handedness.map((h: any[]) => h.map((c: any) => ({ categoryName: c.categoryName, score: c.score }))),
-              handLandmarks: results.handLandmarks,
+              gestures: results.gestures?.map((g: any[]) => g.map((c: any) => ({ categoryName: c.categoryName, score: c.score }))) ?? [],
+              handedness: results.handedness?.map((h: any[]) => h.map((c: any) => ({ categoryName: c.categoryName, score: c.score }))) ?? [],
+              handLandmarks: results.handLandmarks ?? [],
             });
           }
           if (canvasRef.current && results.handLandmarks && results.handLandmarks.length > 0) {
@@ -290,11 +290,11 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
 
           try {
             const results = recognizerRef.current.recognizeForVideo(videoRef.current!, performance.now());
-            if (results.gestures && results.gestures.length > 0 && onResultRef.current) {
+            if (onResultRef.current) {
               onResultRef.current({
-                gestures: results.gestures.map((g: any[]) => g.map((c: any) => ({ categoryName: c.categoryName, score: c.score }))),
-                handedness: results.handedness.map((h: any[]) => h.map((c: any) => ({ categoryName: c.categoryName, score: c.score }))),
-                handLandmarks: results.handLandmarks,
+                gestures: results.gestures?.map((g: any[]) => g.map((c: any) => ({ categoryName: c.categoryName, score: c.score }))) ?? [],
+                handedness: results.handedness?.map((h: any[]) => h.map((c: any) => ({ categoryName: c.categoryName, score: c.score }))) ?? [],
+                handLandmarks: results.handLandmarks ?? [],
               });
             }
             if (canvasRef.current && results.handLandmarks && results.handLandmarks.length > 0) {
