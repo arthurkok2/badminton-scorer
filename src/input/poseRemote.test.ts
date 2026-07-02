@@ -35,30 +35,30 @@ function closedFist(): DetectionResult {
 }
 
 describe('createPoseInterpreter', () => {
-  it('dispatches POINT_TEAM teamA after 10 frames of left palm', () => {
+  it('dispatches POINT_TEAM teamA after 6 frames of left palm', () => {
     const commands: AppCommand[] = [];
     const interpreter = createPoseInterpreter({ dispatch: (c) => commands.push(c) });
 
-    for (let i = 0; i < 9; i++) interpreter.processResult(leftPalm());
+    for (let i = 0; i < 5; i++) interpreter.processResult(leftPalm());
     expect(commands).toEqual([]);
 
     interpreter.processResult(leftPalm());
     expect(commands).toEqual([{ type: 'POINT_TEAM', teamId: 'teamA' }]);
   });
 
-  it('dispatches POINT_TEAM teamB after 10 frames of right palm', () => {
+  it('dispatches POINT_TEAM teamB after 6 frames of right palm', () => {
     const commands: AppCommand[] = [];
     const interpreter = createPoseInterpreter({ dispatch: (c) => commands.push(c) });
 
-    for (let i = 0; i < 10; i++) interpreter.processResult(rightPalm());
+    for (let i = 0; i < 6; i++) interpreter.processResult(rightPalm());
     expect(commands).toEqual([{ type: 'POINT_TEAM', teamId: 'teamB' }]);
   });
 
-  it('dispatches UNDO after 10 frames of both palms', () => {
+  it('dispatches UNDO after 6 frames of both palms', () => {
     const commands: AppCommand[] = [];
     const interpreter = createPoseInterpreter({ dispatch: (c) => commands.push(c) });
 
-    for (let i = 0; i < 10; i++) interpreter.processResult(bothPalm());
+    for (let i = 0; i < 6; i++) interpreter.processResult(bothPalm());
     expect(commands).toEqual([{ type: 'UNDO' }]);
   });
 
@@ -70,13 +70,11 @@ describe('createPoseInterpreter', () => {
     for (let i = 0; i < 3; i++) interpreter.processResult(leftPalm());
     interpreter.processResult(noHands());
 
-    // Still within cooldown from gesture drop
-    for (let i = 0; i < 10; i++) interpreter.processResult(leftPalm());
+    for (let i = 0; i < 6; i++) interpreter.processResult(leftPalm());
     expect(commands).toEqual([]);
 
-    // After cooldown, gesture can accumulate again
     t = 2500;
-    for (let i = 0; i < 10; i++) interpreter.processResult(leftPalm());
+    for (let i = 0; i < 6; i++) interpreter.processResult(leftPalm());
     expect(commands).toEqual([{ type: 'POINT_TEAM', teamId: 'teamA' }]);
   });
 
@@ -85,16 +83,16 @@ describe('createPoseInterpreter', () => {
     let t = 0;
     const interpreter = createPoseInterpreter({ dispatch: (c) => commands.push(c), now: () => t });
 
-    for (let i = 0; i < 10; i++) interpreter.processResult(leftPalm());
+    for (let i = 0; i < 6; i++) interpreter.processResult(leftPalm());
     expect(commands).toHaveLength(1);
 
     t = 500;
-    for (let i = 0; i < 10; i++) interpreter.processResult(rightPalm());
+    for (let i = 0; i < 6; i++) interpreter.processResult(rightPalm());
     expect(commands).toHaveLength(1);
 
     t = 2500;
     interpreter.processResult(noHands());
-    for (let i = 0; i < 10; i++) interpreter.processResult(rightPalm());
+    for (let i = 0; i < 6; i++) interpreter.processResult(rightPalm());
     expect(commands).toHaveLength(2);
     expect(commands[1]).toEqual({ type: 'POINT_TEAM', teamId: 'teamB' });
   });
@@ -104,7 +102,7 @@ describe('createPoseInterpreter', () => {
     const interpreter = createPoseInterpreter({ dispatch: (c) => commands.push(c) });
 
     const lowConf = result([[{ categoryName: 'Open_Palm', score: 0.5 }]], [['Left']]);
-    for (let i = 0; i < 15; i++) interpreter.processResult(lowConf);
+    for (let i = 0; i < 10; i++) interpreter.processResult(lowConf);
     expect(commands).toEqual([]);
   });
 
@@ -112,7 +110,7 @@ describe('createPoseInterpreter', () => {
     const commands: AppCommand[] = [];
     const interpreter = createPoseInterpreter({ dispatch: (c) => commands.push(c) });
 
-    for (let i = 0; i < 15; i++) interpreter.processResult(closedFist());
+    for (let i = 0; i < 10; i++) interpreter.processResult(closedFist());
     expect(commands).toEqual([]);
   });
 
@@ -122,7 +120,7 @@ describe('createPoseInterpreter', () => {
 
     for (let i = 0; i < 3; i++) interpreter.processResult(leftPalm());
     interpreter.reset();
-    for (let i = 0; i < 10; i++) interpreter.processResult(leftPalm());
+    for (let i = 0; i < 6; i++) interpreter.processResult(leftPalm());
 
     expect(commands).toEqual([{ type: 'POINT_TEAM', teamId: 'teamA' }]);
   });
@@ -131,7 +129,7 @@ describe('createPoseInterpreter', () => {
     const commands: AppCommand[] = [];
     const interpreter = createPoseInterpreter({ dispatch: (c) => commands.push(c) });
 
-    for (let i = 0; i < 20; i++) interpreter.processResult(noHands());
+    for (let i = 0; i < 12; i++) interpreter.processResult(noHands());
     expect(commands).toEqual([]);
   });
 
@@ -140,15 +138,15 @@ describe('createPoseInterpreter', () => {
     let t = 0;
     const interpreter = createPoseInterpreter({ dispatch: (c) => commands.push(c), now: () => t });
 
-    for (let i = 0; i < 10; i++) interpreter.processResult(leftPalm());
+    for (let i = 0; i < 6; i++) interpreter.processResult(leftPalm());
     expect(commands).toHaveLength(1);
 
     t = 500;
-    for (let i = 0; i < 10; i++) interpreter.processResult(rightPalm());
+    for (let i = 0; i < 6; i++) interpreter.processResult(rightPalm());
     expect(commands).toHaveLength(1);
 
     interpreter.destroy();
-    for (let i = 0; i < 10; i++) interpreter.processResult(rightPalm());
+    for (let i = 0; i < 6; i++) interpreter.processResult(rightPalm());
 
     expect(commands).toHaveLength(2);
     expect(commands[1]).toEqual({ type: 'POINT_TEAM', teamId: 'teamB' });

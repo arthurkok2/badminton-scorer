@@ -29,7 +29,7 @@ async function defaultLoadRecognizer() {
   return GestureRecognizer.createFromOptions(vision, {
     baseOptions: {
       modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/latest/gesture_recognizer.task',
-      delegate: 'GPU',
+      delegate: 'CPU',
     },
     runningMode: 'VIDEO',
     numHands: 2,
@@ -172,7 +172,7 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
       let stream: MediaStream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+          video: { facingMode: 'user', width: { ideal: 320 }, height: { ideal: 240 } },
           audio: false,
         });
       } catch (err) {
@@ -233,7 +233,7 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
         if (!isActiveRef.current || !recognizerRef.current) return;
 
         frameCount++;
-        if (frameCount % 4 !== 0) {
+          if (frameCount % 8 !== 0) {
           rafRef.current = requestAnimationFrame(detect);
           return;
         }
@@ -283,7 +283,7 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
           if (!isActiveRef.current || !recognizerRef.current) return;
 
           frameCount++;
-          if (frameCount % 4 !== 0) {
+        if (frameCount % 8 !== 0) {
             rafRef.current = requestAnimationFrame(detect);
             return;
           }

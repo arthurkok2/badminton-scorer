@@ -15,7 +15,7 @@ export interface PoseInterpreter {
 }
 
 const COOLDOWN_MS = 2000;
-const DEBOUNCE_FRAMES = 10;
+const DEBOUNCE_FRAMES = 6;
 const CONFIDENCE_THRESHOLD = 0.6;
 
 function detectGesture(result: DetectionResult): GestureType | null {
