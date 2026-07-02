@@ -10,6 +10,7 @@ export function AccountBar({ onAppMenuAction, availableAppMenuActions }: Account
   return (
     <header className="app-account-bar" role="banner" aria-label="App account">
       <AccountMenu />
+      <div id="camera-slot" />
       <AppMenu onAction={onAppMenuAction} availableActions={availableAppMenuActions} />
     </header>
   );

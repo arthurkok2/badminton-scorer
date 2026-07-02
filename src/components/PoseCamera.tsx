@@ -1,4 +1,5 @@
 import { useCallback, useRef, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Camera, CameraOff, Maximize2 } from 'lucide-react';
 import { usePoseDetection, drawSkeleton, type DetectionResult } from '../hooks/usePoseDetection';
 import type { PoseInterpreter } from '../input/poseRemote';
@@ -187,15 +188,18 @@ export function PoseCamera({ onCommand, onStatus }: PoseCameraProps) {
     <>
       <div className="pose-camera-controls">
         <div ref={setPipContainer} className="pose-pip-container" />
-        <button
-          className={`icon-button ${isActive ? 'pose-camera-active' : ''}`}
-          type="button"
-          onClick={isActive ? stop : start}
-          aria-label={isActive ? 'Disable camera gestures' : 'Enable camera gestures'}
-          title={isActive ? 'Disable camera gestures' : 'Enable camera gestures'}
-        >
-          {isActive ? <CameraOff size={22} aria-hidden="true" /> : <Camera size={22} aria-hidden="true" />}
-        </button>
+        {typeof document !== 'undefined' && createPortal(
+          <button
+            className={`icon-button ${isActive ? 'pose-camera-active' : ''}`}
+            type="button"
+            onClick={isActive ? stop : start}
+            aria-label={isActive ? 'Disable camera gestures' : 'Enable camera gestures'}
+            title={isActive ? 'Disable camera gestures' : 'Enable camera gestures'}
+          >
+            {isActive ? <CameraOff size={22} aria-hidden="true" /> : <Camera size={22} aria-hidden="true" />}
+          </button>,
+          document.getElementById('camera-slot') ?? document.body,
+        )}
         {isActive && (
           <button
             className="icon-button"
