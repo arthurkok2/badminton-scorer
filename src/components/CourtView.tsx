@@ -387,7 +387,7 @@ function CourtScoreButton({
     (gestureStatus.gesture === 'teamA' && teamId === 'teamA') ||
     (gestureStatus.gesture === 'teamB' && teamId === 'teamB')
   );
-  const progressPct = isGestureTarget ? (gestureStatus!.frames / 10) * 100 : 0;
+  const progressPct = isGestureTarget ? Math.min((gestureStatus!.frames / 10) * 100, 100) : 0;
 
   return (
     <button
@@ -441,7 +441,7 @@ function FighterHudTeam({
     (gestureStatus.gesture === 'teamA' && teamId === 'teamA') ||
     (gestureStatus.gesture === 'teamB' && teamId === 'teamB')
   );
-  const progressPct = isGestureTarget ? (gestureStatus!.frames / 10) * 100 : 0;
+  const progressPct = isGestureTarget ? Math.min((gestureStatus!.frames / 10) * 100, 100) : 0;
 
   return (
     <div

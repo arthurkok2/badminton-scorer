@@ -625,6 +625,9 @@ button {
   color: rgba(248, 250, 252, 0.92);
   cursor: pointer;
   place-items: center;
+  position: relative;
+  overflow: hidden;
+  border-radius: 6px;
 }
 
 .court-score-button span {
@@ -636,6 +639,8 @@ button {
   font-size: clamp(4.4rem, 18vw, 11rem);
   font-weight: 900;
   line-height: 0.9;
+  position: relative;
+  z-index: 1;
 }
 
 .court-score-button.is-serving span {
@@ -905,6 +910,8 @@ button {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(213, 222, 231, 0.94));
   color: #101820;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.24);
+  position: relative;
+  overflow: hidden;
 }
 
 .fighter-score-number {
@@ -912,6 +919,8 @@ button {
   font-size: clamp(3rem, 6vw, 5.4rem);
   font-weight: 900;
   line-height: 1;
+  position: relative;
+  z-index: 1;
 }
 
 .fighter-score-button.is-serving {
@@ -2446,19 +2455,21 @@ button {
   position: absolute;
   bottom: 0;
   left: 0;
-  height: 4px;
-  background: rgba(74, 222, 128, 0.6);
-  border-radius: 0 0 6px 6px;
+  top: 0;
+  background: rgba(74, 222, 128, 0.25);
+  border-radius: inherit;
   transition: width 0.1s linear;
-  z-index: 1;
+  z-index: 0;
+  pointer-events: none;
 }
 
 .fighter-gesture-bar {
   position: absolute;
   bottom: 0;
   left: 0;
-  height: 3px;
-  background: rgba(74, 222, 128, 0.6);
+  top: 0;
+  background: rgba(74, 222, 128, 0.25);
   transition: width 0.1s linear;
-  z-index: 1;
+  z-index: 0;
+  pointer-events: none;
 }
