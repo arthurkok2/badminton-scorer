@@ -66,6 +66,9 @@ export function createPoseInterpreter(options: PoseInterpreterOptions): PoseInte
       trackedGesture = gestureThisFrame;
       consecutiveFrames = 1;
     } else {
+      if (trackedGesture !== null) {
+        lastDispatchTime = now();
+      }
       trackedGesture = null;
       consecutiveFrames = 0;
     }

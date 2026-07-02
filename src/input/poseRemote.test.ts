@@ -62,14 +62,21 @@ describe('createPoseInterpreter', () => {
     expect(commands).toEqual([{ type: 'UNDO' }]);
   });
 
-  it('resets debounce when gesture changes mid-stream', () => {
+  it('resets debounce and starts cooldown when gesture drops', () => {
     const commands: AppCommand[] = [];
-    const interpreter = createPoseInterpreter({ dispatch: (c) => commands.push(c) });
+    let t = 0;
+    const interpreter = createPoseInterpreter({ dispatch: (c) => commands.push(c), now: () => t });
 
-    for (let i = 0; i < 2; i++) interpreter.processResult(leftPalm());
+    for (let i = 0; i < 3; i++) interpreter.processResult(leftPalm());
     interpreter.processResult(noHands());
-    for (let i = 0; i < 10; i++) interpreter.processResult(leftPalm());
 
+    // Still within cooldown from gesture drop
+    for (let i = 0; i < 10; i++) interpreter.processResult(leftPalm());
+    expect(commands).toEqual([]);
+
+    // After cooldown, gesture can accumulate again
+    t = 2500;
+    for (let i = 0; i < 10; i++) interpreter.processResult(leftPalm());
     expect(commands).toEqual([{ type: 'POINT_TEAM', teamId: 'teamA' }]);
   });
 
