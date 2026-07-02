@@ -262,12 +262,15 @@ export function PoseCamera({ onCommand }: PoseCameraProps) {
             <div className="pose-debug-info">
               <div className="pose-debug-section">Detection</div>
               <div className="pose-debug-row">
-                <span>Gesture</span>
-                <span className="pose-debug-val">{debug.gesture}</span>
+                <span>Command</span>
+                <span className={`pose-debug-val ${debug.gesture !== '-' ? 'pose-debug-cmd-active' : ''}`}>{debug.gesture !== '-' ? `→ ${debug.gesture}` : '-'}</span>
               </div>
               <div className="pose-debug-row">
                 <span>Frames</span>
                 <span className="pose-debug-val">{debug.frames} / 5</span>
+              </div>
+              <div className="pose-debug-bar-track">
+                <div className="pose-debug-bar-fill" style={{ width: `${(debug.frames / 5) * 100}%` }} />
               </div>
               <div className="pose-debug-row">
                 <span>Cooldown</span>
