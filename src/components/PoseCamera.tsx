@@ -77,11 +77,15 @@ export function PoseCamera({ onCommand }: PoseCameraProps) {
 
     for (let i = 0; i < result.gestures.length; i++) {
       const top = result.gestures[i]?.[0];
-      const hand = result.handedness[i]?.[0]?.categoryName ?? '?';
+      const handCat = result.handedness[i]?.[0];
+      const hand = handCat?.categoryName ?? '?';
+      const handConf = handCat ? fmt(handCat.score) : '?';
       if (top?.categoryName === 'Open_Palm' && top.score >= 0.6) {
         openPalms.push(hand);
       }
-      const label = top ? `${top.categoryName} (${fmt(top.score)})` : '-';
+      const label = top
+        ? `${top.categoryName} (${fmt(top.score)}) ${hand} (${handConf})`
+        : `- ${hand} (${handConf})`;
       if (hand === 'Left') d.leftHand = label;
       else if (hand === 'Right') d.rightHand = label;
     }
@@ -241,7 +245,7 @@ export function PoseCamera({ onCommand }: PoseCameraProps) {
                 <span>Last command</span>
                 <span className="pose-debug-val">{debug.lastCommand}</span>
               </div>
-              <div className="pose-debug-section">Hands</div>
+              <div className="pose-debug-section">Gestures (detection / handedness)</div>
               <div className="pose-debug-row">
                 <span>Left</span>
                 <span className="pose-debug-val">{debug.leftHand}</span>
