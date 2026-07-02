@@ -16,22 +16,13 @@ describe('classifyArm', () => {
   const hip = lm(0.5, 0.8);
 
   describe('horizontal_out', () => {
-    it('classifies left arm extended leftward as horizontal_out', () => {
+    it('classifies extended arm as horizontal_out', () => {
       const shoulder = lm(0.4, 0.5);
       const elbow = lm(0.3, 0.5);
       const wrist = lm(0.1, 0.5);
       const bodyCenterX = 0.5;
 
       expect(classifyArm(shoulder, elbow, wrist, hip, bodyCenterX, true)).toBe('horizontal_out');
-    });
-
-    it('classifies right arm extended rightward as horizontal_out', () => {
-      const shoulder = lm(0.6, 0.5);
-      const elbow = lm(0.7, 0.5);
-      const wrist = lm(0.9, 0.5);
-      const bodyCenterX = 0.5;
-
-      expect(classifyArm(shoulder, elbow, wrist, hip, bodyCenterX, false)).toBe('horizontal_out');
     });
 
     it('rejects when wrist Y is too far from shoulder Y', () => {
@@ -43,7 +34,7 @@ describe('classifyArm', () => {
       expect(classifyArm(shoulder, elbow, wrist, hip, bodyCenterX, true)).not.toBe('horizontal_out');
     });
 
-    it('rejects when wrist is not outward from elbow', () => {
+    it('rejects when arm is bent (wrist closer to shoulder than elbow)', () => {
       const shoulder = lm(0.4, 0.5);
       const elbow = lm(0.1, 0.5);
       const wrist = lm(0.3, 0.5);
@@ -134,24 +125,30 @@ describe('classifyBothArms', () => {
 });
 
 describe('detectGesture', () => {
-  it('returns teamA for left horizontal_out with right arm at rest', () => {
-    expect(detectGesture('horizontal_out', 'neutral')).toBe('teamA');
+  it('returns teamA when left arm horizontal and wrist is right of body center', () => {
+    // wrist.x=0.7 > bodyCenterX=0.5 → spatial right → teamA
+    expect(detectGesture('horizontal_out', 'neutral', 0.7, 0.3, 0.5)).toBe('teamA');
   });
 
-  it('returns teamB for right horizontal_out with left arm at rest', () => {
-    expect(detectGesture('neutral', 'horizontal_out')).toBe('teamB');
+  it('returns teamB when left arm horizontal and wrist is left of body center', () => {
+    // wrist.x=0.2 < bodyCenterX=0.5 → spatial left → teamB
+    expect(detectGesture('horizontal_out', 'neutral', 0.2, 0.3, 0.5)).toBe('teamB');
+  });
+
+  it('returns teamA when right arm horizontal and wrist is right of body center', () => {
+    expect(detectGesture('neutral', 'horizontal_out', 0.3, 0.7, 0.5)).toBe('teamA');
   });
 
   it('returns undo for both vertical_up', () => {
-    expect(detectGesture('vertical_up', 'vertical_up')).toBe('undo');
+    expect(detectGesture('vertical_up', 'vertical_up', 0.3, 0.7, 0.5)).toBe('undo');
   });
 
   it('returns null for both neutral', () => {
-    expect(detectGesture('neutral', 'neutral')).toBeNull();
+    expect(detectGesture('neutral', 'neutral', 0.3, 0.7, 0.5)).toBeNull();
   });
 
   it('returns null for both horizontal_out (ambiguous)', () => {
-    expect(detectGesture('horizontal_out', 'horizontal_out')).toBeNull();
+    expect(detectGesture('horizontal_out', 'horizontal_out', 0.3, 0.7, 0.5)).toBeNull();
   });
 });
 
@@ -177,12 +174,12 @@ function fullBodyLandmarks(pose: {
 
 function teamALandmarks(): Landmark[] {
   return fullBodyLandmarks({
-    leftWrist: lm(0.05, 0.5),
-    leftElbow: lm(0.2, 0.5),
-    leftShoulder: lm(0.35, 0.5),
-    rightWrist: lm(0.65, 0.15),
-    rightElbow: lm(0.65, 0.3),
-    rightShoulder: lm(0.65, 0.5),
+    leftWrist: lm(0.95, 0.5),
+    leftElbow: lm(0.8, 0.5),
+    leftShoulder: lm(0.65, 0.5),
+    rightWrist: lm(0.35, 0.15),
+    rightElbow: lm(0.35, 0.3),
+    rightShoulder: lm(0.35, 0.5),
   });
 }
 
@@ -191,9 +188,9 @@ function teamBLandmarks(): Landmark[] {
     leftWrist: lm(0.35, 0.15),
     leftElbow: lm(0.35, 0.3),
     leftShoulder: lm(0.35, 0.5),
-    rightWrist: lm(0.95, 0.5),
-    rightElbow: lm(0.8, 0.5),
-    rightShoulder: lm(0.65, 0.5),
+    rightWrist: lm(0.05, 0.5),
+    rightElbow: lm(0.2, 0.5),
+    rightShoulder: lm(0.35, 0.5),
   });
 }
 

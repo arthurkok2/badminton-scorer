@@ -55,7 +55,12 @@ export function createPoseInterpreter(options: PoseInterpreterOptions): PoseInte
       if (landmarks.length < MIN_KEYPOINTS) continue;
 
       const arms = classifyBothArms(landmarks);
-      gestureThisFrame = detectGesture(arms.left, arms.right);
+      const bodyCenterX = (landmarks[LEFT_SHOULDER].x + landmarks[RIGHT_SHOULDER].x) / 2;
+      gestureThisFrame = detectGesture(
+        arms.left, arms.right,
+        landmarks[LEFT_WRIST].x, landmarks[RIGHT_WRIST].x,
+        bodyCenterX,
+      );
       if (gestureThisFrame !== null) break;
     }
 
@@ -106,20 +111,19 @@ export function classifyArm(
   elbow: Landmark,
   wrist: Landmark,
   hip: Landmark,
-  bodyCenterX: number,
-  isLeft: boolean,
+  _bodyCenterX: number,
+  _isLeft: boolean,
 ): ArmClassification {
   const shoulderHipDY = Math.abs(shoulder.y - hip.y);
   if (shoulderHipDY === 0) return 'neutral';
 
-  // Check horizontal_out
+  // horizontal_out: wrist at shoulder height, arm extended (wrist farther from shoulder than elbow)
   const yTolerance = shoulderHipDY * 0.15;
   const yOk = Math.abs(wrist.y - shoulder.y) < yTolerance;
   if (yOk) {
-    const outwardOk = isLeft
-      ? wrist.x < bodyCenterX && wrist.x < elbow.x
-      : wrist.x > bodyCenterX && wrist.x > elbow.x;
-    if (outwardOk) return 'horizontal_out';
+    const wristDist = Math.hypot(wrist.x - shoulder.x, wrist.y - shoulder.y);
+    const elbowDist = Math.hypot(elbow.x - shoulder.x, elbow.y - shoulder.y);
+    if (wristDist > elbowDist) return 'horizontal_out';
   }
 
   // Check vertical_up
@@ -167,9 +171,20 @@ export function classifyBothArms(
 export function detectGesture(
   leftArm: ArmClassification,
   rightArm: ArmClassification,
+  leftWristX: number,
+  rightWristX: number,
+  bodyCenterX: number,
 ): GestureType | null {
-  if (leftArm === 'horizontal_out' && rightArm !== 'horizontal_out') return 'teamA';
-  if (rightArm === 'horizontal_out' && leftArm !== 'horizontal_out') return 'teamB';
   if (leftArm === 'vertical_up' && rightArm === 'vertical_up') return 'undo';
+
+  // Single arm horizontal: use spatial position (which side of image)
+  // From behind the court, player's left arm appears on right of camera
+  if (leftArm === 'horizontal_out' && rightArm !== 'horizontal_out') {
+    return leftWristX > bodyCenterX ? 'teamA' : 'teamB';
+  }
+  if (rightArm === 'horizontal_out' && leftArm !== 'horizontal_out') {
+    return rightWristX > bodyCenterX ? 'teamA' : 'teamB';
+  }
+
   return null;
 }

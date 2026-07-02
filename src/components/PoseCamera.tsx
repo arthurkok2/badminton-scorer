@@ -108,7 +108,8 @@ export function PoseCamera({ onCommand }: PoseCameraProps) {
     if (landmarks.length > 0 && landmarks[0].length >= 25) {
       const p = landmarks[0] as unknown as Landmark[];
       const arms = classifyBothArms(p);
-      const gesture = detectGesture(arms.left, arms.right);
+      const bcx = (p[L_SHOULDER].x + p[R_SHOULDER].x) / 2;
+      const gesture = detectGesture(arms.left, arms.right, p[L_WRIST].x, p[R_WRIST].x, bcx);
       const d = debugRef.current;
       if (gesture === d.lastGesture && gesture !== null) {
         d.frames++;
@@ -122,8 +123,7 @@ export function PoseCamera({ onCommand }: PoseCameraProps) {
       d.gesture = gesture ?? '-';
       d.leftClass = arms.left;
       d.rightClass = arms.right;
-      const bodyCenterX = (p[L_SHOULDER].x + p[R_SHOULDER].x) / 2;
-      d.bodyCenterX = fmt(bodyCenterX);
+      d.bodyCenterX = fmt(bcx);
       d.shoulderHipDY = `${fmt(Math.abs(p[L_SHOULDER].y - p[L_HIP].y))} / ${fmt(Math.abs(p[R_SHOULDER].y - p[R_HIP].y))}`;
       d.leftWrist = `${fmt(p[L_WRIST].x)}, ${fmt(p[L_WRIST].y)}`;
       d.leftElbow = `${fmt(p[L_ELBOW].x)}, ${fmt(p[L_ELBOW].y)}`;
