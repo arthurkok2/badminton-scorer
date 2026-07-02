@@ -1,8 +1,14 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 
+export interface DetectionResult {
+  gestures: { categoryName: string; score: number }[][];
+  handedness: { categoryName: string; score: number }[][];
+  handLandmarks: any[][];
+}
+
 export interface UsePoseDetectionOptions {
-  onLandmarks?: (landmarks: any[]) => void;
-  loadPoseLandmarker?: () => Promise<any>;
+  onResult?: (result: DetectionResult) => void;
+  loadRecognizer?: () => Promise<any>;
   container?: HTMLElement | null;
 }
 
@@ -15,29 +21,31 @@ export interface UsePoseDetectionResult {
   stop: () => void;
 }
 
-async function defaultLoadPoseLandmarker() {
-  const { PoseLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
+async function defaultLoadRecognizer() {
+  const { GestureRecognizer, FilesetResolver } = await import('@mediapipe/tasks-vision');
   const vision = await FilesetResolver.forVisionTasks(
     'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm',
   );
-  return PoseLandmarker.createFromOptions(vision, {
+  return GestureRecognizer.createFromOptions(vision, {
     baseOptions: {
-      modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task',
+      modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/latest/gesture_recognizer.task',
       delegate: 'GPU',
     },
     runningMode: 'VIDEO',
-    numPoses: 2,
+    numHands: 2,
+    minHandDetectionConfidence: 0.5,
+    minHandPresenceConfidence: 0.5,
+    minTrackingConfidence: 0.5,
   });
 }
 
-const POSE_CONNECTIONS: [number, number][] = [
-  [11, 12],
-  [11, 13], [13, 15],
-  [12, 14], [14, 16],
-  [11, 23], [12, 24],
-  [23, 24],
-  [23, 25], [25, 27],
-  [24, 26], [26, 28],
+const HAND_CONNECTIONS: [number, number][] = [
+  [0, 1], [1, 2], [2, 3], [3, 4],
+  [0, 5], [5, 6], [6, 7], [7, 8],
+  [0, 9], [9, 10], [10, 11], [11, 12],
+  [0, 13], [13, 14], [14, 15], [15, 16],
+  [0, 17], [17, 18], [18, 19], [19, 20],
+  [5, 9], [9, 13], [13, 17],
 ];
 
 const COLORS = ['#4ade80', '#60a5fa'];
@@ -51,13 +59,13 @@ export function drawSkeleton(
   ctx.clearRect(0, 0, width, height);
 
   for (let pi = 0; pi < landmarks.length; pi++) {
-    const person = landmarks[pi];
+    const hand = landmarks[pi];
     ctx.strokeStyle = COLORS[pi % COLORS.length];
     ctx.lineWidth = 2;
 
-    for (const [i, j] of POSE_CONNECTIONS) {
-      const a = person[i];
-      const b = person[j];
+    for (const [i, j] of HAND_CONNECTIONS) {
+      const a = hand[i];
+      const b = hand[j];
       if (!a || !b || a.visibility < 0.5 || b.visibility < 0.5) continue;
 
       ctx.beginPath();
@@ -67,17 +75,18 @@ export function drawSkeleton(
     }
 
     ctx.fillStyle = COLORS[pi % COLORS.length];
-    for (let i = 0; i < person.length; i++) {
-      const p = person[i];
+    for (let i = 0; i < hand.length; i++) {
+      const p = hand[i];
       if (!p || p.visibility < 0.5) continue;
       ctx.beginPath();
-      ctx.arc(p.x * width, p.y * height, 2, 0, Math.PI * 2);
+      ctx.arc(p.x * width, p.y * height, 3, 0, Math.PI * 2);
       ctx.fill();
     }
   }
 }
+
 export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePoseDetectionResult {
-  const { onLandmarks, loadPoseLandmarker = defaultLoadPoseLandmarker, container } = options;
+  const { onResult, loadRecognizer = defaultLoadRecognizer, container } = options;
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isActive, setIsActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,11 +101,11 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef(container);
   containerRef.current = container;
-  const poseLandmarkerRef = useRef<any>(null);
+  const recognizerRef = useRef<any>(null);
   const rafRef = useRef<number | null>(null);
   const isActiveRef = useRef(false);
-  const onLandmarksRef = useRef(onLandmarks);
-  onLandmarksRef.current = onLandmarks;
+  const onResultRef = useRef(onResult);
+  onResultRef.current = onResult;
 
   const stop = useCallback(() => {
     isActiveRef.current = false;
@@ -124,9 +133,9 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
       canvasRef.current = null;
     }
 
-    if (poseLandmarkerRef.current) {
-      poseLandmarkerRef.current.close();
-      poseLandmarkerRef.current = null;
+    if (recognizerRef.current) {
+      recognizerRef.current.close();
+      recognizerRef.current = null;
     }
   }, []);
 
@@ -146,8 +155,8 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
       if (canvasRef.current) {
         canvasRef.current.remove();
       }
-      if (poseLandmarkerRef.current) {
-        poseLandmarkerRef.current.close();
+      if (recognizerRef.current) {
+        recognizerRef.current.close();
       }
     };
   }, []);
@@ -158,7 +167,7 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
     setError(null);
 
     try {
-      poseLandmarkerRef.current = await loadPoseLandmarker();
+      recognizerRef.current = await loadRecognizer();
 
       let stream: MediaStream;
       try {
@@ -167,8 +176,8 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
           audio: false,
         });
       } catch (err) {
-        poseLandmarkerRef.current.close();
-        poseLandmarkerRef.current = null;
+        recognizerRef.current.close();
+        recognizerRef.current = null;
         throw err;
       }
 
@@ -181,8 +190,8 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
       try {
         await video.play();
       } catch (err) {
-        poseLandmarkerRef.current.close();
-        poseLandmarkerRef.current = null;
+        recognizerRef.current.close();
+        recognizerRef.current = null;
         stream.getTracks().forEach((track) => track.stop());
         throw err;
       }
@@ -221,7 +230,7 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
 
       let frameCount = 0;
       const detect = () => {
-        if (!isActiveRef.current || !poseLandmarkerRef.current) return;
+        if (!isActiveRef.current || !recognizerRef.current) return;
 
         frameCount++;
         if (frameCount % 4 !== 0) {
@@ -230,16 +239,18 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
         }
 
         try {
-          const results = poseLandmarkerRef.current.detectForVideo(video, performance.now());
-          if (results.landmarks && results.landmarks.length > 0) {
-            if (onLandmarksRef.current) {
-              onLandmarksRef.current(results.landmarks);
-            }
-            if (canvasRef.current) {
-              const ctx = canvasRef.current.getContext('2d');
-              if (ctx) {
-                drawSkeleton(ctx, results.landmarks, 160, 120);
-              }
+          const results = recognizerRef.current.recognizeForVideo(video, performance.now());
+          if (results.gestures && results.gestures.length > 0 && onResultRef.current) {
+            onResultRef.current({
+              gestures: results.gestures.map((g: any[]) => g.map((c: any) => ({ categoryName: c.categoryName, score: c.score }))),
+              handedness: results.handedness.map((h: any[]) => h.map((c: any) => ({ categoryName: c.categoryName, score: c.score }))),
+              handLandmarks: results.handLandmarks,
+            });
+          }
+          if (canvasRef.current && results.handLandmarks && results.handLandmarks.length > 0) {
+            const ctx = canvasRef.current.getContext('2d');
+            if (ctx) {
+              drawSkeleton(ctx, results.handLandmarks, 160, 120);
             }
           }
         } catch {
@@ -257,7 +268,7 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
         setError('Failed to start camera');
       }
     }
-  }, [loadPoseLandmarker]);
+  }, [loadRecognizer]);
 
   useEffect(() => {
     function handleVisibilityChange() {
@@ -269,7 +280,7 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
       } else if (!document.hidden && isActiveRef.current && rafRef.current === null && videoRef.current) {
         let frameCount = 0;
         const detect = () => {
-          if (!isActiveRef.current || !poseLandmarkerRef.current) return;
+          if (!isActiveRef.current || !recognizerRef.current) return;
 
           frameCount++;
           if (frameCount % 4 !== 0) {
@@ -278,16 +289,18 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
           }
 
           try {
-            const results = poseLandmarkerRef.current.detectForVideo(videoRef.current!, performance.now());
-            if (results.landmarks && results.landmarks.length > 0) {
-              if (onLandmarksRef.current) {
-                onLandmarksRef.current(results.landmarks);
-              }
-              if (canvasRef.current) {
-                const ctx = canvasRef.current.getContext('2d');
-                if (ctx) {
-                  drawSkeleton(ctx, results.landmarks, 160, 120);
-                }
+            const results = recognizerRef.current.recognizeForVideo(videoRef.current!, performance.now());
+            if (results.gestures && results.gestures.length > 0 && onResultRef.current) {
+              onResultRef.current({
+                gestures: results.gestures.map((g: any[]) => g.map((c: any) => ({ categoryName: c.categoryName, score: c.score }))),
+                handedness: results.handedness.map((h: any[]) => h.map((c: any) => ({ categoryName: c.categoryName, score: c.score }))),
+                handLandmarks: results.handLandmarks,
+              });
+            }
+            if (canvasRef.current && results.handLandmarks && results.handLandmarks.length > 0) {
+              const ctx = canvasRef.current.getContext('2d');
+              if (ctx) {
+                drawSkeleton(ctx, results.handLandmarks, 160, 120);
               }
             }
           } catch {

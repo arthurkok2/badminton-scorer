@@ -20,34 +20,33 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function createStubPoseLandmarker() {
+function createStubRecognizer() {
   return {
-    detectForVideo: vi.fn().mockReturnValue({ landmarks: [] }),
+    recognizeForVideo: vi.fn().mockReturnValue({ gestures: [], handedness: [], handLandmarks: [] }),
     close: vi.fn(),
   };
 }
 
 describe('usePoseDetection', () => {
   it('isSupported is true when getUserMedia exists', () => {
-    const { result } = renderHook(() => usePoseDetection({ loadPoseLandmarker: vi.fn() }));
+    const { result } = renderHook(() => usePoseDetection({ loadRecognizer: vi.fn() }));
     expect(result.current.isSupported).toBe(true);
   });
 
   it('isSupported is false when getUserMedia is missing', () => {
     Object.defineProperty(globalThis.navigator, 'mediaDevices', { value: undefined, writable: true });
-    const { result } = renderHook(() => usePoseDetection({ loadPoseLandmarker: vi.fn() }));
+    const { result } = renderHook(() => usePoseDetection({ loadRecognizer: vi.fn() }));
     expect(result.current.isSupported).toBe(false);
   });
 
   it('isActive is false initially', () => {
-    const { result } = renderHook(() => usePoseDetection({ loadPoseLandmarker: vi.fn() }));
+    const { result } = renderHook(() => usePoseDetection({ loadRecognizer: vi.fn() }));
     expect(result.current.isActive).toBe(false);
   });
 
   it('isActive becomes true after start() succeeds', async () => {
-    const loadPoseLandmarker = vi.fn().mockResolvedValue(createStubPoseLandmarker());
-    const onLandmarks = vi.fn();
-    const { result } = renderHook(() => usePoseDetection({ onLandmarks, loadPoseLandmarker }));
+    const loadRecognizer = vi.fn().mockResolvedValue(createStubRecognizer());
+    const { result } = renderHook(() => usePoseDetection({ loadRecognizer }));
 
     await act(async () => {
       await result.current.start();
@@ -58,9 +57,9 @@ describe('usePoseDetection', () => {
 
   it('sets error when getUserMedia is denied', async () => {
     mockGetUserMedia.mockRejectedValue(new DOMException('Permission denied', 'NotAllowedError'));
-    const loadPoseLandmarker = vi.fn().mockResolvedValue(createStubPoseLandmarker());
+    const loadRecognizer = vi.fn().mockResolvedValue(createStubRecognizer());
 
-    const { result } = renderHook(() => usePoseDetection({ loadPoseLandmarker }));
+    const { result } = renderHook(() => usePoseDetection({ loadRecognizer }));
 
     await act(async () => {
       await result.current.start();
@@ -71,9 +70,9 @@ describe('usePoseDetection', () => {
   });
 
   it('stop sets isActive to false', async () => {
-    const loadPoseLandmarker = vi.fn().mockResolvedValue(createStubPoseLandmarker());
+    const loadRecognizer = vi.fn().mockResolvedValue(createStubRecognizer());
 
-    const { result } = renderHook(() => usePoseDetection({ loadPoseLandmarker }));
+    const { result } = renderHook(() => usePoseDetection({ loadRecognizer }));
 
     await act(async () => {
       await result.current.start();
@@ -87,7 +86,7 @@ describe('usePoseDetection', () => {
   });
 
   it('does not throw when stop is called before start', () => {
-    const { result } = renderHook(() => usePoseDetection({ loadPoseLandmarker: vi.fn() }));
+    const { result } = renderHook(() => usePoseDetection({ loadRecognizer: vi.fn() }));
 
     expect(() => {
       act(() => {
@@ -97,9 +96,9 @@ describe('usePoseDetection', () => {
   });
 
   it('does not throw when start is called while already active', async () => {
-    const loadPoseLandmarker = vi.fn().mockResolvedValue(createStubPoseLandmarker());
+    const loadRecognizer = vi.fn().mockResolvedValue(createStubRecognizer());
 
-    const { result } = renderHook(() => usePoseDetection({ loadPoseLandmarker }));
+    const { result } = renderHook(() => usePoseDetection({ loadRecognizer }));
 
     await act(async () => {
       await result.current.start();
