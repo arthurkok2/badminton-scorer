@@ -78,7 +78,7 @@ export function PoseCamera({ onCommand }: PoseCameraProps) {
     for (let i = 0; i < result.gestures.length; i++) {
       const top = result.gestures[i]?.[0];
       const hand = result.handedness[i]?.[0]?.categoryName ?? '?';
-      if (top?.categoryName === 'Open_Palm' && top.score >= 0.7) {
+      if (top?.categoryName === 'Open_Palm' && top.score >= 0.6) {
         openPalms.push(hand);
       }
       const label = top ? `${top.categoryName} (${fmt(top.score)})` : '-';

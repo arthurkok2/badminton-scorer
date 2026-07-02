@@ -33,9 +33,9 @@ async function defaultLoadRecognizer() {
     },
     runningMode: 'VIDEO',
     numHands: 2,
-    minHandDetectionConfidence: 0.5,
-    minHandPresenceConfidence: 0.5,
-    minTrackingConfidence: 0.5,
+    minHandDetectionConfidence: 0.4,
+    minHandPresenceConfidence: 0.4,
+    minTrackingConfidence: 0.4,
   });
 }
 
@@ -61,12 +61,12 @@ export function drawSkeleton(
   for (let pi = 0; pi < landmarks.length; pi++) {
     const hand = landmarks[pi];
     ctx.strokeStyle = COLORS[pi % COLORS.length];
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3;
 
     for (const [i, j] of HAND_CONNECTIONS) {
       const a = hand[i];
       const b = hand[j];
-      if (!a || !b || a.visibility < 0.5 || b.visibility < 0.5) continue;
+      if (!a || !b) continue;
 
       ctx.beginPath();
       ctx.moveTo(a.x * width, a.y * height);
@@ -77,9 +77,9 @@ export function drawSkeleton(
     ctx.fillStyle = COLORS[pi % COLORS.length];
     for (let i = 0; i < hand.length; i++) {
       const p = hand[i];
-      if (!p || p.visibility < 0.5) continue;
+      if (!p) continue;
       ctx.beginPath();
-      ctx.arc(p.x * width, p.y * height, 3, 0, Math.PI * 2);
+      ctx.arc(p.x * width, p.y * height, 4, 0, Math.PI * 2);
       ctx.fill();
     }
   }
