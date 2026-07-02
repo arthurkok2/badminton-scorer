@@ -168,8 +168,8 @@ export function detectGesture(
   leftArm: ArmClassification,
   rightArm: ArmClassification,
 ): GestureType | null {
-  if (leftArm === 'horizontal_out' && rightArm === 'vertical_up') return 'teamA';
-  if (rightArm === 'horizontal_out' && leftArm === 'vertical_up') return 'teamB';
+  if (leftArm === 'horizontal_out' && rightArm !== 'horizontal_out') return 'teamA';
+  if (rightArm === 'horizontal_out' && leftArm !== 'horizontal_out') return 'teamB';
   if (leftArm === 'vertical_up' && rightArm === 'vertical_up') return 'undo';
   return null;
 }

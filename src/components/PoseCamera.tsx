@@ -80,8 +80,9 @@ export function PoseCamera({ onCommand }: PoseCameraProps) {
   useEffect(() => {
     if (debugVideoRef.current && stream) {
       debugVideoRef.current.srcObject = stream;
+      debugVideoRef.current.play().catch(() => {});
     }
-  }, [stream]);
+  }, [stream, showDebug]);
 
   useEffect(() => {
     return () => {

@@ -134,12 +134,12 @@ describe('classifyBothArms', () => {
 });
 
 describe('detectGesture', () => {
-  it('returns teamA for left horizontal_out + right vertical_up', () => {
-    expect(detectGesture('horizontal_out', 'vertical_up')).toBe('teamA');
+  it('returns teamA for left horizontal_out with right arm at rest', () => {
+    expect(detectGesture('horizontal_out', 'neutral')).toBe('teamA');
   });
 
-  it('returns teamB for right horizontal_out + left vertical_up', () => {
-    expect(detectGesture('vertical_up', 'horizontal_out')).toBe('teamB');
+  it('returns teamB for right horizontal_out with left arm at rest', () => {
+    expect(detectGesture('neutral', 'horizontal_out')).toBe('teamB');
   });
 
   it('returns undo for both vertical_up', () => {
