@@ -82,7 +82,7 @@ export function PoseCamera({ onCommand }: PoseCameraProps) {
       const handCat = result.handedness[i]?.[0];
       const hand = handCat?.categoryName ?? '?';
       const handConf = handCat ? fmt(handCat.score) : '?';
-      if (top?.categoryName === 'Open_Palm' && top.score >= 0.6) {
+      if (top?.categoryName === 'Open_Palm' && top.score >= 0.5) {
         openPalms.push(hand);
       }
       const label = top
@@ -239,7 +239,7 @@ export function PoseCamera({ onCommand }: PoseCameraProps) {
               </div>
               <div className="pose-debug-row">
                 <span>Frames</span>
-                <span className="pose-debug-val">{debug.frames} / 6</span>
+                <span className="pose-debug-val">{debug.frames} / 10</span>
               </div>
               <div className="pose-debug-row">
                 <span>Cooldown</span>
@@ -265,7 +265,7 @@ export function PoseCamera({ onCommand }: PoseCameraProps) {
 
       {isActive && status.frames > 0 && (
         <div className="pose-status-bar">
-          <div className="pose-status-bar-fill" style={{ width: `${(status.frames / 6) * 100}%` }} />
+          <div className="pose-status-bar-fill" style={{ width: `${(status.frames / 10) * 100}%` }} />
           <span className="pose-status-bar-label">→ {status.gesture}</span>
         </div>
       )}

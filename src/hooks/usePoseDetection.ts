@@ -33,9 +33,9 @@ async function defaultLoadRecognizer() {
     },
     runningMode: 'VIDEO',
     numHands: 2,
-    minHandDetectionConfidence: 0.4,
-    minHandPresenceConfidence: 0.4,
-    minTrackingConfidence: 0.4,
+    minHandDetectionConfidence: 0.3,
+    minHandPresenceConfidence: 0.3,
+    minTrackingConfidence: 0.3,
   });
 }
 
@@ -172,7 +172,7 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
       let stream: MediaStream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: { ideal: 320 }, height: { ideal: 240 } },
+          video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } },
           audio: false,
         });
       } catch (err) {
@@ -233,7 +233,7 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
         if (!isActiveRef.current || !recognizerRef.current) return;
 
         frameCount++;
-          if (frameCount % 8 !== 0) {
+        if (frameCount % 4 !== 0) {
           rafRef.current = requestAnimationFrame(detect);
           return;
         }
@@ -283,7 +283,7 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
           if (!isActiveRef.current || !recognizerRef.current) return;
 
           frameCount++;
-        if (frameCount % 8 !== 0) {
+          if (frameCount % 4 !== 0) {
             rafRef.current = requestAnimationFrame(detect);
             return;
           }
