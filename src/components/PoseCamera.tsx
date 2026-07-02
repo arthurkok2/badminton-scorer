@@ -7,6 +7,7 @@ import type { AppCommand } from '../input/commands';
 
 interface PoseCameraProps {
   readonly onCommand: (command: AppCommand) => void;
+  readonly onStatus?: (gesture: string, frames: number) => void;
 }
 
 interface DebugState {
@@ -28,7 +29,7 @@ const MODAL_VIDEO_H = 240;
 
 function fmt(n: number) { return n.toFixed(3); }
 
-export function PoseCamera({ onCommand }: PoseCameraProps) {
+export function PoseCamera({ onCommand, onStatus }: PoseCameraProps) {
   const interpreterRef = useRef<PoseInterpreter>(null!);
   const feedbackRef = useRef<HTMLDivElement>(null);
   const [pipContainer, setPipContainer] = useState<HTMLDivElement | null>(null);
@@ -175,9 +176,10 @@ export function PoseCamera({ onCommand }: PoseCameraProps) {
     const interval = setInterval(() => {
       const d = debugRef.current;
       setStatus({ gesture: d.gesture, frames: d.frames });
+      onStatus?.(d.gesture, d.frames);
     }, 100);
     return () => clearInterval(interval);
-  }, [isActive]);
+  }, [isActive, onStatus]);
 
   if (!isSupported) return null;
 

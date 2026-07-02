@@ -165,6 +165,7 @@ export default function App() {
   const [oneOffSpriteOverrides, setOneOffSpriteOverrides] = useState<Partial<Record<PlayerId, LittleFighterSpriteId>>>({});
   const [spriteSaveState, setSpriteSaveState] = useState<'idle' | 'saving' | 'error'>('idle');
   const [spriteSaveError, setSpriteSaveError] = useState<string | undefined>(undefined);
+  const [gestureStatus, setGestureStatus] = useState<{ gesture: string; frames: number } | null>(null);
 
   useEffect(() => {
     setSpriteSaveState('idle');
@@ -934,8 +935,9 @@ export default function App() {
           onPointTeam={(teamId) => dispatch({ type: 'POINT_TEAM', teamId })}
           fighterSprites={fighterSprites}
           onPlayerSpriteClick={setActiveSpritePickerPlayerId}
+          gestureStatus={gestureStatus}
         />
-        <PoseCamera onCommand={dispatch} />
+        <PoseCamera onCommand={dispatch} onStatus={(gesture, frames) => setGestureStatus(frames > 0 ? { gesture, frames } : null)} />
         <Controls
           onUndo={() => dispatch({ type: 'UNDO' })}
           onAnnounce={() => speakAnnouncement(match, preferencesRef.current.announcementMode)}

@@ -10,6 +10,7 @@ interface CourtViewProps {
   readonly onPointTeam: (teamId: TeamId) => void;
   readonly fighterSprites?: Readonly<Record<PlayerId, LittleFighterSpriteOption>>;
   readonly onPlayerSpriteClick?: (playerId: PlayerId) => void;
+  readonly gestureStatus?: { gesture: string; frames: number } | null;
 }
 
 const COURT_LENGTH_CM = 1340;
@@ -35,16 +36,16 @@ const FIGHTER_SPRITES: Record<PlayerId, string> = {
   B2: `${import.meta.env.BASE_URL}sprites/badminton-male-jump-smash.png`,
 };
 
-export function CourtView({ match, displayMode = 'court', onPointTeam, fighterSprites, onPlayerSpriteClick }: CourtViewProps) {
+export function CourtView({ match, displayMode = 'court', onPointTeam, fighterSprites, onPlayerSpriteClick, gestureStatus }: CourtViewProps) {
   if (displayMode === 'little-fighters') {
-    return <LittleFightersView match={match} onPointTeam={onPointTeam} fighterSprites={fighterSprites} onPlayerSpriteClick={onPlayerSpriteClick} />;
+    return <LittleFightersView match={match} onPointTeam={onPointTeam} fighterSprites={fighterSprites} onPlayerSpriteClick={onPlayerSpriteClick} gestureStatus={gestureStatus} />;
   }
 
   return (
     <CourtFullscreenSection className="court-section" ariaLabel="Match court">
       <div className="court">
         <CourtDiagram />
-        <CourtScoreOverlay match={match} onPointTeam={onPointTeam} />
+        <CourtScoreOverlay match={match} onPointTeam={onPointTeam} gestureStatus={gestureStatus} />
         <div className="court-players" aria-label="Player positions">
           <CourtHalf match={match} teamId="teamA" />
           <CourtHalf match={match} teamId="teamB" />
@@ -103,7 +104,7 @@ function CourtFullscreenSection({
   );
 }
 
-function LittleFightersView({ match, onPointTeam, fighterSprites, onPlayerSpriteClick }: CourtViewProps) {
+function LittleFightersView({ match, onPointTeam, fighterSprites, onPlayerSpriteClick, gestureStatus }: CourtViewProps) {
   const previousScoreRef = useRef(match.score);
   const [attackState, setAttackState] = useState<{ attackingTeamId: TeamId; attackerId: string } | null>(null);
 
@@ -141,8 +142,8 @@ function LittleFightersView({ match, onPointTeam, fighterSprites, onPlayerSprite
           <LittleFightersCourtDiagram />
         </div>
         <div className="fighters-hud">
-          <FighterHudTeam match={match} teamId="teamA" align="left" attackState={attackState} onPointTeam={onPointTeam} />
-          <FighterHudTeam match={match} teamId="teamB" align="right" attackState={attackState} onPointTeam={onPointTeam} />
+          <FighterHudTeam match={match} teamId="teamA" align="left" attackState={attackState} onPointTeam={onPointTeam} gestureStatus={gestureStatus} />
+          <FighterHudTeam match={match} teamId="teamB" align="right" attackState={attackState} onPointTeam={onPointTeam} gestureStatus={gestureStatus} />
         </div>
         <div className="fighters-arena" aria-label="Player positions">
           <FighterTeam match={match} teamId="teamA" align="left" attackState={attackState} fighterSprites={fighterSprites} onPlayerSpriteClick={onPlayerSpriteClick} />
@@ -348,17 +349,19 @@ function CourtDiagram() {
 function CourtScoreOverlay({
   match,
   onPointTeam,
+  gestureStatus,
 }: {
   readonly match: MatchState;
   readonly onPointTeam: (teamId: TeamId) => void;
+  readonly gestureStatus?: { gesture: string; frames: number } | null;
 }) {
   const scoringDisabled = match.winnerTeamId !== undefined;
 
   return (
     <div className="court-score-overlay">
       <div className="court-score-box" aria-label="Score controls">
-        <CourtScoreButton match={match} teamId="teamA" disabled={scoringDisabled} onPointTeam={onPointTeam} />
-        <CourtScoreButton match={match} teamId="teamB" disabled={scoringDisabled} onPointTeam={onPointTeam} />
+        <CourtScoreButton match={match} teamId="teamA" disabled={scoringDisabled} onPointTeam={onPointTeam} gestureStatus={gestureStatus} />
+        <CourtScoreButton match={match} teamId="teamB" disabled={scoringDisabled} onPointTeam={onPointTeam} gestureStatus={gestureStatus} />
       </div>
     </div>
   );
@@ -369,15 +372,22 @@ function CourtScoreButton({
   teamId,
   disabled,
   onPointTeam,
+  gestureStatus,
 }: {
   readonly match: MatchState;
   readonly teamId: TeamId;
   readonly disabled: boolean;
   readonly onPointTeam: (teamId: TeamId) => void;
+  readonly gestureStatus?: { gesture: string; frames: number } | null;
 }) {
   const isServing = match.servingTeamId === teamId;
   const score = match.score[teamId];
   const teamName = match.teams[teamId].name;
+  const isGestureTarget = gestureStatus && gestureStatus.gesture !== '-' && (
+    (gestureStatus.gesture === 'teamA' && teamId === 'teamA') ||
+    (gestureStatus.gesture === 'teamB' && teamId === 'teamB')
+  );
+  const progressPct = isGestureTarget ? (gestureStatus!.frames / 10) * 100 : 0;
 
   return (
     <button
@@ -388,6 +398,9 @@ function CourtScoreButton({
       data-testid={`score-${teamId}`}
       onClick={() => onPointTeam(teamId)}
     >
+      {isGestureTarget && (
+        <div className="court-gesture-bar" style={{ width: `${progressPct}%` }} />
+      )}
       <span aria-hidden="true">{score}</span>
     </button>
   );
@@ -410,18 +423,25 @@ function FighterHudTeam({
   align,
   attackState,
   onPointTeam,
+  gestureStatus,
 }: {
   readonly match: MatchState;
   readonly teamId: TeamId;
   readonly align: 'left' | 'right';
   readonly attackState: { attackingTeamId: TeamId; attackerId: string } | null;
   readonly onPointTeam: (teamId: TeamId) => void;
+  readonly gestureStatus?: { gesture: string; frames: number } | null;
 }) {
   const isServing = match.servingTeamId === teamId;
   const score = match.score[teamId];
   const teamName = match.teams[teamId].name;
   const hpPercent = getTeamHpPercent(match, teamId);
   const isUnderAttack = attackState !== null && attackState.attackingTeamId !== teamId;
+  const isGestureTarget = gestureStatus && gestureStatus.gesture !== '-' && (
+    (gestureStatus.gesture === 'teamA' && teamId === 'teamA') ||
+    (gestureStatus.gesture === 'teamB' && teamId === 'teamB')
+  );
+  const progressPct = isGestureTarget ? (gestureStatus!.frames / 10) * 100 : 0;
 
   return (
     <div
@@ -436,6 +456,9 @@ function FighterHudTeam({
         data-testid={`score-${teamId}`}
         onClick={() => onPointTeam(teamId)}
       >
+        {isGestureTarget && (
+          <div className="fighter-gesture-bar" style={{ width: `${progressPct}%` }} />
+        )}
         <span className="fighter-score-number" aria-hidden="true">{score}</span>
       </button>
       <div className="fighter-health-stack">

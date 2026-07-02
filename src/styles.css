@@ -2441,3 +2441,24 @@ button {
   text-transform: uppercase;
   letter-spacing: 1.5px;
 }
+
+.court-gesture-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  background: rgba(74, 222, 128, 0.6);
+  border-radius: 0 0 6px 6px;
+  transition: width 0.1s linear;
+  z-index: 1;
+}
+
+.fighter-gesture-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: rgba(74, 222, 128, 0.6);
+  transition: width 0.1s linear;
+  z-index: 1;
+}
