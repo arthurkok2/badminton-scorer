@@ -97,7 +97,7 @@ export function PoseCamera({ onCommand, onStatus }: PoseCameraProps) {
     else if (openPalms.length === 1) gesture = openPalms[0] === 'Left' ? 'teamA' : 'teamB';
 
     if (gesture === d.lastGesture && gesture !== null && !d.justFired) {
-      d.frames++;
+      d.frames = Math.min(d.frames + 1, 10);
     } else if (gesture !== null && !d.justFired) {
       d.lastGesture = gesture;
       d.frames = 1;
