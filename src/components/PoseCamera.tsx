@@ -44,6 +44,7 @@ export function PoseCamera({ onCommand }: PoseCameraProps) {
     lastCommandTime: number;
     leftHand: string;
     rightHand: string;
+    justFired: boolean;
   }>({
     gesture: '-',
     frames: 0,
@@ -52,6 +53,7 @@ export function PoseCamera({ onCommand }: PoseCameraProps) {
     lastCommandTime: 0,
     leftHand: '-',
     rightHand: '-',
+    justFired: false,
   });
 
   const [debug, setDebug] = useState<DebugState>({
@@ -93,16 +95,17 @@ export function PoseCamera({ onCommand }: PoseCameraProps) {
     if (openPalms.length === 2) gesture = 'undo';
     else if (openPalms.length === 1) gesture = openPalms[0] === 'Left' ? 'teamA' : 'teamB';
 
-    if (gesture === d.lastGesture && gesture !== null) {
+    if (gesture === d.lastGesture && gesture !== null && !d.justFired) {
       d.frames++;
-    } else if (gesture !== null) {
+    } else if (gesture !== null && !d.justFired) {
       d.lastGesture = gesture;
       d.frames = 1;
     } else {
       d.lastGesture = null;
       d.frames = 0;
+      d.justFired = false;
     }
-    d.gesture = gesture ?? '-';
+    d.gesture = d.justFired ? '-' : (gesture ?? '-');
 
     if (debugCanvasRef.current && result.handLandmarks && result.handLandmarks.length > 0) {
       const ctx = debugCanvasRef.current.getContext('2d');
@@ -135,6 +138,7 @@ export function PoseCamera({ onCommand }: PoseCameraProps) {
     d.gesture = '-';
     d.frames = 0;
     d.lastGesture = null;
+    d.justFired = true;
 
     feedbackRef.current?.classList.add('pose-feedback-flash');
     setTimeout(() => {
