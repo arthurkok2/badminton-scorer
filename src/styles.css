@@ -2318,3 +2318,60 @@ button {
   font-size: 12px;
   white-space: nowrap;
 }
+
+.pose-debug-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.pose-debug-modal {
+  background: #1a1a2e;
+  border-radius: 12px;
+  padding: 16px;
+  max-width: 360px;
+  width: 90vw;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.pose-debug-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  color: #e0e0e0;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.pose-debug-video-wrap {
+  position: relative;
+  width: 320px;
+  height: 240px;
+  margin: 0 auto 12px;
+  background: #000;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.pose-debug-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.pose-debug-row {
+  display: flex;
+  justify-content: space-between;
+  color: #999;
+}
+
+.pose-debug-val {
+  color: #4ade80;
+  font-family: monospace;
+}

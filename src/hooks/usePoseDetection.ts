@@ -10,6 +10,7 @@ export interface UsePoseDetectionResult {
   isSupported: boolean;
   isActive: boolean;
   error: string | null;
+  stream: MediaStream | null;
   start: () => Promise<void>;
   stop: () => void;
 }
@@ -29,8 +30,55 @@ async function defaultLoadPoseLandmarker() {
   });
 }
 
+const POSE_CONNECTIONS: [number, number][] = [
+  [11, 12],
+  [11, 13], [13, 15],
+  [12, 14], [14, 16],
+  [11, 23], [12, 24],
+  [23, 24],
+  [23, 25], [25, 27],
+  [24, 26], [26, 28],
+];
+
+const COLORS = ['#4ade80', '#60a5fa'];
+
+export function drawSkeleton(
+  ctx: CanvasRenderingContext2D,
+  landmarks: any[][],
+  width: number,
+  height: number,
+) {
+  ctx.clearRect(0, 0, width, height);
+
+  for (let pi = 0; pi < landmarks.length; pi++) {
+    const person = landmarks[pi];
+    ctx.strokeStyle = COLORS[pi % COLORS.length];
+    ctx.lineWidth = 2;
+
+    for (const [i, j] of POSE_CONNECTIONS) {
+      const a = person[i];
+      const b = person[j];
+      if (!a || !b || a.visibility < 0.5 || b.visibility < 0.5) continue;
+
+      ctx.beginPath();
+      ctx.moveTo(a.x * width, a.y * height);
+      ctx.lineTo(b.x * width, b.y * height);
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = COLORS[pi % COLORS.length];
+    for (let i = 0; i < person.length; i++) {
+      const p = person[i];
+      if (!p || p.visibility < 0.5) continue;
+      ctx.beginPath();
+      ctx.arc(p.x * width, p.y * height, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
 export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePoseDetectionResult {
   const { onLandmarks, loadPoseLandmarker = defaultLoadPoseLandmarker, container } = options;
+  const [stream, setStream] = useState<MediaStream | null>(null);
   const [isActive, setIsActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSupported] = useState(() => {
@@ -41,6 +89,7 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
 
   const streamRef = useRef<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef(container);
   containerRef.current = container;
   const poseLandmarkerRef = useRef<any>(null);
@@ -61,12 +110,18 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
+      setStream(null);
     }
 
     if (videoRef.current) {
       videoRef.current.srcObject = null;
       videoRef.current.remove();
       videoRef.current = null;
+    }
+
+    if (canvasRef.current) {
+      canvasRef.current.remove();
+      canvasRef.current = null;
     }
 
     if (poseLandmarkerRef.current) {
@@ -87,6 +142,9 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
       if (videoRef.current) {
         videoRef.current.srcObject = null;
         videoRef.current.remove();
+      }
+      if (canvasRef.current) {
+        canvasRef.current.remove();
       }
       if (poseLandmarkerRef.current) {
         poseLandmarkerRef.current.close();
@@ -115,6 +173,7 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
       }
 
       streamRef.current = stream;
+      setStream(stream);
 
       const video = document.createElement('video');
       video.setAttribute('playsinline', '');
@@ -131,8 +190,8 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
 
       const target = containerRef.current;
       if (target) {
-        video.style.width = '80px';
-        video.style.height = '60px';
+        video.style.width = '160px';
+        video.style.height = '120px';
         video.style.position = 'absolute';
         video.style.bottom = '8px';
         video.style.right = '8px';
@@ -141,6 +200,20 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
         video.style.border = '1px solid rgba(255,255,255,0.2)';
         video.style.zIndex = '10';
         target.appendChild(video);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 160;
+        canvas.height = 120;
+        canvas.style.position = 'absolute';
+        canvas.style.bottom = '8px';
+        canvas.style.right = '8px';
+        canvas.style.width = '160px';
+        canvas.style.height = '120px';
+        canvas.style.borderRadius = '6px';
+        canvas.style.zIndex = '11';
+        canvas.style.pointerEvents = 'none';
+        target.appendChild(canvas);
+        canvasRef.current = canvas;
       }
 
       isActiveRef.current = true;
@@ -158,8 +231,16 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
 
         try {
           const results = poseLandmarkerRef.current.detectForVideo(video, performance.now());
-          if (results.landmarks && results.landmarks.length > 0 && onLandmarksRef.current) {
-            onLandmarksRef.current(results.landmarks);
+          if (results.landmarks && results.landmarks.length > 0) {
+            if (onLandmarksRef.current) {
+              onLandmarksRef.current(results.landmarks);
+            }
+            if (canvasRef.current) {
+              const ctx = canvasRef.current.getContext('2d');
+              if (ctx) {
+                drawSkeleton(ctx, results.landmarks, 160, 120);
+              }
+            }
           }
         } catch {
           // Detection can fail if video isn't ready yet
@@ -198,8 +279,16 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
 
           try {
             const results = poseLandmarkerRef.current.detectForVideo(videoRef.current!, performance.now());
-            if (results.landmarks && results.landmarks.length > 0 && onLandmarksRef.current) {
-              onLandmarksRef.current(results.landmarks);
+            if (results.landmarks && results.landmarks.length > 0) {
+              if (onLandmarksRef.current) {
+                onLandmarksRef.current(results.landmarks);
+              }
+              if (canvasRef.current) {
+                const ctx = canvasRef.current.getContext('2d');
+                if (ctx) {
+                  drawSkeleton(ctx, results.landmarks, 160, 120);
+                }
+              }
             }
           } catch {
             // ignore
@@ -215,5 +304,5 @@ export function usePoseDetection(options: UsePoseDetectionOptions = {}): UsePose
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
-  return { isSupported, isActive, error, start, stop };
+  return { isSupported, isActive, error, stream, start, stop };
 }

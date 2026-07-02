@@ -8,9 +8,11 @@ vi.mock('../hooks/usePoseDetection', () => ({
     isSupported: true,
     isActive: false,
     error: null,
+    stream: null,
     start: vi.fn(),
     stop: vi.fn(),
   })),
+  drawSkeleton: vi.fn(),
 }));
 
 import { usePoseDetection } from '../hooks/usePoseDetection';
@@ -31,6 +33,7 @@ describe('PoseCamera', () => {
       isSupported: false,
       isActive: false,
       error: null,
+      stream: null,
       start: vi.fn(),
       stop: vi.fn(),
     });
@@ -45,6 +48,7 @@ describe('PoseCamera', () => {
       isSupported: true,
       isActive: false,
       error: null,
+      stream: null,
       start: mockStart,
       stop: vi.fn(),
     });
@@ -60,6 +64,7 @@ describe('PoseCamera', () => {
       isSupported: true,
       isActive: true,
       error: null,
+      stream: null,
       start: vi.fn(),
       stop: mockStop,
     });
@@ -74,6 +79,7 @@ describe('PoseCamera', () => {
       isSupported: true,
       isActive: false,
       error: 'Camera permission denied',
+      stream: null,
       start: vi.fn(),
       stop: vi.fn(),
     });
