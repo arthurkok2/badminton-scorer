@@ -29,6 +29,11 @@ interface DebugState {
   rightVis: string;
 }
 
+interface StatusState {
+  gesture: string;
+  frames: number;
+}
+
 function fmt(n: number) { return n.toFixed(3); }
 
 const L_SHOULDER = 11, R_SHOULDER = 12;
@@ -101,6 +106,8 @@ export function PoseCamera({ onCommand }: PoseCameraProps) {
     leftVis: '-',
     rightVis: '-',
   });
+
+  const [status, setStatus] = useState<StatusState>({ gesture: '-', frames: 0 });
 
   const handleLandmarks = useCallback((landmarks: NormalizedLandmark[][]) => {
     interpreterRef.current.processLandmarks(landmarks);
@@ -206,6 +213,15 @@ export function PoseCamera({ onCommand }: PoseCameraProps) {
     }, 100);
     return () => clearInterval(interval);
   }, [showDebug]);
+
+  useEffect(() => {
+    if (!isActive) return;
+    const interval = setInterval(() => {
+      const d = debugRef.current;
+      setStatus({ gesture: d.gesture, frames: d.frames });
+    }, 100);
+    return () => clearInterval(interval);
+  }, [isActive]);
 
   if (!isSupported) return null;
 
@@ -333,10 +349,10 @@ export function PoseCamera({ onCommand }: PoseCameraProps) {
         </div>
       )}
 
-      {isActive && (
+      {isActive && status.frames > 0 && (
         <div className="pose-status-bar">
-          <div className="pose-status-bar-fill" style={{ width: `${(debug.frames / 10) * 100}%` }} />
-          <span className="pose-status-bar-label">{debug.gesture !== '-' ? `→ ${debug.gesture}` : 'Waiting for gesture...'}</span>
+          <div className="pose-status-bar-fill" style={{ width: `${(status.frames / 10) * 100}%` }} />
+          <span className="pose-status-bar-label">→ {status.gesture}</span>
         </div>
       )}
     </>

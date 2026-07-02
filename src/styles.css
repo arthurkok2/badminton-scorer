@@ -2414,8 +2414,8 @@ button {
   top: 0;
   left: 0;
   right: 0;
-  height: 28px;
-  background: rgba(0, 0, 0, 0.8);
+  height: 36px;
+  background: rgba(0, 0, 0, 0.85);
   z-index: 900;
   display: flex;
   align-items: center;
@@ -2435,9 +2435,9 @@ button {
 .pose-status-bar-label {
   position: relative;
   z-index: 1;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
   color: #e0e0e0;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
 }
