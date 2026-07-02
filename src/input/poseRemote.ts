@@ -54,11 +54,17 @@ export function createPoseInterpreter(options: PoseInterpreterOptions): PoseInte
   let trackedGesture: GestureType | null = null;
   let consecutiveFrames = 0;
   let lastDispatchTime = -COOLDOWN_MS;
+  let mustDrop = false;
 
   function processResult(result: DetectionResult): void {
     if (now() - lastDispatchTime < COOLDOWN_MS) return;
 
     const gestureThisFrame = detectGesture(result);
+
+    if (mustDrop) {
+      if (gestureThisFrame !== null) return;
+      mustDrop = false;
+    }
 
     if (gestureThisFrame === trackedGesture && gestureThisFrame !== null) {
       consecutiveFrames++;
@@ -78,17 +84,20 @@ export function createPoseInterpreter(options: PoseInterpreterOptions): PoseInte
       lastDispatchTime = now();
       trackedGesture = null;
       consecutiveFrames = 0;
+      mustDrop = true;
     }
   }
 
   function reset(): void {
     trackedGesture = null;
     consecutiveFrames = 0;
+    mustDrop = false;
   }
 
   function destroy(): void {
     reset();
     lastDispatchTime = -COOLDOWN_MS;
+    mustDrop = false;
   }
 
   return { processResult, reset, destroy };

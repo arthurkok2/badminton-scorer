@@ -93,6 +93,7 @@ describe('createPoseInterpreter', () => {
     expect(commands).toHaveLength(1);
 
     t = 2500;
+    interpreter.processResult(noHands());
     for (let i = 0; i < 10; i++) interpreter.processResult(rightPalm());
     expect(commands).toHaveLength(2);
     expect(commands[1]).toEqual({ type: 'POINT_TEAM', teamId: 'teamB' });
