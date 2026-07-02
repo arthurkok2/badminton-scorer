@@ -26,7 +26,7 @@ export interface Landmark {
 }
 
 const COOLDOWN_MS = 2000;
-const DEBOUNCE_FRAMES = 5;
+const DEBOUNCE_FRAMES = 10;
 const MIN_KEYPOINTS = 17;
 
 function gestureToCommand(gesture: GestureType): AppCommand {

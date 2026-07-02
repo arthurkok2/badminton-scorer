@@ -206,13 +206,13 @@ function undoLandmarks(): Landmark[] {
 }
 
 describe('createPoseInterpreter', () => {
-  it('dispatches POINT_TEAM teamA after 5 consecutive frames of the teamA gesture', () => {
+  it('dispatches POINT_TEAM teamA after 10 consecutive frames of the teamA gesture', () => {
     const commands: AppCommand[] = [];
     const interpreter = createPoseInterpreter({ dispatch: (c) => commands.push(c) });
 
     const landmarks = teamALandmarks();
 
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 9; i++) {
       interpreter.processLandmarks([landmarks]);
     }
     expect(commands).toEqual([]);
@@ -221,26 +221,26 @@ describe('createPoseInterpreter', () => {
     expect(commands).toEqual([{ type: 'POINT_TEAM', teamId: 'teamA' }]);
   });
 
-  it('dispatches POINT_TEAM teamB after 5 consecutive frames', () => {
+  it('dispatches POINT_TEAM teamB after 10 consecutive frames', () => {
     const commands: AppCommand[] = [];
     const interpreter = createPoseInterpreter({ dispatch: (c) => commands.push(c) });
 
     const landmarks = teamBLandmarks();
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 10; i++) {
       interpreter.processLandmarks([landmarks]);
     }
 
     expect(commands).toEqual([{ type: 'POINT_TEAM', teamId: 'teamB' }]);
   });
 
-  it('dispatches UNDO after 5 consecutive frames', () => {
+  it('dispatches UNDO after 10 consecutive frames', () => {
     const commands: AppCommand[] = [];
     const interpreter = createPoseInterpreter({ dispatch: (c) => commands.push(c) });
 
     const landmarks = undoLandmarks();
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 10; i++) {
       interpreter.processLandmarks([landmarks]);
     }
 
@@ -257,7 +257,7 @@ describe('createPoseInterpreter', () => {
 
     interpreter.processLandmarks([[lm(0.5, 0.7)]]);
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 10; i++) {
       interpreter.processLandmarks([teamALandmarks()]);
     }
 
@@ -272,19 +272,19 @@ describe('createPoseInterpreter', () => {
       now: () => currentTime,
     });
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 10; i++) {
       interpreter.processLandmarks([teamALandmarks()]);
     }
     expect(commands).toHaveLength(1);
 
     currentTime = 500;
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 10; i++) {
       interpreter.processLandmarks([teamBLandmarks()]);
     }
     expect(commands).toHaveLength(1);
 
     currentTime = 2500;
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 10; i++) {
       interpreter.processLandmarks([teamBLandmarks()]);
     }
     expect(commands).toHaveLength(2);
@@ -295,7 +295,7 @@ describe('createPoseInterpreter', () => {
     const commands: AppCommand[] = [];
     const interpreter = createPoseInterpreter({ dispatch: (c) => commands.push(c) });
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 10; i++) {
       interpreter.processLandmarks([teamALandmarks(), teamBLandmarks()]);
     }
 
@@ -312,7 +312,7 @@ describe('createPoseInterpreter', () => {
 
     interpreter.reset();
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 10; i++) {
       interpreter.processLandmarks([teamALandmarks()]);
     }
 
@@ -354,14 +354,14 @@ describe('createPoseInterpreter', () => {
     });
 
     // Dispatch a command (sets cooldown)
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 10; i++) {
       interpreter.processLandmarks([teamALandmarks()]);
     }
     expect(commands).toHaveLength(1);
 
     // Still within cooldown — gestures should be ignored
     currentTime = 500;
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 10; i++) {
       interpreter.processLandmarks([teamBLandmarks()]);
     }
     expect(commands).toHaveLength(1);
@@ -370,8 +370,8 @@ describe('createPoseInterpreter', () => {
     interpreter.destroy();
 
     // Same interpreter, same time — should now dispatch (cooldown cleared)
-    // Need 5 frames of the new gesture
-    for (let i = 0; i < 5; i++) {
+    // Need 10 frames of the new gesture
+    for (let i = 0; i < 10; i++) {
       interpreter.processLandmarks([teamBLandmarks()]);
     }
 
