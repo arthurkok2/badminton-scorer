@@ -2375,3 +2375,14 @@ button {
   color: #4ade80;
   font-family: monospace;
 }
+
+.pose-debug-section {
+  color: #888;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 8px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}

@@ -15,7 +15,26 @@ interface DebugState {
   frames: number;
   lastCommand: string;
   cooldownRemaining: number;
+  leftClass: string;
+  rightClass: string;
+  bodyCenterX: string;
+  shoulderHipDY: string;
+  leftWrist: string;
+  leftElbow: string;
+  leftShoulder: string;
+  rightWrist: string;
+  rightElbow: string;
+  rightShoulder: string;
+  leftVis: string;
+  rightVis: string;
 }
+
+function fmt(n: number) { return n.toFixed(3); }
+
+const L_SHOULDER = 11, R_SHOULDER = 12;
+const L_ELBOW = 13, R_ELBOW = 14;
+const L_WRIST = 15, R_WRIST = 16;
+const L_HIP = 23, R_HIP = 24;
 
 const MODAL_VIDEO_W = 320;
 const MODAL_VIDEO_H = 240;
@@ -33,25 +52,62 @@ export function PoseCamera({ onCommand }: PoseCameraProps) {
     lastGesture: GestureType | null;
     lastCommand: string;
     lastCommandTime: number;
+    leftClass: string;
+    rightClass: string;
+    bodyCenterX: string;
+    shoulderHipDY: string;
+    leftWrist: string;
+    leftElbow: string;
+    leftShoulder: string;
+    rightWrist: string;
+    rightElbow: string;
+    rightShoulder: string;
+    leftVis: string;
+    rightVis: string;
   }>({
     gesture: '-',
     frames: 0,
     lastGesture: null,
     lastCommand: '-',
     lastCommandTime: 0,
+    leftClass: '-',
+    rightClass: '-',
+    bodyCenterX: '-',
+    shoulderHipDY: '-',
+    leftWrist: '-',
+    leftElbow: '-',
+    leftShoulder: '-',
+    rightWrist: '-',
+    rightElbow: '-',
+    rightShoulder: '-',
+    leftVis: '-',
+    rightVis: '-',
   });
   const [debug, setDebug] = useState<DebugState>({
     gesture: '-',
     frames: 0,
     lastCommand: '-',
     cooldownRemaining: 0,
+    leftClass: '-',
+    rightClass: '-',
+    bodyCenterX: '-',
+    shoulderHipDY: '-',
+    leftWrist: '-',
+    leftElbow: '-',
+    leftShoulder: '-',
+    rightWrist: '-',
+    rightElbow: '-',
+    rightShoulder: '-',
+    leftVis: '-',
+    rightVis: '-',
   });
 
   const handleLandmarks = useCallback((landmarks: NormalizedLandmark[][]) => {
     interpreterRef.current.processLandmarks(landmarks);
 
-    if (landmarks.length > 0 && landmarks[0].length >= 17) {
-      const arms = classifyBothArms(landmarks[0] as unknown as Landmark[]);
+    if (landmarks.length > 0 && landmarks[0].length >= 25) {
+      const p = landmarks[0] as unknown as Landmark[];
+      const arms = classifyBothArms(p);
       const gesture = detectGesture(arms.left, arms.right);
       const d = debugRef.current;
       if (gesture === d.lastGesture && gesture !== null) {
@@ -64,6 +120,19 @@ export function PoseCamera({ onCommand }: PoseCameraProps) {
         d.frames = 0;
       }
       d.gesture = gesture ?? '-';
+      d.leftClass = arms.left;
+      d.rightClass = arms.right;
+      const bodyCenterX = (p[L_SHOULDER].x + p[R_SHOULDER].x) / 2;
+      d.bodyCenterX = fmt(bodyCenterX);
+      d.shoulderHipDY = `${fmt(Math.abs(p[L_SHOULDER].y - p[L_HIP].y))} / ${fmt(Math.abs(p[R_SHOULDER].y - p[R_HIP].y))}`;
+      d.leftWrist = `${fmt(p[L_WRIST].x)}, ${fmt(p[L_WRIST].y)}`;
+      d.leftElbow = `${fmt(p[L_ELBOW].x)}, ${fmt(p[L_ELBOW].y)}`;
+      d.leftShoulder = `${fmt(p[L_SHOULDER].x)}, ${fmt(p[L_SHOULDER].y)}`;
+      d.rightWrist = `${fmt(p[R_WRIST].x)}, ${fmt(p[R_WRIST].y)}`;
+      d.rightElbow = `${fmt(p[R_ELBOW].x)}, ${fmt(p[R_ELBOW].y)}`;
+      d.rightShoulder = `${fmt(p[R_SHOULDER].x)}, ${fmt(p[R_SHOULDER].y)}`;
+      d.leftVis = `${fmt(p[L_WRIST].visibility)} / ${fmt(p[L_ELBOW].visibility)} / ${fmt(p[L_SHOULDER].visibility)}`;
+      d.rightVis = `${fmt(p[R_WRIST].visibility)} / ${fmt(p[R_ELBOW].visibility)} / ${fmt(p[R_SHOULDER].visibility)}`;
     }
 
     if (debugCanvasRef.current) {
@@ -121,6 +190,18 @@ export function PoseCamera({ onCommand }: PoseCameraProps) {
         frames: d.frames,
         lastCommand: d.lastCommand,
         cooldownRemaining: cooldown,
+        leftClass: d.leftClass,
+        rightClass: d.rightClass,
+        bodyCenterX: d.bodyCenterX,
+        shoulderHipDY: d.shoulderHipDY,
+        leftWrist: d.leftWrist,
+        leftElbow: d.leftElbow,
+        leftShoulder: d.leftShoulder,
+        rightWrist: d.rightWrist,
+        rightElbow: d.rightElbow,
+        rightShoulder: d.rightShoulder,
+        leftVis: d.leftVis,
+        rightVis: d.rightVis,
       });
     }, 100);
     return () => clearInterval(interval);
@@ -179,6 +260,7 @@ export function PoseCamera({ onCommand }: PoseCameraProps) {
               />
             </div>
             <div className="pose-debug-info">
+              <div className="pose-debug-section">Detection</div>
               <div className="pose-debug-row">
                 <span>Gesture</span>
                 <span className="pose-debug-val">{debug.gesture}</span>
@@ -194,6 +276,57 @@ export function PoseCamera({ onCommand }: PoseCameraProps) {
               <div className="pose-debug-row">
                 <span>Last command</span>
                 <span className="pose-debug-val">{debug.lastCommand}</span>
+              </div>
+              <div className="pose-debug-section">Classification</div>
+              <div className="pose-debug-row">
+                <span>Left arm</span>
+                <span className="pose-debug-val">{debug.leftClass}</span>
+              </div>
+              <div className="pose-debug-row">
+                <span>Right arm</span>
+                <span className="pose-debug-val">{debug.rightClass}</span>
+              </div>
+              <div className="pose-debug-row">
+                <span>Body center X</span>
+                <span className="pose-debug-val">{debug.bodyCenterX}</span>
+              </div>
+              <div className="pose-debug-row">
+                <span>Shoulder-hip DY</span>
+                <span className="pose-debug-val">{debug.shoulderHipDY}</span>
+              </div>
+              <div className="pose-debug-section">Left landmarks (x, y)</div>
+              <div className="pose-debug-row">
+                <span>Wrist</span>
+                <span className="pose-debug-val">{debug.leftWrist}</span>
+              </div>
+              <div className="pose-debug-row">
+                <span>Elbow</span>
+                <span className="pose-debug-val">{debug.leftElbow}</span>
+              </div>
+              <div className="pose-debug-row">
+                <span>Shoulder</span>
+                <span className="pose-debug-val">{debug.leftShoulder}</span>
+              </div>
+              <div className="pose-debug-row">
+                <span>Vis (W/E/S)</span>
+                <span className="pose-debug-val">{debug.leftVis}</span>
+              </div>
+              <div className="pose-debug-section">Right landmarks (x, y)</div>
+              <div className="pose-debug-row">
+                <span>Wrist</span>
+                <span className="pose-debug-val">{debug.rightWrist}</span>
+              </div>
+              <div className="pose-debug-row">
+                <span>Elbow</span>
+                <span className="pose-debug-val">{debug.rightElbow}</span>
+              </div>
+              <div className="pose-debug-row">
+                <span>Shoulder</span>
+                <span className="pose-debug-val">{debug.rightShoulder}</span>
+              </div>
+              <div className="pose-debug-row">
+                <span>Vis (W/E/S)</span>
+                <span className="pose-debug-val">{debug.rightVis}</span>
               </div>
             </div>
           </div>
