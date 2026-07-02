@@ -2,7 +2,7 @@
 title: Camera-Based Handsfree Scoring
 author: arthur.kok
 date: 2026-07-01
-status: draft
+status: implemented
 tags: [input, camera, handsfree]
 domain: input
 ---
@@ -35,14 +35,15 @@ A camera-based pose detection input connector that lets players score points and
 
 ## Acceptance Criteria
 
-- Performing the left-arm-out, right-arm-up gesture triggers `POINT_TEAM teamA`.
-- Performing the right-arm-out, left-arm-up gesture triggers `POINT_TEAM teamB`.
-- Performing the both-arms-up gesture triggers `UNDO`.
+- Extending an arm out horizontally (either arm) triggers a point command. The team is determined by the wrist's spatial position relative to body center in the camera frame. From behind the court, the player's left arm appears on the right of the image and maps to Team A; the player's right arm appears on the left and maps to Team B.
+- Raising both arms vertically triggers `UNDO`.
 - A 2-second cooldown prevents rapid repeated commands after any gesture is recognized.
 - First gesture wins — if both players gesture simultaneously, only one command fires.
 - The camera is OFF by default; a toggle button activates it.
-- When active, a small PiP camera preview shows the detected pose skeleton.
-- Visual feedback (flash) confirms gesture recognition.
+- When active, a 160x120px PiP camera preview shows the camera feed with a skeleton wireframe overlay.
+- A debug modal (expandable via button next to toggle) shows a 320x240 camera feed with skeleton, raw landmark values, arm classifications, and detection state.
+- A fixed status bar at the top of the screen shows the current command being tracked and a frame progress bar. Only visible during active debounce.
+- Visual feedback (green flash on toggle indicator) confirms gesture recognition.
 - Camera pauses when the page is backgrounded (Page Visibility API).
 - `npm test && npm run lint && npm run build` all pass with no regressions.
 - Existing input methods (touch, BLE, keyboard, gamepad, Firestore remotes) continue to work unchanged.
@@ -51,11 +52,11 @@ A camera-based pose detection input connector that lets players score points and
 
 ### Input Connector (`src/input/poseRemote.ts`)
 
-Follows the pattern of `keyboardRemote.ts`, `gamepadRemote.ts`, and `bluetoothRemote.ts`: exposes a `connectPoseRemote({ dispatch, onDiagnosticEvent })` function that returns `{ disconnect() }`. Internally it:
+Provides `createPoseInterpreter({ dispatch, now? })` returning `{ processLandmarks, reset, destroy }`. Internally it:
 
 1. Receives pose landmark frames from `usePoseDetection`.
-2. Classifies each detected person's arms per frame.
-3. Applies debounce (gesture must persist 5 consecutive frames).
+2. Classifies each detected person's arms per frame using `classifyArm`, `classifyBothArms`, and `detectGesture`.
+3. Applies debounce (gesture must persist 10 consecutive frames, ~660ms at 15fps).
 4. Applies cooldown (2s after any dispatch).
 5. Dispatches `AppCommand` via the provided `dispatch` callback.
 
@@ -64,16 +65,27 @@ Follows the pattern of `keyboardRemote.ts`, `gamepadRemote.ts`, and `bluetoothRe
 React hook wrapping `@mediapipe/tasks-vision` PoseLandmarker:
 
 - Lazy-loads the WASM + model blob on first activation only (~2MB).
+- Uses front-facing camera (`facingMode: 'user'`).
 - Runs at 15fps (every 4th camera frame on a 60fps feed).
-- Returns `landmarks[][]` per frame: array of detected persons, each with 33 landmarks.
-- Manages camera lifecycle: `start()` / `stop()` / `isActive`.
+- Returns `{ isSupported, isActive, error, stream, start, stop }`.
+- Manages camera lifecycle: `start()` / `stop()`.
 - Handles `getUserMedia` permission flow.
+- Creates video element and appends to a provided container for PiP display.
+- Creates canvas overlay on PiP video with skeleton wireframe drawing.
+- Exports `drawSkeleton()` for drawing pose landmarks on canvas.
+- Page Visibility API pauses/resumes detection loop.
 
 ### UI Component (`src/components/PoseCamera.tsx`)
 
-- Activation toggle: camera icon button placed near the court controls.
-- PiP preview: small (80x60px) video element with canvas overlay drawing skeleton wireframe.
-- Visual feedback: green border flash on point gesture recognized, amber flash on undo.
+- Activation toggle: camera icon button (`Camera`/`CameraOff` from lucide-react) near court controls.
+- PiP preview: 160x120px video element with canvas skeleton wireframe overlay.
+- Expand button (`Maximize2`) opens debug modal when camera is active.
+- Debug modal: 320x240 camera feed with skeleton overlay, plus diagnostic info:
+  - Detection: gesture, frames (X / 10), cooldown timer, last command
+  - Classification: left/right arm state, body center X, shoulder-hip DY
+  - Raw landmarks: wrist, elbow, shoulder (x,y) and visibility for each arm
+- Status bar: fixed at top of screen, shows "→ teamA"/"→ teamB"/"→ undo" with green progress bar filling as frames accumulate. Only visible when a gesture is actively being tracked (frames > 0).
+- Visual feedback: green flash on toggle indicator when command dispatched.
 - Props: `onCommand` callback wired to `dispatch` in App.tsx.
 
 ### Gesture Classification
@@ -82,46 +94,44 @@ Per detected person, per frame, classify each arm independently:
 
 | Classification | Condition |
 |---|---|
-| `horizontal_out` | wrist Y within ±15% (shoulder-to-hip height) of shoulder Y, AND wrist X is outward from elbow X relative to body center |
+| `horizontal_out` | wrist Y within ±15% (shoulder-to-hip height) of shoulder Y, AND arm is extended (wrist farther from shoulder than elbow) |
 | `vertical_up` | wrist Y at least 20% (shoulder-to-hip height) above shoulder Y, AND wrist X within ±25% (shoulder-to-hip height) of shoulder X |
 | `neutral` | neither condition met |
 
-Gesture fires when, for 5 consecutive frames:
+The `horizontal_out` classification uses a direction-agnostic extension check: `Math.hypot(wrist.x - shoulder.x, wrist.y - shoulder.y) > Math.hypot(elbow.x - shoulder.x, elbow.y - shoulder.y)`. This works regardless of camera orientation.
+
+Gesture fires when, for 10 consecutive frames:
 
 | Gesture | Condition | Command |
 |---|---|---|
-| Point Team A | left arm = `horizontal_out` AND right arm = `vertical_up` | `POINT_TEAM teamA` |
-| Point Team B | right arm = `horizontal_out` AND left arm = `vertical_up` | `POINT_TEAM teamB` |
+| Point Team A | one arm = `horizontal_out`, other != `horizontal_out`, AND horizontal wrist X > bodyCenterX | `POINT_TEAM teamA` |
+| Point Team B | one arm = `horizontal_out`, other != `horizontal_out`, AND horizontal wrist X < bodyCenterX | `POINT_TEAM teamB` |
 | Undo | both arms = `vertical_up` | `UNDO` |
 
-**Debounce:** 5 consecutive matching frames (~333ms at 15fps). Prevents transient arm movements during play from triggering false positives.
+Team assignment uses spatial position (wrist X relative to body center) rather than MediaPipe's left/right labels. This is necessary because the camera is behind the player — the player's physical left arm appears on the right side of the camera image.
 
-**Cooldown:** After any command dispatch, all gesture recognition is suppressed for 2 seconds. During cooldown, the PiP shows a countdown indicator.
+**Debounce:** 10 consecutive matching frames (~660ms at 15fps). Prevents transient arm movements during play from triggering false positives.
+
+**Cooldown:** After any command dispatch, all gesture recognition is suppressed for 2 seconds.
 
 **Conflict resolution:** Process detected persons left-to-right in frame. First person with a valid gesture fires the command; subsequent persons in the same frame are ignored.
 
 ### Integration
 
-In `App.tsx`, `connectPoseRemote` is called when the pose camera is toggled on (similar to how `connectGamepadRemote` is always active on mount). The `dispatch` function is the same one used by all other input connectors.
-
-```typescript
-// In App.tsx, near other input connector setup
-if (poseEnabled) {
-  connectPoseRemote({ dispatch, onDiagnosticEvent });
-}
-```
-
-The `PoseCamera` component renders inside `CourtView` or as a sibling, with its `onCommand` prop wired to `dispatch`.
+In `App.tsx`, `<PoseCamera onCommand={dispatch} />` is rendered between `<CourtView>` and `<Controls>` inside `app-layout`. The `dispatch` function is the same one used by all other input connectors.
 
 ## What Changes
 
 | File | Change |
 |---|---|
-| `src/input/poseRemote.ts` | **New.** Gesture-to-command connector. `connectPoseRemote()`, arm classification, debounce, cooldown. |
-| `src/hooks/usePoseDetection.ts` | **New.** React hook for MediaPipe PoseLandmarker lifecycle and camera management. |
-| `src/components/PoseCamera.tsx` | **New.** PiP camera preview with skeleton overlay and activation toggle. |
-| `src/App.tsx` | Wire `PoseCamera` into the court layout, connect `poseRemote` on toggle. |
-| `src/styles.css` | Styles for PiP preview, skeleton canvas, toggle button, feedback flash. |
+| `src/input/poseRemote.ts` | **New.** `createPoseInterpreter()`, `classifyArm`, `classifyBothArms`, `detectGesture` — gesture detection pipeline. |
+| `src/input/poseRemote.test.ts` | **New.** 26 unit tests for arm classification, gesture detection, interpreter state machine. |
+| `src/hooks/usePoseDetection.ts` | **New.** React hook for MediaPipe PoseLandmarker lifecycle, camera management, skeleton drawing. |
+| `src/hooks/usePoseDetection.test.ts` | **New.** 8 tests for hook lifecycle, start/stop, error handling. |
+| `src/components/PoseCamera.tsx` | **New.** Toggle, PiP with skeleton, debug modal, status bar, flash feedback. |
+| `src/components/PoseCamera.test.tsx` | **New.** 5 tests for toggle, start/stop, error display, support detection. |
+| `src/App.tsx` | Wire `<PoseCamera onCommand={dispatch} />` between CourtView and Controls. |
+| `src/styles.css` | Styles for PiP, skeleton canvas, debug modal, status bar, toggle, feedback flash. |
 | `package.json` | Add `@mediapipe/tasks-vision` dependency. |
 | `.docs/input/input-remotes.md` | Document pose remote as a new input method. |
 | `.specs/SPEC-INDEX.md` | Add this spec. |
@@ -137,7 +147,18 @@ The `PoseCamera` component renders inside `CourtView` or as a sibling, with its 
 
 ## Architecture Impact
 
-`.docs/input/input-remotes.md` — add a new section for "Pose Remote (Camera Gestures)" describing the MediaPipe pipeline, gesture mapping, and camera lifecycle. Update the input architecture diagram to include the camera path.
+`.docs/input/input-remotes.md` — added "Pose Remote (Camera Gestures)" section describing the MediaPipe pipeline, gesture mapping, camera lifecycle, and privacy considerations.
+
+## Design Decisions During Implementation
+
+| Decision | Rationale |
+|---|---|
+| Simplified arm classification (direction-agnostic extension check) | Original bodyCenterX-based direction check failed when camera is behind the player — the player's left arm appears on the right side of the image. The extension-distance approach works regardless of camera orientation. |
+| Spatial position for team assignment (wrist X vs bodyCenterX) | More robust than relying on MediaPipe's left/right labels, which are inverted when the camera is behind the player. |
+| Front-facing camera (`facingMode: 'user'`) | Originally planned `environment`, but front camera provides more intuitive mirroring for the user. |
+| 10-frame debounce (was 5) | Longer hold required — ~660ms at 15fps vs ~333ms. Reduces accidental triggers during play. |
+| Status bar on main screen | Provides at-a-glance feedback without opening the debug modal. Only visible during active debounce to avoid distraction. |
+| Debug modal with raw landmark values | Essential for diagnosing classification issues — shows wrist/elbow/shoulder coordinates, body center, shoulder-hip DY, and visibility per arm. |
 
 ## Alternatives Considered
 
@@ -151,18 +172,18 @@ The `PoseCamera` component renders inside `CourtView` or as a sibling, with its 
 
 ## Testing Strategy
 
-- **Unit tests (`poseRemote.test.ts`):** Arm classification logic with mock landmark arrays. Verify correct classification for `horizontal_out`, `vertical_up`, `neutral`. Debounce logic (5-frame persistence). Cooldown timer (2s suppression). First-person-wins conflict resolution.
-- **Hook tests (`usePoseDetection.test.ts`):** Mock `getUserMedia` and MediaPipe APIs. Verify lazy loading, start/stop lifecycle, landmark callback.
-- **Component tests (`PoseCamera.test.tsx`):** Verify toggle renders/hides PiP preview. Verify flash feedback on command.
-- **Integration:** Existing test suite must pass with zero regressions (`npm test`).
-- **Manual:** Open scorer on phone, toggle camera on, perform gestures at court distance. Verify correct team assignment and undo.
+- **Unit tests (`poseRemote.test.ts`):** Arm classification logic with mock landmark arrays. Verify correct classification for `horizontal_out`, `vertical_up`, `neutral`. 10-frame debounce persistence. 2s cooldown suppression. First-person-wins conflict resolution. Spatial position team assignment.
+- **Hook tests (`usePoseDetection.test.ts`):** Mock `getUserMedia` and MediaPipe APIs. Verify lazy loading, start/stop lifecycle, error handling, re-entrant start guard.
+- **Component tests (`PoseCamera.test.tsx`):** Mock `usePoseDetection`. Verify toggle renders, start/stop callbacks, error display, unsupported browser bailout.
+- **Integration:** Full test suite (`npm test`) — 441 tests across 46 files, zero regressions.
+- **Manual:** Open scorer on phone, toggle camera, open debug modal, perform gestures, verify landmark values and team assignment.
 
 ## Verification
 
-1. `npm test` — all existing tests pass, new tests pass.
-2. `npm run lint` — no errors.
-3. `npm run build` — builds successfully with new dependency.
-4. Manual E2E: start match on phone, toggle camera, perform each gesture, confirm scoreboard updates correctly.
+1. `npm test` — 441 tests pass.
+2. `npm run lint` — no TypeScript errors.
+3. `npm run build` — builds successfully with @mediapipe/tasks-vision.
+4. Manual E2E: start match on phone, toggle camera, perform each gesture, confirm scoreboard updates correctly via debug modal.
 
 ## Performance Impact
 
@@ -184,18 +205,22 @@ The `PoseCamera` component renders inside `CourtView` or as a sibling, with its 
 
 | Risk | Likelihood | Mitigation |
 |---|---|---|
-| False positive during rally | Medium | 5-frame debounce + 2s cooldown; asymmetric gesture is unlikely to occur naturally during play |
-| Poor detection at distance | Medium | Accept reduced accuracy at >5m; PiP preview lets user adjust phone position |
+| False positive during rally | Low | 10-frame debounce (~660ms) + 2s cooldown; arm-extension gesture is unlikely to occur naturally during play |
+| Poor detection at distance | Medium | Accept reduced accuracy at >5m; debug modal with raw values lets user adjust phone position and verify classification |
 | Low light on indoor courts | Low | Badminton courts are typically well-lit; MediaPipe handles moderate lighting variation |
 | MediaPipe model load fails (slow network) | Low | Model loaded lazily; camera toggle shows loading state; non-blocking to rest of app |
 | Camera permission denied | Medium | Graceful handling — toggle shows error state with messaging; all other input methods remain available |
 | Browser doesn't support getUserMedia or WASM | Low | Feature detection before showing toggle; unsupported browsers hide the option entirely |
+| Left/right confusion due to camera position | Medium | Spatial position (wrist X vs bodyCenterX) used instead of MediaPipe left/right labels; debug modal shows raw values for adjustment |
 
 ## Affected Components
 
-- `src/input/poseRemote.ts` — new input connector
-- `src/hooks/usePoseDetection.ts` — new MediaPipe hook
-- `src/components/PoseCamera.tsx` — new UI component
+- `src/input/poseRemote.ts` — new gesture detection pipeline
+- `src/input/poseRemote.test.ts` — 26 unit tests
+- `src/hooks/usePoseDetection.ts` — MediaPipe hook + skeleton drawing
+- `src/hooks/usePoseDetection.test.ts` — 8 hook tests
+- `src/components/PoseCamera.tsx` — toggle, PiP, debug modal, status bar
+- `src/components/PoseCamera.test.tsx` — 5 component tests
 - `src/App.tsx` — integration wiring
 - `src/styles.css` — new styles
 
@@ -212,6 +237,7 @@ The `PoseCamera` component renders inside `CourtView` or as a sibling, with its 
 
 ## Observability
 
-- **Diagnostic events:** `onDiagnosticEvent` callback fires for each recognized gesture with `source: 'pose'`, gesture type, confidence scores.
-- **PiP preview:** user can visually verify skeleton overlay matches their pose.
-- **Flash feedback:** immediate visual confirmation when gesture is recognized.
+- **Status bar:** on-screen command indicator + frame progress bar visible during active debounce without opening any menus.
+- **Debug modal:** raw landmark values, arm classifications, and detection state for diagnosing gesture recognition issues.
+- **PiP preview + skeleton:** user can visually verify camera feed and skeleton overlay matches their pose.
+- **Flash feedback:** green flash on toggle indicator when gesture command is dispatched.
