@@ -101,7 +101,7 @@ export function PoseCamera({ onCommand, onStatus }: PoseCameraProps) {
     } else if (gesture !== null && !d.justFired) {
       d.lastGesture = gesture;
       d.frames = 1;
-    } else {
+    } else if (gesture === null) {
       d.lastGesture = null;
       d.frames = 0;
       d.justFired = false;
