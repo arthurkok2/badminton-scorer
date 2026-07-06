@@ -2302,6 +2302,8 @@ button {
   position: absolute;
   bottom: 100%;
   right: 0;
+  width: 160px;
+  height: 120px;
   margin-bottom: 4px;
 }
 
