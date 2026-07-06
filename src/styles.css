@@ -2305,6 +2305,28 @@ button {
   margin-bottom: 4px;
 }
 
+.pose-pip-expand {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  z-index: 12;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.5);
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.pose-pip-expand:active {
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+}
+
 .pose-camera-active {
   border-color: #4ade80;
   color: #4ade80;

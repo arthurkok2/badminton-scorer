@@ -187,7 +187,19 @@ export function PoseCamera({ onCommand, onStatus }: PoseCameraProps) {
   return (
     <>
       <div className="pose-camera-controls">
-        <div ref={setPipContainer} className="pose-pip-container" />
+        <div ref={setPipContainer} className="pose-pip-container">
+          {isActive && (
+            <button
+              className="pose-pip-expand"
+              type="button"
+              onClick={() => setShowDebug(true)}
+              aria-label="Show debug view"
+              title="Show debug view"
+            >
+              <Maximize2 size={14} aria-hidden="true" />
+            </button>
+          )}
+        </div>
         {typeof document !== 'undefined' && createPortal(
           <button
             className={`app-menu-button ${isActive ? 'pose-camera-active' : ''}`}
@@ -199,17 +211,6 @@ export function PoseCamera({ onCommand, onStatus }: PoseCameraProps) {
             {isActive ? <CameraOff size={22} aria-hidden="true" /> : <Camera size={22} aria-hidden="true" />}
           </button>,
           document.getElementById('camera-slot') ?? document.body,
-        )}
-        {isActive && (
-          <button
-            className="icon-button"
-            type="button"
-            onClick={() => setShowDebug(true)}
-            aria-label="Show debug view"
-            title="Show debug view"
-          >
-            <Maximize2 size={22} aria-hidden="true" />
-          </button>
         )}
         <div ref={feedbackRef} className="pose-feedback" aria-live="polite" />
         {error && <div className="pose-camera-error" role="alert">{error}</div>}
