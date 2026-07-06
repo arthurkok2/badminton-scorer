@@ -32,9 +32,9 @@ function fmt(n: number) { return n.toFixed(3); }
 
 export function PoseCamera({ onCommand, onStatus }: PoseCameraProps) {
   const interpreterRef = useRef<PoseInterpreter>(null!);
-  const feedbackRef = useRef<HTMLDivElement>(null);
   const [pipContainer, setPipContainer] = useState<HTMLDivElement | null>(null);
   const [showDebug, setShowDebug] = useState(false);
+  const [flash, setFlash] = useState(false);
   const debugVideoRef = useRef<HTMLVideoElement | null>(null);
   const debugCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -142,10 +142,8 @@ export function PoseCamera({ onCommand, onStatus }: PoseCameraProps) {
     d.lastGesture = null;
     d.justFired = true;
 
-    feedbackRef.current?.classList.add('pose-feedback-flash');
-    setTimeout(() => {
-      feedbackRef.current?.classList.remove('pose-feedback-flash');
-    }, 300);
+    setFlash(true);
+    setTimeout(() => setFlash(false), 300);
     onCommand(command);
   }, [onCommand]);
 
@@ -202,7 +200,7 @@ export function PoseCamera({ onCommand, onStatus }: PoseCameraProps) {
         </div>
         {typeof document !== 'undefined' && createPortal(
           <button
-            className={`app-menu-button ${isActive ? 'pose-camera-active' : ''}`}
+            className={`app-menu-button ${isActive ? 'pose-camera-active' : ''} ${flash ? 'pose-camera-flash' : ''}`}
             type="button"
             onClick={isActive ? stop : start}
             aria-label={isActive ? 'Disable camera gestures' : 'Enable camera gestures'}
@@ -212,7 +210,6 @@ export function PoseCamera({ onCommand, onStatus }: PoseCameraProps) {
           </button>,
           document.getElementById('camera-slot') ?? document.body,
         )}
-        <div ref={feedbackRef} className="pose-feedback" aria-live="polite" />
         {error && <div className="pose-camera-error" role="alert">{error}</div>}
       </div>
 
