@@ -1,6 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../auth';
 import { AccountBar } from '../components/AccountBar';
 import { AppModal } from '../components/AppModal';
 import type { AppMenuAction } from '../components/AppMenu';
@@ -28,16 +27,9 @@ const controllerSettingsTitles: Record<ControllerSettingsAction, string> = {
 export function ControllerPage() {
   const { status, matchDoc, error, commandError, lastCode, join, leave, sendCommand } =
     useControllerClient();
-  const {
-    user,
-    loading: authLoading,
-    isAnonymous,
-    authUnavailable,
-  } = useAuth();
   const codeInputRef = useRef<HTMLInputElement>(null);
   const [activeModal, setActiveModal] = useState<ControllerSettingsAction | undefined>(undefined);
-  const signInRequired = !authLoading && !authUnavailable && (!user || isAnonymous);
-  const joinDisabled = status === 'joining' || authLoading || authUnavailable || signInRequired;
+  const joinDisabled = status === 'joining';
   const handleAppMenuAction = useCallback((action: AppMenuAction) => {
     if (isControllerSettingsAction(action)) {
       setActiveModal(action);
@@ -81,12 +73,6 @@ export function ControllerPage() {
               >
                 {status === 'joining' ? 'Joining…' : 'Join'}
               </button>
-              {authUnavailable && (
-                <p className="controller-auth-unavailable">Sign-in unavailable offline - controller disabled</p>
-              )}
-              {signInRequired && (
-                <p className="controller-auth-unavailable">Sign in to use the Firebase controller.</p>
-              )}
             </div>
             <Link to="/" className="controller-back-link">← Back to scorer</Link>
           </section>

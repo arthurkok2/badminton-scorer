@@ -127,32 +127,6 @@ describe('ControllerPage', () => {
       expect(screen.getByRole('menuitem', { name: /announcement settings/i })).toBeInTheDocument();
     });
 
-    it('disables the Join button when authUnavailable is true', () => {
-      authMock.useAuth.mockReturnValueOnce({
-        user: null as unknown as { uid: string; isAnonymous: boolean },
-        loading: false, isAnonymous: false, authUnavailable: true,
-        signInWithGoogle: vi.fn(), signOut: vi.fn(),
-      });
-      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
-
-      expect(screen.getByRole('button', { name: /join/i })).toBeDisabled();
-      expect(screen.getByText(/unavailable offline/i)).toBeInTheDocument();
-    });
-
-    it('disables the Join button when signed out', () => {
-      authMock.useAuth.mockReturnValueOnce({
-        user: null as unknown as { uid: string; isAnonymous: boolean },
-        loading: false,
-        isAnonymous: false,
-        authUnavailable: false,
-        signInWithGoogle: vi.fn(),
-        signOut: vi.fn(),
-      });
-      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
-
-      expect(screen.getByRole('button', { name: /join/i })).toBeDisabled();
-      expect(screen.getByText(/sign in to use the firebase controller/i)).toBeInTheDocument();
-    });
   });
 
   describe('joining state', () => {

@@ -4,17 +4,6 @@ import { useControllerClient, type ControllerService } from './useControllerClie
 import type { WatchRemoteMatchDocument } from '../remote/firestoreRemoteTypes';
 import { createMatch } from '../domain/matchEngine';
 
-vi.mock('../auth', () => ({
-  useAuth: vi.fn(() => ({
-    user: { uid: 'test-uid', isAnonymous: false },
-    loading: false,
-    isAnonymous: false,
-    authUnavailable: false,
-    signInWithGoogle: vi.fn(),
-    signOut: vi.fn(),
-  })),
-}));
-
 function makeService(overrides: Partial<ControllerService> = {}): ControllerService {
   return {
     subscribeToRoomState: vi.fn().mockReturnValue(vi.fn()),
@@ -177,57 +166,5 @@ describe('useControllerClient', () => {
     expect(service.subscribeToRoomState).toHaveBeenCalledWith(
       expect.objectContaining({ code: 'ABCD' }),
     );
-  });
-
-  it('join() does not subscribe when auth is loading', async () => {
-    const { useAuth } = await import('../auth');
-    (useAuth as ReturnType<typeof vi.fn>).mockReturnValueOnce({
-      user: null, loading: true, isAnonymous: false, authUnavailable: false,
-      signInWithGoogle: vi.fn(), signOut: vi.fn(),
-    });
-
-    const service = makeService();
-    const { result } = renderHook(() => useControllerClient(service));
-
-    await act(async () => { result.current.join('ABCD'); });
-
-    expect(service.subscribeToRoomState).not.toHaveBeenCalled();
-    expect(result.current.status).toBe('disconnected');
-  });
-
-  it('join() does not subscribe when authUnavailable is true', async () => {
-    const { useAuth } = await import('../auth');
-    (useAuth as ReturnType<typeof vi.fn>).mockReturnValueOnce({
-      user: null, loading: false, isAnonymous: false, authUnavailable: true,
-      signInWithGoogle: vi.fn(), signOut: vi.fn(),
-    });
-
-    const service = makeService();
-    const { result } = renderHook(() => useControllerClient(service));
-
-    await act(async () => { result.current.join('ABCD'); });
-
-    expect(service.subscribeToRoomState).not.toHaveBeenCalled();
-    expect(result.current.status).toBe('disconnected');
-  });
-
-  it('join() does not subscribe when the current Firebase user is anonymous', async () => {
-    const { useAuth } = await import('../auth');
-    (useAuth as ReturnType<typeof vi.fn>).mockReturnValueOnce({
-      user: { uid: 'anon-uid', isAnonymous: true },
-      loading: false,
-      isAnonymous: true,
-      authUnavailable: false,
-      signInWithGoogle: vi.fn(),
-      signOut: vi.fn(),
-    });
-
-    const service = makeService();
-    const { result } = renderHook(() => useControllerClient(service));
-
-    await act(async () => { result.current.join('ABCD'); });
-
-    expect(service.subscribeToRoomState).not.toHaveBeenCalled();
-    expect(result.current.status).toBe('disconnected');
   });
 });
