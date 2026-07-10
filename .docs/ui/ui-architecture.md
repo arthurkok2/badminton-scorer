@@ -54,7 +54,7 @@ App
 | Path | Component | Purpose |
 |------|-----------|---------|
 | `/` | `App` | Live scorer |
-| `/controller` | `ControllerPage` | Wear OS / browser remote controller |
+| `/controller` | `ControllerPage` | Wear OS / browser remote controller; renders a watch-optimized layout (via `useWatchLayout()` hook + `.watch-*` CSS classes) when a narrow, near-square viewport is detected — Galaxy Watch 8 / Samsung Internet Browser |
 
 ## Display Modes
 

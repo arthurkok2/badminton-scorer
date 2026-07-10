@@ -2643,7 +2643,6 @@ button {
 
 .watch-point-button {
   flex: 1;
-  min-height: 0;
   border: 0;
   border-radius: 10px;
   background: #1f766a;

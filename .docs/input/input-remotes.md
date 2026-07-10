@@ -68,7 +68,7 @@ All remote paths use a unified gesture mapping:
 
 - **Host** (`firestoreRemoteService.ts`) — creates rooms, publishes `MatchState`, processes commands, marks applied/rejected
 - **Controller client** (`firestoreControllerService.ts`) — subscribes to room state, writes commands
-- **Controller page** (`/controller`) — browser-based Wear OS simulator using the controller client
+- **Controller page** (`/controller`) — browser-based Wear OS simulator using the controller client; adapts layout for small circular watch displays (Galaxy Watch 8 / Samsung Internet Browser) via media query detection
 - Commands flow through the same `applyCommand()` reducer as local input
 
 #### Room Lifecycle
