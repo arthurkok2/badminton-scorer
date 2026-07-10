@@ -313,5 +313,21 @@ describe('ControllerPage', () => {
 
       expect(screen.getByRole('alert')).toHaveTextContent('write failed');
     });
+
+    it('renders watch joining state with disabled button', () => {
+      mockedUseControllerClient.mockReturnValue({ ...mockHookState, status: 'joining' });
+      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
+
+      expect(screen.getByRole('button', { name: /joining/i })).toBeDisabled();
+    });
+
+    it('shows error message with back button on watch error state', () => {
+      const leave = vi.fn();
+      mockedUseControllerClient.mockReturnValue({ ...mockHookState, status: 'error', error: 'Room not found', leave });
+      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
+
+      expect(screen.getByRole('alert')).toHaveTextContent('Room not found');
+      expect(screen.getByRole('button', { name: /back/i })).toBeInTheDocument();
+    });
   });
 });

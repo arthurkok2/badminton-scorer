@@ -53,9 +53,9 @@ export function ControllerPage() {
             if (codeInputRef.current) join(codeInputRef.current.value);
           }}
         >
-          <label htmlFor="room-code-input">Room code</label>
+          <label htmlFor="watch-room-code-input">Room code</label>
           <input
-            id="room-code-input"
+            id="watch-room-code-input"
             className="watch-join-input"
             ref={codeInputRef}
             type="text"
@@ -113,6 +113,16 @@ export function ControllerPage() {
           </section>
         </div>
         {activeModalDialog}
+      </main>
+    );
+  }
+
+  // Watch layout: error state
+  if (isWatch && status === 'error') {
+    return (
+      <main className="watch-controller">
+        <p className="watch-command-error" role="alert">{error ?? 'An error occurred'}</p>
+        <button className="watch-undo-button" onClick={leave}>Back</button>
       </main>
     );
   }
