@@ -2503,3 +2503,198 @@ button {
   z-index: 0;
   pointer-events: none;
 }
+
+/* ── Watch Controller ── */
+.watch-controller {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: max(16px, 8vw);
+  background: #172026;
+  box-sizing: border-box;
+}
+
+.watch-join-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.watch-join-form label {
+  font-size: 0.85rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: #aabcc4;
+  letter-spacing: 0.08em;
+}
+
+.watch-join-input {
+  width: 100%;
+  max-width: 260px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  background: #101820;
+  color: #f5f7fa;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-align: center;
+  text-transform: uppercase;
+  box-sizing: border-box;
+}
+
+.watch-join-input:focus {
+  outline: none;
+  border-color: #68d391;
+}
+
+.watch-join-button {
+  width: 100%;
+  max-width: 260px;
+  min-height: 56px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 10px;
+  background: #1f766a;
+  color: #f8fafc;
+  font-weight: 800;
+  font-size: 1.05rem;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.watch-join-button:active {
+  opacity: 0.8;
+}
+
+.watch-join-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.watch-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  margin-bottom: 0.25rem;
+}
+
+.watch-team-name {
+  font-size: 0.8rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: #aabcc4;
+  letter-spacing: 0.04em;
+}
+
+.watch-serving-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #68d391;
+  flex-shrink: 0;
+}
+
+.watch-vs {
+  font-size: 0.8rem;
+  font-weight: 900;
+  color: #aabcc4;
+}
+
+.watch-scores {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.watch-score {
+  font-size: 3.5rem;
+  font-weight: 900;
+  color: #f5f7fa;
+  line-height: 1;
+}
+
+.watch-score-separator {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #aabcc4;
+}
+
+.watch-commands {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  margin-bottom: 0.5rem;
+}
+
+.watch-point-button {
+  flex: 1;
+  min-height: 0;
+  border: 0;
+  border-radius: 10px;
+  background: #1f766a;
+  color: #f8fafc;
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px;
+  min-height: 56px;
+}
+
+.watch-point-button:active {
+  opacity: 0.8;
+}
+
+.watch-point-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: rgba(248, 250, 252, 0.7);
+}
+
+.watch-undo-button {
+  min-height: 48px;
+  padding: 0 24px;
+  border: 0;
+  border-radius: 10px;
+  background: #2b5d68;
+  color: #f8fafc;
+  font-weight: 800;
+  font-size: 0.9rem;
+  cursor: pointer;
+  width: 100%;
+  max-width: 200px;
+}
+
+.watch-undo-button:active {
+  opacity: 0.8;
+}
+
+.watch-command-error {
+  margin: 0;
+  margin-bottom: 0.5rem;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgba(239, 68, 68, 0.15);
+  color: #fca5a5;
+  font-size: 0.8rem;
+  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
+}
