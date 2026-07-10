@@ -33,8 +33,14 @@ vi.mock('../hooks/useControllerClient', () => ({
   useControllerClient: vi.fn(() => mockHookState),
 }));
 
+vi.mock('../hooks/useWatchLayout', () => ({
+  useWatchLayout: vi.fn(() => false),
+}));
+
 import { useControllerClient } from '../hooks/useControllerClient';
 const mockedUseControllerClient = vi.mocked(useControllerClient);
+import { useWatchLayout } from '../hooks/useWatchLayout';
+const mockedUseWatchLayout = vi.mocked(useWatchLayout);
 
 function makeActiveState(overrides: Partial<WatchRemoteMatchDocument> = {}) {
   const matchState = createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
@@ -67,6 +73,7 @@ describe('ControllerPage', () => {
       signOut: vi.fn(),
     });
     mockedUseControllerClient.mockReturnValue(mockHookState);
+    mockedUseWatchLayout.mockReturnValue(false);
   });
 
   describe('disconnected state', () => {
@@ -229,6 +236,82 @@ describe('ControllerPage', () => {
       await userEvent.click(screen.getByRole('button', { name: /back/i }));
 
       expect(leave).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe('watch layout', () => {
+    let origMatchMedia: typeof window.matchMedia;
+
+    beforeEach(() => {
+      origMatchMedia = window.matchMedia;
+      window.matchMedia = vi.fn(() => ({
+        matches: true,
+        media: '(max-width: 400px) and (max-height: 420px)',
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }));
+      mockedUseWatchLayout.mockReturnValue(true);
+    });
+
+    afterEach(() => {
+      window.matchMedia = origMatchMedia;
+    });
+
+    it('renders watch join layout when disconnected on small viewport', () => {
+      mockedUseControllerClient.mockReturnValue(mockHookState);
+      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
+
+      expect(screen.getByLabelText(/room code/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /join/i })).toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: /back to scorer/i })).not.toBeInTheDocument();
+    });
+
+    it('renders watch active layout with two point buttons when active on small viewport', () => {
+      mockedUseControllerClient.mockReturnValue(makeActiveState());
+      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
+
+      expect(screen.getAllByText('Team A')).toHaveLength(2);
+      expect(screen.getAllByText('Team B')).toHaveLength(2);
+
+      expect(screen.getByRole('button', { name: /point\s+team a/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /point\s+team b/i })).toBeInTheDocument();
+
+      expect(screen.getByRole('button', { name: /^undo$/i })).toBeInTheDocument();
+
+      expect(screen.queryByRole('button', { name: /announce/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /leave/i })).not.toBeInTheDocument();
+    });
+
+    it('calls sendCommand when a watch point button is clicked', async () => {
+      const sendCommand = vi.fn();
+      mockedUseControllerClient.mockReturnValue({ ...makeActiveState(), sendCommand });
+      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
+
+      await userEvent.click(screen.getByRole('button', { name: /point\s+team a/i }));
+      expect(sendCommand).toHaveBeenCalledWith('POINT_TEAM', 'teamA');
+
+      await userEvent.click(screen.getByRole('button', { name: /point\s+team b/i }));
+      expect(sendCommand).toHaveBeenCalledWith('POINT_TEAM', 'teamB');
+    });
+
+    it('calls sendCommand with UNDO when watch undo is clicked', async () => {
+      const sendCommand = vi.fn();
+      mockedUseControllerClient.mockReturnValue({ ...makeActiveState(), sendCommand });
+      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
+
+      await userEvent.click(screen.getByRole('button', { name: /^undo$/i }));
+      expect(sendCommand).toHaveBeenCalledWith('UNDO', undefined);
+    });
+
+    it('shows commandError on watch layout', () => {
+      mockedUseControllerClient.mockReturnValue({ ...makeActiveState(), commandError: 'write failed' });
+      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
+
+      expect(screen.getByRole('alert')).toHaveTextContent('write failed');
     });
   });
 });

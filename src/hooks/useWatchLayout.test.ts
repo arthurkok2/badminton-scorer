@@ -6,23 +6,26 @@ describe('useWatchLayout', () => {
   let listeners: Record<string, ((e: MediaQueryListEvent) => void)[]> = {};
   let currentMatches = false;
 
-  const makeQueryList = (matches: boolean): MediaQueryList => ({
-    matches,
-    media: '(max-width: 400px) and (max-height: 420px)',
-    onchange: null,
-    addEventListener: vi.fn((event: string, handler: (e: MediaQueryListEvent) => void) => {
-      if (!listeners[event]) listeners[event] = [];
-      listeners[event].push(handler);
-    }),
-    removeEventListener: vi.fn((event: string, handler: (e: MediaQueryListEvent) => void) => {
-      if (listeners[event]) {
-        listeners[event] = listeners[event].filter((h) => h !== handler);
-      }
-    }),
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  });
+  const makeQueryList = (matches: boolean): MediaQueryList => {
+    const mql = {
+      matches,
+      media: '(max-width: 400px) and (max-height: 420px)',
+      onchange: null,
+      addEventListener: (event: string, handler: (e: MediaQueryListEvent) => void) => {
+        if (!listeners[event]) listeners[event] = [];
+        listeners[event].push(handler);
+      },
+      removeEventListener: (event: string, handler: (e: MediaQueryListEvent) => void) => {
+        if (listeners[event]) {
+          listeners[event] = listeners[event].filter((h) => h !== handler);
+        }
+      },
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    };
+    return mql as unknown as MediaQueryList;
+  };
 
   beforeEach(() => {
     listeners = {};

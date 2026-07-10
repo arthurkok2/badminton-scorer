@@ -4,6 +4,7 @@ import { AccountBar } from '../components/AccountBar';
 import { AppModal } from '../components/AppModal';
 import type { AppMenuAction } from '../components/AppMenu';
 import { useControllerClient } from '../hooks/useControllerClient';
+import { useWatchLayout } from '../hooks/useWatchLayout';
 
 type ControllerSettingsAction = Extract<
   AppMenuAction,
@@ -27,6 +28,7 @@ const controllerSettingsTitles: Record<ControllerSettingsAction, string> = {
 export function ControllerPage() {
   const { status, matchDoc, error, commandError, lastCode, join, leave, sendCommand } =
     useControllerClient();
+  const isWatch = useWatchLayout();
   const codeInputRef = useRef<HTMLInputElement>(null);
   const [activeModal, setActiveModal] = useState<ControllerSettingsAction | undefined>(undefined);
   const joinDisabled = status === 'joining';
@@ -40,6 +42,39 @@ export function ControllerPage() {
       <p className="settings-note">These controls will appear in the focused modal.</p>
     </AppModal>
   ) : null;
+
+  // Watch layout: join state
+  if (isWatch && (status === 'disconnected' || status === 'joining')) {
+    return (
+      <main className="watch-controller">
+        <form className="watch-join-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (codeInputRef.current) join(codeInputRef.current.value);
+          }}
+        >
+          <label htmlFor="room-code-input">Room code</label>
+          <input
+            id="room-code-input"
+            className="watch-join-input"
+            ref={codeInputRef}
+            type="text"
+            defaultValue={lastCode}
+            maxLength={6}
+            autoCapitalize="characters"
+            placeholder="ABCD"
+          />
+          <button
+            className="watch-join-button"
+            disabled={joinDisabled}
+            type="submit"
+          >
+            {status === 'joining' ? 'Joining…' : 'Join'}
+          </button>
+        </form>
+      </main>
+    );
+  }
 
   if (status === 'disconnected' || status === 'joining') {
     return (
@@ -94,6 +129,60 @@ export function ControllerPage() {
           </section>
         </div>
         {activeModalDialog}
+      </main>
+    );
+  }
+
+  // Watch layout: active state
+  if (isWatch && status === 'active') {
+    const wMatch = matchDoc!.matchState;
+    const wTeamAName = wMatch.teams.teamA.name;
+    const wTeamBName = wMatch.teams.teamB.name;
+    const wIsServingA = wMatch.servingTeamId === 'teamA';
+
+    return (
+      <main className="watch-controller">
+        <div className="watch-header">
+          <span className="watch-team-name">{wTeamAName}</span>
+          {wIsServingA && <span className="watch-serving-dot" aria-label="Serving" />}
+          <span className="watch-vs">vs</span>
+          {!wIsServingA && <span className="watch-serving-dot" aria-label="Serving" />}
+          <span className="watch-team-name">{wTeamBName}</span>
+        </div>
+
+        <div className="watch-scores">
+          <span className="watch-score">{wMatch.score.teamA}</span>
+          <span className="watch-score-separator">:</span>
+          <span className="watch-score">{wMatch.score.teamB}</span>
+        </div>
+
+        {commandError && (
+          <p className="watch-command-error" role="alert">{commandError}</p>
+        )}
+
+        <div className="watch-commands">
+          <button
+            className="watch-point-button"
+            onClick={() => sendCommand('POINT_TEAM', 'teamA')}
+          >
+            <span className="watch-point-label">Point</span>
+            {wTeamAName}
+          </button>
+          <button
+            className="watch-point-button"
+            onClick={() => sendCommand('POINT_TEAM', 'teamB')}
+          >
+            <span className="watch-point-label">Point</span>
+            {wTeamBName}
+          </button>
+        </div>
+
+        <button
+          className="watch-undo-button"
+          onClick={() => sendCommand('UNDO', undefined)}
+        >
+          Undo
+        </button>
       </main>
     );
   }
