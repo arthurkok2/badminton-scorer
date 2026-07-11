@@ -23,6 +23,7 @@ const mockHookState = {
   matchDoc: undefined,
   error: undefined,
   commandError: undefined,
+  commandPending: false,
   lastCode: '',
   join: vi.fn(),
   leave: vi.fn(),
@@ -334,6 +335,14 @@ describe('ControllerPage', () => {
 
       expect(screen.getByRole('alert')).toHaveTextContent('Room not found');
       expect(screen.getByRole('button', { name: /back/i })).toBeInTheDocument();
+    });
+
+    it('disables court buttons and shows spinner while command is pending', () => {
+      mockedUseControllerClient.mockReturnValue({ ...makeActiveState(), commandPending: true });
+      render(<MemoryRouter><ControllerPage /></MemoryRouter>);
+
+      expect(screen.getByRole('button', { name: /point\s+team a/i })).toBeDisabled();
+      expect(screen.getByRole('button', { name: /point\s+team b/i })).toBeDisabled();
     });
   });
 });

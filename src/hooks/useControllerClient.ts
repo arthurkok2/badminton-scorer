@@ -42,6 +42,7 @@ export function useControllerClient(service?: ControllerService): {
   readonly matchDoc: WatchRemoteMatchDocument | undefined;
   readonly error: string | undefined;
   readonly commandError: string | undefined;
+  readonly commandPending: boolean;
   readonly lastCode: string;
   readonly join: (code: string) => void;
   readonly leave: () => void;
@@ -53,6 +54,7 @@ export function useControllerClient(service?: ControllerService): {
   const [matchDoc, setMatchDoc] = useState<WatchRemoteMatchDocument | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
   const [commandError, setCommandError] = useState<string | undefined>(undefined);
+  const [commandPending, setCommandPending] = useState(false);
   const [lastCode, setLastCode] = useState<string>(() => localStorage.getItem(CODE_KEY) ?? '');
 
   const unsubscribeRef = useRef<(() => void) | undefined>(undefined);
@@ -101,6 +103,7 @@ export function useControllerClient(service?: ControllerService): {
   const sendCommand = useCallback(
     async (type: WatchRemoteCommandType, teamId?: TeamId) => {
       setCommandError(undefined);
+      setCommandPending(true);
       try {
         await resolvedService.sendCommand({
           code: codeRef.current,
@@ -110,10 +113,12 @@ export function useControllerClient(service?: ControllerService): {
         });
       } catch (err) {
         setCommandError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setCommandPending(false);
       }
     },
     [resolvedService],
   );
 
-  return { status, matchDoc, error, commandError, lastCode, join, leave, sendCommand };
+  return { status, matchDoc, error, commandError, commandPending, lastCode, join, leave, sendCommand };
 }

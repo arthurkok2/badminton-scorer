@@ -28,7 +28,7 @@ const controllerSettingsTitles: Record<ControllerSettingsAction, string> = {
 };
 
 export function ControllerPage() {
-  const { status, matchDoc, error, commandError, lastCode, join, leave, sendCommand } =
+  const { status, matchDoc, error, commandError, commandPending, lastCode, join, leave, sendCommand } =
     useControllerClient();
   const isWatch = useWatchLayout();
   useScreenWakeLock(status === 'active');
@@ -185,11 +185,12 @@ export function ControllerPage() {
           <p className="watch-command-error" role="alert">{commandError}</p>
         )}
 
-        <div className="watch-court">
+        <div className={`watch-court${commandPending ? ' watch-court--pending' : ''}`}>
           <button
             className="watch-court-half"
             onClick={() => sendCommand('POINT_TEAM', 'teamA')}
             aria-label={`Point ${wTeamAName}`}
+            disabled={commandPending}
           >
             {wTeamAPlayers.map((p) => (
               <div key={p.id} className="watch-court-cell">
@@ -203,6 +204,7 @@ export function ControllerPage() {
             className="watch-court-half"
             onClick={() => sendCommand('POINT_TEAM', 'teamB')}
             aria-label={`Point ${wTeamBName}`}
+            disabled={commandPending}
           >
             {wTeamBPlayers.map((p) => (
               <div key={p.id} className="watch-court-cell">
@@ -211,6 +213,7 @@ export function ControllerPage() {
               </div>
             ))}
           </button>
+          {commandPending && <span className="watch-court-spinner" />}
         </div>
 
         <button
