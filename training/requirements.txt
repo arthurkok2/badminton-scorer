@@ -1,0 +1,6 @@
+ultralytics>=8.2.0
+opencv-python>=4.9.0
+numpy>=1.26.0
+pyyaml>=6.0
+tensorflow>=2.16.0
+tensorflowjs>=4.20.0
