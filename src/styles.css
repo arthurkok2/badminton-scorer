@@ -2687,10 +2687,6 @@ button {
   padding: 4px 8px;
 }
 
-.watch-court-cell:not(:last-child) {
-  border-bottom: 1px solid rgba(244, 250, 252, 0.96);
-}
-
 .watch-court-server-dot {
   width: 8px;
   height: 8px;
