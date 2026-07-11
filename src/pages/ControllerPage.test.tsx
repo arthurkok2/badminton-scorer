@@ -270,13 +270,18 @@ describe('ControllerPage', () => {
       expect(screen.queryByRole('link', { name: /back to scorer/i })).not.toBeInTheDocument();
     });
 
-    it('renders watch active layout with two point buttons when active on small viewport', () => {
+    it('renders watch active layout with court and players when active on small viewport', () => {
       mockedUseControllerClient.mockReturnValue(makeActiveState());
       render(<MemoryRouter><ControllerPage /></MemoryRouter>);
 
-      expect(screen.getAllByText('Team A')).toHaveLength(2);
-      expect(screen.getAllByText('Team B')).toHaveLength(2);
+      expect(screen.getByText('Team A')).toBeInTheDocument();
+      expect(screen.getByText('Team B')).toBeInTheDocument();
       expect(screen.getByText('Serving: Player 1')).toBeInTheDocument();
+
+      expect(screen.getByText('Player 1')).toBeInTheDocument();
+      expect(screen.getByText('Player 2')).toBeInTheDocument();
+      expect(screen.getByText('Player 3')).toBeInTheDocument();
+      expect(screen.getByText('Player 4')).toBeInTheDocument();
 
       expect(screen.getByRole('button', { name: /point\s+team a/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /point\s+team b/i })).toBeInTheDocument();

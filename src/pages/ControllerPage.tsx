@@ -152,6 +152,8 @@ export function ControllerPage() {
     const wServingTeam = wMatch.teams[wMatch.servingTeamId];
     const wServingPlayer = wServingTeam.players.find((p) => p.id === wMatch.serverId);
     const wServerName = wServingPlayer?.name ?? '';
+    const wTeamAPlayers = wMatch.teams.teamA.players;
+    const wTeamBPlayers = wMatch.teams.teamB.players;
 
     return (
       <main className="watch-controller">
@@ -176,20 +178,31 @@ export function ControllerPage() {
           <p className="watch-command-error" role="alert">{commandError}</p>
         )}
 
-        <div className="watch-commands">
+        <div className="watch-court">
           <button
-            className="watch-point-button"
+            className="watch-court-half"
             onClick={() => sendCommand('POINT_TEAM', 'teamA')}
+            aria-label={`Point ${wTeamAName}`}
           >
-            <span className="watch-point-label">Point</span>
-            {wTeamAName}
+            {wTeamAPlayers.map((p) => (
+              <div key={p.id} className="watch-court-player">
+                {p.id === wMatch.serverId && <span className="watch-court-server-dot" />}
+                <span className="watch-court-player-name">{p.name}</span>
+              </div>
+            ))}
           </button>
+          <div className="watch-court-net" />
           <button
-            className="watch-point-button"
+            className="watch-court-half"
             onClick={() => sendCommand('POINT_TEAM', 'teamB')}
+            aria-label={`Point ${wTeamBName}`}
           >
-            <span className="watch-point-label">Point</span>
-            {wTeamBName}
+            {wTeamBPlayers.map((p) => (
+              <div key={p.id} className="watch-court-player">
+                {p.id === wMatch.serverId && <span className="watch-court-server-dot" />}
+                <span className="watch-court-player-name">{p.name}</span>
+              </div>
+            ))}
           </button>
         </div>
 

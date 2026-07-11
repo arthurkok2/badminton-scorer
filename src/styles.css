@@ -2639,42 +2639,61 @@ button {
   color: #aabcc4;
 }
 
-.watch-commands {
+.watch-court {
   display: flex;
-  gap: 8px;
+  gap: 0;
   width: 100%;
   flex: 1;
   min-height: 0;
   margin-bottom: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: #101820;
+  overflow: hidden;
 }
 
-.watch-point-button {
+.watch-court-half {
   flex: 1;
-  border: 0;
-  border-radius: 10px;
-  background: #1f766a;
-  color: #f8fafc;
-  font-weight: 800;
-  font-size: 1rem;
-  cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 8px;
+  padding: 12px 8px;
+  border: 0;
+  background: transparent;
+  color: #f8fafc;
+  cursor: pointer;
+}
+
+.watch-court-half:active {
+  background: rgba(31, 118, 106, 0.3);
+}
+
+.watch-court-net {
+  width: 2px;
+  background: rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+}
+
+.watch-court-player {
+  display: flex;
+  align-items: center;
   gap: 4px;
-  padding: 12px;
-  min-height: 56px;
 }
 
-.watch-point-button:active {
-  opacity: 0.8;
+.watch-court-server-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #68d391;
+  flex-shrink: 0;
 }
 
-.watch-point-label {
-  font-size: 0.75rem;
+.watch-court-player-name {
+  font-size: 0.85rem;
   font-weight: 700;
-  text-transform: uppercase;
-  color: rgba(248, 250, 252, 0.7);
+  color: #f8fafc;
 }
 
 .watch-undo-button {

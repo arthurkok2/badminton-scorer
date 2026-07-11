@@ -98,22 +98,20 @@ No controller logic changes — `join()`, `sendCommand()`, `leave()` all work id
 ### Watch Active Layout
 
 ```
-┌──────────────────┐
-│  TeamA  ●  :  TeamB  │  team names + serving dot, compact bar, 0.8rem
-│  Serving: Player 1    │  serving player name in green
-│                  │
-│    21  :  18    │  scores centered, 3.5rem font, largest element
-│                  │
-│ ┌────────┐┌────────┐ │
-│ │        ││        │ │
-│ │ Point  ││ Point  │ │  two large rounded buttons, ~45% width each
-│ │   A    ││   B    │ │  flex-grow to fill remaining vertical space
-│ │        ││        │ │  min-height 56px, teal background (#1f766a)
-│ └────────┘└────────┘ │
-│                  │
-│     [ Undo ]     │  medium button, 48px min-height, darker blue (#2b5d68)
-│                  │
-└──────────────────┘
+┌──────────────────────┐
+│  TeamA  ●  :  TeamB  │  team names + serving dot, compact bar
+│  Serving: Player 1   │  serving player name in green
+│                      │
+│      21  :  18      │  scores centered, 3.5rem font
+│                      │
+│  ┌────────┬────────┐  │
+│  │ ● P1   │   P3   │  │  court: left half = Team A, right half = Team B
+│  │        │        │  │  tap either half to score for that team
+│  │   P2   │   P4   │  │  ● = green dot on serving player
+│  └────────┴────────┘  │
+│                      │
+│       [ Undo ]       │
+└──────────────────────┘
 ```
 
 ### Circular Safe Area
