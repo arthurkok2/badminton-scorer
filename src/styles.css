@@ -2646,9 +2646,9 @@ button {
   flex: 1;
   min-height: 0;
   margin-bottom: 0.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  background: #101820;
+  border-radius: 8px;
+  background: #1f766a;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
   overflow: hidden;
 }
 
@@ -2668,8 +2668,14 @@ button {
 }
 
 .watch-court-net {
-  width: 2px;
-  background: rgba(255, 255, 255, 0.15);
+  width: 4px;
+  background: repeating-linear-gradient(
+    to bottom,
+    #101820 0px,
+    #101820 6px,
+    transparent 6px,
+    transparent 10px
+  );
   flex-shrink: 0;
 }
 
@@ -2678,26 +2684,26 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 6px;
   padding: 4px 8px;
 }
 
 .watch-court-cell:not(:last-child) {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(244, 250, 252, 0.96);
 }
 
 .watch-court-server-dot {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: #68d391;
+  background: #f3d36b;
   flex-shrink: 0;
 }
 
 .watch-court-player-name {
   font-size: 0.85rem;
-  font-weight: 700;
-  color: #f8fafc;
+  font-weight: 900;
+  color: rgba(248, 250, 252, 0.92);
 }
 
 .watch-undo-button {
