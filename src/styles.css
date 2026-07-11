@@ -2643,8 +2643,7 @@ button {
   display: flex;
   flex-direction: row;
   width: 100%;
-  flex: 1;
-  min-height: 0;
+  aspect-ratio: 1340 / 610;
   margin-bottom: 0.5rem;
   border-radius: 8px;
   background: #1f766a;
