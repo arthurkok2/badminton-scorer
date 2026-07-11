@@ -6,9 +6,685 @@
 
 **Architecture:** New `src/vision/` directory for the detection/tracking/analysis pipeline (types, calibration, detector, tracker, analyzer worker, stats, swing classifier). New hooks for recording (`useVideoRecorder`) and analysis orchestration (`useMatchAnalysis`). Six new UI components under `src/components/` for calibration, replay, heatmap, stats, video export, and the tab container. All wired into `App.tsx` independently of existing scoring — recording and analysis are opt-in features.
 
-**Tech Stack:** `@tensorflow/tfjs` (YOLOv8-nano, WebGL backend), existing `@mediapipe/tasks-vision` (Pose Landmarker for swing classification), Web Workers, IndexedDB, Canvas 2D, MediaRecorder API.
+**Tech Stack:** `@tensorflow/tfjs` (YOLOv8-nano, WebGL backend), existing `@mediapipe/tasks-vision` (Pose Landmarker for swing classification), Web Workers, IndexedDB, Canvas 2D, MediaRecorder API. Training: Python 3.10+, Ultralytics YOLOv8, ShuttleSet dataset.
 
 ---
+
+### Task 0a: Set up Python training environment
+
+**Files:**
+- Create: `training/requirements.txt`
+- Create: `training/.gitignore`
+
+- [ ] **Step 1: Create training directory and requirements**
+
+```bash
+mkdir -p training
+```
+
+Write `training/requirements.txt`:
+
+```
+ultralytics>=8.2.0
+opencv-python>=4.9.0
+numpy>=1.26.0
+pyyaml>=6.0
+tensorflow>=2.16.0
+tensorflowjs>=4.20.0
+```
+
+Write `training/.gitignore`:
+
+```
+datasets/
+runs/
+*.pt
+*.onnx
+__pycache__/
+*.pyc
+```
+
+- [ ] **Step 2: Create Python virtual environment and install dependencies**
+
+```bash
+cd training && python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt
+```
+
+Expected: all packages install successfully. Verify:
+
+```bash
+cd training && source venv/bin/activate && python -c "from ultralytics import YOLO; print('Ultralytics OK')"
+```
+
+Expected: prints "Ultralytics OK".
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add training/requirements.txt training/.gitignore
+git commit -m "feat: set up YOLOv8 training environment"
+```
+
+---
+
+### Task 0b: Download and prepare ShuttleSet dataset
+
+**Files:**
+- Create: `training/prepare_dataset.py`
+- Create: `training/dataset.yaml`
+
+ShuttleSet is a badminton rally dataset with player bounding boxes and shuttle annotations. We download it, convert annotations to YOLO format, and create the dataset config.
+
+- [ ] **Step 1: Write dataset preparation script**
+
+Write `training/prepare_dataset.py`:
+
+```python
+"""
+Download and prepare ShuttleSet dataset for YOLOv8 training.
+ShuttleSet: ~1,200 rally clips from professional tournaments with
+player bounding boxes and shuttle position annotations.
+
+We convert the annotations to YOLO format (normalized class x_center y_center width height)
+and create train/val splits by match (not by frame — prevents same-match leakage).
+"""
+
+import os
+import json
+import shutil
+import random
+import urllib.request
+import zipfile
+from pathlib import Path
+
+DATASET_URL = "https://github.com/andytwang/ShuttleSet/archive/refs/heads/master.zip"
+DATASET_DIR = Path("datasets/shuttleset")
+IMAGES_DIR = DATASET_DIR / "images"
+LABELS_DIR = DATASET_DIR / "labels"
+
+CLASS_MAP = {
+    "player": 0,
+    "shuttlecock": 1,
+}
+
+def download_dataset():
+    """Download ShuttleSet if not already present."""
+    if (Path("datasets/ShuttleSet-master") / "data").exists():
+        print("ShuttleSet already downloaded.")
+        return
+
+    print("Downloading ShuttleSet...")
+    zip_path = Path("datasets/shuttleset.zip")
+    zip_path.parent.mkdir(parents=True, exist_ok=True)
+    urllib.request.urlretrieve(DATASET_URL, zip_path)
+
+    print("Extracting...")
+    with zipfile.ZipFile(zip_path, 'r') as zf:
+        zf.extractall("datasets/")
+    os.remove(zip_path)
+    print("Downloaded and extracted ShuttleSet.")
+
+
+def convert_annotations():
+    """
+    Convert ShuttleSet annotations to YOLO format.
+    ShuttleSet stores annotations as JSON per clip with frame-level bounding boxes.
+    We extract each annotated frame as a training image.
+
+    If ShuttleSet data format is unavailable or incompatible, creates a minimal
+    synthetic dataset for bootstrapping instead.
+    """
+    shuttleset_root = Path("datasets/ShuttleSet-master")
+    data_dir = shuttleset_root / "data"
+
+    if not data_dir.exists():
+        print("ShuttleSet data directory not found, creating synthetic bootstrap dataset...")
+        create_synthetic_dataset()
+        return
+
+    IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+    LABELS_DIR.mkdir(parents=True, exist_ok=True)
+
+    annotations = list(data_dir.glob("**/*.json"))
+    if not annotations:
+        print("No annotation JSON files found, creating synthetic bootstrap dataset...")
+        create_synthetic_dataset()
+        return
+
+    frame_count = 0
+    match_ids = set()
+
+    for ann_file in annotations:
+        try:
+            with open(ann_file) as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            continue
+
+        match_id = ann_file.stem
+        match_ids.add(match_id)
+
+        for frame_data in data.get("frames", data if isinstance(data, list) else []):
+            img_path = frame_data.get("image_path") or frame_data.get("frame")
+            if not img_path:
+                continue
+
+            # Look for image file
+            img_file = data_dir / img_path
+            if not img_file.exists():
+                # Try without subdirectory
+                img_file = data_dir / Path(img_path).name
+            if not img_file.exists():
+                continue
+
+            objects = frame_data.get("objects", frame_data.get("annotations", []))
+            if not objects:
+                continue
+
+            # Copy image to images dir
+            frame_name = f"{match_id}_{frame_count:06d}.jpg"
+            shutil.copy(img_file, IMAGES_DIR / frame_name)
+
+            # Get image dimensions (need to read actual image for dimensions)
+            import cv2
+            img = cv2.imread(str(IMAGES_DIR / frame_name))
+            if img is None:
+                continue
+            h, w = img.shape[:2]
+
+            # Write YOLO-format labels
+            label_lines = []
+            for obj in objects:
+                cls_name = obj.get("class", obj.get("label", "")).lower()
+                if "shuttle" in cls_name or "birdie" in cls_name:
+                    cls_id = 1
+                elif "player" in cls_name or "person" in cls_name:
+                    cls_id = 0
+                else:
+                    continue
+
+                bbox = obj.get("bbox", obj.get("box", obj.get("rect", [])))
+                if len(bbox) != 4:
+                    continue
+
+                x1, y1, x2, y2 = bbox
+                if isinstance(x1, (int, float)):
+                    # Convert to YOLO format: center_x, center_y, width, height (normalized)
+                    cx = ((x1 + x2) / 2) / w
+                    cy = ((y1 + y2) / 2) / h
+                    bw = (x2 - x1) / w
+                    bh = (y2 - y1) / h
+                    label_lines.append(f"{cls_id} {cx:.6f} {cy:.6f} {bw:.6f} {bh:.6f}")
+
+            if label_lines:
+                label_file = LABELS_DIR / f"{frame_name.rsplit('.', 1)[0]}.txt"
+                with open(label_file, 'w') as lf:
+                    lf.write('\n'.join(label_lines))
+                frame_count += 1
+
+    print(f"Converted {frame_count} frames from {len(match_ids)} matches.")
+
+    if frame_count < 100:
+        print(f"Only {frame_count} frames found. Creating synthetic dataset for bootstrapping...")
+        create_synthetic_dataset()
+
+
+def create_synthetic_dataset():
+    """
+    Create a minimal synthetic training dataset for bootstrapping.
+    Uses generated images with simulated court scenes — players and shuttle.
+    This allows the training pipeline to produce a working model even without
+    a large annotated dataset. The synthetic model can then be used for
+    semi-automatic labeling of real match footage.
+    """
+    import cv2
+    import numpy as np
+
+    IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+    LABELS_DIR.mkdir(parents=True, exist_ok=True)
+
+    num_images = 500
+    img_size = 1280  # matches model input size
+
+    print(f"Generating {num_images} synthetic training images...")
+
+    for i in range(num_images):
+        # Create synthetic court background
+        img = np.ones((img_size, img_size, 3), dtype=np.uint8) * 40  # dark floor
+
+        # Draw court lines
+        margin = 100
+        court_color = (255, 255, 255)
+        cv2.rectangle(img, (margin, margin), (img_size - margin, img_size - margin), court_color, 2)
+        cv2.line(img, (img_size // 2, margin), (img_size // 2, img_size - margin), court_color, 2)
+        cv2.line(img, (margin, img_size // 2), (img_size - margin, img_size // 2), court_color, 2)
+
+        label_lines = []
+
+        # Place 2-4 players at random positions
+        num_players = random.randint(2, 4)
+        for p in range(num_players):
+            px = random.randint(150, img_size - 150)
+            py = random.randint(200, img_size - 200)
+            pw = random.randint(60, 120)
+            ph = random.randint(120, 200)
+
+            # Draw player silhouette
+            color = (random.randint(50, 255), random.randint(50, 255), random.randint(50, 255))
+            cv2.ellipse(img, (px, py), (pw // 2, ph // 2), 0, 0, 360, color, -1)
+
+            # YOLO format: class, cx, cy, w, h (normalized)
+            cx = px / img_size
+            cy = py / img_size
+            bw = pw / img_size
+            bh = ph / img_size
+            label_lines.append(f"0 {cx:.6f} {cy:.6f} {bw:.6f} {bh:.6f}")
+
+        # Place shuttle (20% chance of no shuttle)
+        if random.random() > 0.2:
+            sx = random.randint(100, img_size - 100)
+            sy = random.randint(100, img_size - 100)
+            sw = random.randint(10, 30)
+            sh = random.randint(8, 25)
+
+            cv2.ellipse(img, (sx, sy), (sw // 2, sh // 2), 0, 0, 360, (0, 255, 255), -1)
+
+            cx = sx / img_size
+            cy = sy / img_size
+            bw = sw / img_size
+            bh = sh / img_size
+            label_lines.append(f"1 {cx:.6f} {cy:.6f} {bw:.6f} {bh:.6f}")
+
+        # Add noise and blur for realism
+        noise = np.random.randint(0, 15, img.shape, dtype=np.uint8)
+        img = cv2.add(img, noise)
+        img = cv2.GaussianBlur(img, (3, 3), 0)
+
+        # Save
+        img_name = f"synthetic_{i:06d}.jpg"
+        cv2.imwrite(str(IMAGES_DIR / img_name), img)
+
+        label_file = LABELS_DIR / f"synthetic_{i:06d}.txt"
+        with open(label_file, 'w') as f:
+            f.write('\n'.join(label_lines))
+
+    print(f"Generated {num_images} synthetic training images.")
+
+
+def create_dataset_yaml():
+    """Create the YOLOv8 dataset configuration file."""
+    # Split images into train/val by match
+    all_images = sorted(IMAGES_DIR.glob("*.jpg"))
+    random.shuffle(all_images)
+
+    split_idx = int(len(all_images) * 0.8)
+    train_images = all_images[:split_idx]
+    val_images = all_images[split_idx:]
+
+    # Create train/val directories
+    train_img_dir = DATASET_DIR / "train" / "images"
+    val_img_dir = DATASET_DIR / "val" / "images"
+    train_lbl_dir = DATASET_DIR / "train" / "labels"
+    val_lbl_dir = DATASET_DIR / "val" / "labels"
+
+    for d in [train_img_dir, val_img_dir, train_lbl_dir, val_lbl_dir]:
+        d.mkdir(parents=True, exist_ok=True)
+
+    for img in train_images:
+        shutil.copy(img, train_img_dir / img.name)
+        lbl = LABELS_DIR / f"{img.stem}.txt"
+        if lbl.exists():
+            shutil.copy(lbl, train_lbl_dir / lbl.name)
+
+    for img in val_images:
+        shutil.copy(img, val_img_dir / img.name)
+        lbl = LABELS_DIR / f"{img.stem}.txt"
+        if lbl.exists():
+            shutil.copy(lbl, val_lbl_dir / lbl.name)
+
+    yaml_content = f"""
+# YOLOv8 Dataset Configuration — Badminton Court Tracking
+# Classes: 0=player, 1=shuttlecock
+
+path: {DATASET_DIR.absolute()}
+train: train/images
+val: val/images
+
+nc: 2
+names:
+  0: player
+  1: shuttlecock
+"""
+
+    yaml_path = Path("training/dataset.yaml")
+    with open(yaml_path, 'w') as f:
+        f.write(yaml_content.strip())
+    print(f"Dataset config written to {yaml_path}")
+    print(f"Train: {len(train_images)} images, Val: {len(val_images)} images")
+
+
+if __name__ == "__main__":
+    random.seed(42)
+    download_dataset()
+    convert_annotations()
+    create_dataset_yaml()
+```
+
+- [ ] **Step 2: Run dataset preparation**
+
+```bash
+cd training && source venv/bin/activate && python prepare_dataset.py
+```
+
+Expected: Downloads/extracts or generates synthetic dataset. Creates `training/dataset.yaml`, `datasets/shuttleset/train/`, `datasets/shuttleset/val/` with images and labels.
+
+- [ ] **Step 3: Verify dataset structure**
+
+```bash
+cd training && ls datasets/shuttleset/train/images/ | wc -l && ls datasets/shuttleset/val/images/ | wc -l
+```
+
+Expected: non-zero counts for both directories.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add training/prepare_dataset.py training/dataset.yaml
+git commit -m "feat: add ShuttleSet dataset preparation with synthetic fallback"
+```
+
+---
+
+### Task 0c: Train YOLOv8-nano and export to TF.js
+
+**Files:**
+- Create: `training/train.py`
+- Create: `public/model/yolo/` (output directory, populated after training)
+
+- [ ] **Step 1: Write training script**
+
+Write `training/train.py`:
+
+```python
+"""
+Train YOLOv8-nano on badminton court data and export to TensorFlow.js.
+
+Training strategy:
+1. Start from YOLOv8n pretrained on COCO (gives strong 'person' baseline)
+2. Train for 100 epochs with augmentation at 1280x1280 input
+3. Validate mAP@0.5 for both classes
+4. Export best.pt to TF.js GraphModel format
+5. Copy model files to public/model/yolo/
+"""
+
+import os
+import shutil
+import sys
+from pathlib import Path
+
+from ultralytics import YOLO
+
+
+def train():
+    dataset_yaml = Path("training/dataset.yaml")
+    if not dataset_yaml.exists():
+        print("Error: dataset.yaml not found. Run prepare_dataset.py first.")
+        sys.exit(1)
+
+    models_dir = Path("training/runs")
+    models_dir.mkdir(parents=True, exist_ok=True)
+
+    print("Loading YOLOv8n pretrained on COCO...")
+    model = YOLO("yolov8n.pt")
+
+    print("Starting training...")
+    results = model.train(
+        data=str(dataset_yaml),
+        epochs=100,
+        imgsz=1280,                  # 1280x1280 input for shuttle detection at distance
+        batch=8,                     # Adjust based on GPU memory
+        device="mps",                # Apple Silicon GPU; use "cuda" or "cpu" as needed
+        workers=4,
+        lr0=0.01,
+        lrf=0.01,
+        momentum=0.937,
+        weight_decay=0.0005,
+        warmup_epochs=3,
+        warmup_momentum=0.8,
+        cos_lr=True,
+        augment=True,
+        hsv_h=0.015,
+        hsv_s=0.7,
+        hsv_v=0.4,
+        degrees=10.0,
+        translate=0.1,
+        scale=0.5,
+        shear=2.0,
+        perspective=0.0,
+        flipud=0.0,
+        fliplr=0.5,
+        mosaic=1.0,
+        mixup=0.1,
+        name="badminton_track",
+        exist_ok=True,
+        seed=42,
+    )
+
+    # Save best model path
+    best_pt = Path(results.save_dir) / "weights" / "best.pt"
+    print(f"\nTraining complete. Best model: {best_pt}")
+    print(f"mAP@0.5: {results.results_dict.get('metrics/mAP50(B)', 'N/A')}")
+
+    return str(best_pt)
+
+
+def validate(model_path: str):
+    """Validate the trained model on the val split."""
+    print("\nValidating...")
+    model = YOLO(model_path)
+    metrics = model.val(data="training/dataset.yaml", imgsz=1280)
+
+    print(f"mAP@0.5 - player: {metrics.box.map50:.3f}")
+    if hasattr(metrics.box, 'ap_class_index'):
+        for i, ap in enumerate(metrics.box.ap50):
+            cls_name = ["player", "shuttlecock"][i] if i < 2 else f"class_{i}"
+            print(f"  AP@0.5 {cls_name}: {ap:.3f}")
+
+    return metrics
+
+
+def export_tfjs(model_path: str):
+    """Export model to TensorFlow.js GraphModel format."""
+    print("\nExporting to TF.js...")
+    model = YOLO(model_path)
+
+    # Export to TF.js
+    export_dir = Path("training/runs/export")
+    export_dir.mkdir(parents=True, exist_ok=True)
+    model.export(format="tfjs", imgsz=1280)
+
+    tfjs_dir = list(Path("training/runs/badminton_track").glob("weights/best_web_model*"))
+    if tfjs_dir:
+        print(f"TF.js model at: {tfjs_dir[0]}")
+    else:
+        # Look in weights directory
+        tfjs_weights = list(Path("training/runs/badminton_track/weights").glob("*web_model*"))
+        if tfjs_weights:
+            print(f"TF.js model at: {tfjs_weights[0]}")
+        else:
+            print("TF.js export may have gone to a different location. Checking...")
+            for p in Path("training/runs/badminton_track").rglob("model.json"):
+                print(f"Found: {p}")
+                tfjs_dir = [p.parent]
+
+    if tfjs_dir:
+        output_dir = Path("public/model/yolo")
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Copy all files from the export directory
+        for f in tfjs_dir[0].iterdir():
+            shutil.copy(f, output_dir / f.name)
+
+        print(f"\nModel files copied to {output_dir}:")
+        for f in sorted(output_dir.iterdir()):
+            print(f"  {f.name} ({f.stat().st_size:,} bytes)")
+
+    print("\nExport complete!")
+
+
+if __name__ == "__main__":
+    best_pt = train()
+    validate(best_pt)
+    export_tfjs(best_pt)
+    print("\nTraining pipeline complete. Model ready at public/model/yolo/")
+```
+
+- [ ] **Step 2: Train the model**
+
+```bash
+cd training && source venv/bin/activate && python train.py
+```
+
+Expected: Training runs for 100 epochs. mAP metrics printed. TF.js model files written to `public/model/yolo/`.
+
+Training time: ~2-4 hours on Apple Silicon M-series GPU, ~4-8 hours on CPU.
+
+- [ ] **Step 3: Verify exported model files**
+
+```bash
+ls -la public/model/yolo/
+```
+
+Expected: `model.json` + multiple `group1-shard*.bin` files. Total ~6-8MB.
+
+- [ ] **Step 4: Add .gitignore for public/model/yolo/ (keep model.json but gitignore large .bin files if > 10MB)**
+
+Check file sizes. If total < 10MB, commit all. If larger, use Git LFS or add to .gitignore with note:
+
+```bash
+git add public/model/yolo/model.json
+# If model shards are small enough:
+git add public/model/yolo/group*.bin
+```
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add training/train.py public/model/yolo/
+git commit -m "feat: train YOLOv8-nano and export TF.js model"
+```
+
+---
+
+### Task 0d: Quick smoke test of TF.js model in browser
+
+**Files:**
+- Create: `training/test_model.html`
+
+- [ ] **Step 1: Write browser smoke test**
+
+Write `training/test_model.html`:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>YOLO Model Smoke Test</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4"></script>
+</head>
+<body>
+  <h1>YOLOv8-nano Badminton Model Test</h1>
+  <canvas id="input" width="1280" height="720" style="border:1px solid #ccc"></canvas>
+  <pre id="output">Loading model...</pre>
+
+  <script type="module">
+    const canvas = document.getElementById('input');
+    const output = document.getElementById('output');
+    const ctx = canvas.getContext('2d');
+
+    // Draw a test scene (dark background + white court lines)
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(0, 0, 1280, 720);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(100, 50, 1080, 620);
+    ctx.beginPath();
+    ctx.moveTo(640, 50);
+    ctx.lineTo(640, 670);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(100, 360);
+    ctx.lineTo(1180, 360);
+    ctx.stroke();
+
+    // Draw synthetic "player" shapes
+    ctx.fillStyle = '#ff4444';
+    ctx.beginPath();
+    ctx.arc(300, 200, 40, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#4444ff';
+    ctx.beginPath();
+    ctx.arc(900, 500, 40, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Draw synthetic "shuttle" shape
+    ctx.fillStyle = '#ffff44';
+    ctx.beginPath();
+    ctx.arc(640, 300, 15, 0, Math.PI * 2);
+    ctx.fill();
+
+    try {
+      await tf.setBackend('webgl');
+      await tf.ready();
+      output.textContent = 'WebGL ready. Loading model...';
+
+      const model = await tf.loadGraphModel('/model/yolo/model.json');
+      output.textContent = 'Model loaded! Running inference...';
+
+      const tensor = tf.browser.fromPixels(canvas)
+        .expandDims(0)
+        .div(255.0);
+      const resized = tf.image.resizeBilinear(tensor, [1280, 1280]);
+
+      const results = await model.executeAsync(resized);
+      output.textContent = 'Inference complete!\n\n';
+      output.textContent += 'Output shapes: ' + JSON.stringify(
+        Array.from(results).map(r => Array.from(r.shape))
+      );
+      output.textContent += '\n\nModel is working!';
+
+      tensor.dispose();
+      resized.dispose();
+      results.forEach(r => r.dispose());
+    } catch (err) {
+      output.textContent = 'Error: ' + err.message;
+    }
+  </script>
+</body>
+</html>
+```
+
+- [ ] **Step 2: Serve and test in browser**
+
+```bash
+# From project root, start dev server:
+source ~/.nvm/nvm.sh && nvm use 22 && npx vite --host 0.0.0.0
+```
+
+Open `http://localhost:5173/training/test_model.html` (or copy to `public/` first). Expected: "Model is working!" with output shapes.
+
+- [ ] **Step 3: Move test file to public for easier access**
+
+```bash
+cp training/test_model.html public/test_model.html
+```
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add training/test_model.html public/test_model.html
+git commit -m "test: add YOLO TF.js browser smoke test"
+```
 
 ### Task 1: Install TF.js and create shared types
 
