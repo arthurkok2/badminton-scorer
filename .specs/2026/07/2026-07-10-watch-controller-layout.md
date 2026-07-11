@@ -62,7 +62,7 @@ New hook `useWatchLayout()` in `src/hooks/useWatchLayout.ts`:
 export function useWatchLayout(): boolean {
   const [isWatch, setIsWatch] = useState(false);
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 400px) and (max-height: 420px)');
+    const mq = window.matchMedia('(max-width: 480px) and (max-height: 480px)');
     setIsWatch(mq.matches);
     const handler = (e: MediaQueryListEvent) => setIsWatch(e.matches);
     mq.addEventListener('change', handler);
@@ -72,7 +72,7 @@ export function useWatchLayout(): boolean {
 }
 ```
 
-Uses `(max-width: 400px) and (max-height: 420px)` as the heuristic. Galaxy Watch 8 physical resolution is ~480×480 but Samsung Internet viewport is typically 360–396px after browser chrome. The 420px height cap avoids matching phones in landscape.
+Uses `(max-width: 480px) and (max-height: 480px)` as the heuristic. Galaxy Watch 8 physical resolution is ~480×480 but Samsung Internet viewport is typically 360–396px after browser chrome. The 420px height cap avoids matching phones in landscape.
 
 ### JSX Branching in ControllerPage
 

@@ -246,7 +246,7 @@ describe('ControllerPage', () => {
       origMatchMedia = window.matchMedia;
       window.matchMedia = vi.fn(() => ({
         matches: true,
-        media: '(max-width: 400px) and (max-height: 420px)',
+        media: '(max-width: 480px) and (max-height: 480px)',
         onchange: null,
         addEventListener: vi.fn(),
         removeEventListener: vi.fn(),

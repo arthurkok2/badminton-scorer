@@ -4,7 +4,7 @@ export function useWatchLayout(): boolean {
   const [isWatch, setIsWatch] = useState(false);
 
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 400px) and (max-height: 420px)');
+    const mq = window.matchMedia('(max-width: 480px) and (max-height: 480px)');
     setIsWatch(mq.matches);
 
     const handler = (e: MediaQueryListEvent) => setIsWatch(e.matches);

@@ -9,7 +9,7 @@ describe('useWatchLayout', () => {
   const makeQueryList = (matches: boolean): MediaQueryList => {
     const mql = {
       matches,
-      media: '(max-width: 400px) and (max-height: 420px)',
+      media: '(max-width: 480px) and (max-height: 480px)',
       onchange: null,
       addEventListener: (event: string, handler: (e: MediaQueryListEvent) => void) => {
         if (!listeners[event]) listeners[event] = [];
