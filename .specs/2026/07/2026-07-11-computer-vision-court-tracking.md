@@ -41,6 +41,7 @@ On-device computer vision pipeline that detects players and shuttlecock position
 - **Detection:** Post-match, user taps "Analyze" on a recorded match. The app processes video frames through a YOLOv8-nano TF.js model, detecting players and shuttlecock per frame. Processing runs offline (no real-time constraint).
 - **Rally Replay:** Animated 2D top-down court showing player positions (team-colored circles) and shuttle trajectory (dot + trailing line) for each rally. Play/pause/seek controls. Rally duration, shot count, and distance stats shown alongside.
 - **Player Heatmaps:** Per-player position density heatmap overlaid on the court. Color gradient from blue (rare) to red (frequent). Stats dashboard: total distance covered, average/max speed, % time in each court zone (front/mid/rear × left/center/right).
+- **Shot Classification:** Each shot in a rally is classified as smash, drop, net, clear, drive, or lob/defensive clear using combined player pose (MediaPipe Pose Landmarker on swing frames) + shuttle trajectory features. Shot type is shown on the rally replay timeline and aggregated in player stats (shot distribution pie chart).
 - **Video Export:** Re-encode original recording with tracking markers burned in (player bounding boxes, shuttle circle + trail, court line projection). Export as WebM via download/share.
 - **Verification:** `npm test && npm run lint && npm run build` all pass.
 - Existing input methods, scoring engine, and UI continue to work unchanged.
@@ -141,15 +142,52 @@ Pure functions operating on `AnalysisResult`:
 - `computeShotCount(rally: RallyData): number` — shuttle direction changes within a rally.
 - `computeSpeeds(frames, playerId): { avg, max }` — m/s from position deltas and frame timestamps.
 
+### Shot Classification (`src/vision/swingClassifier.ts`)
+
+Combines player pose and shuttle trajectory to classify each shot into one of: **smash**, **drop**, **net**, **clear**, **drive**, **lob/defensive clear**.
+
+**Pose extraction:** For each frame where the detected player is within ~3m of the shuttle position, crop the player's bounding box and run MediaPipe Pose Landmarker (already in `@mediapipe/tasks-vision` as an existing dependency) to extract 33 body keypoints. Focus landmarks: left/right wrist (15, 16), elbow (13, 14), shoulder (11, 12), and hip (23, 24). Pose Landmarker only runs on frames near shot events (shuttle direction changes), not every frame.
+
+**Racket-arm detection:** Heuristic to infer which arm holds the racket — the arm whose wrist is higher during the swing window. Use that arm's shoulder→elbow→wrist angles for classification.
+
+**Shot trigger detection:** A shot event is detected when the shuttle changes direction (from moving toward one side of the court to moving toward the other). This is computed from the tracked shuttle trajectory. A shot event triggers the pose analysis window (10 frames before to 5 frames after the direction change).
+
+**Combined classification features per shot:**
+
+| Feature | Source | Signal |
+|---|---|---|
+| Racket arm angle | Pose Landmarker | Elbow extension (straight = smash/clear, bent = drop/net) |
+| Shoulder elevation | Pose Landmarker | Shoulder above head = overhead shot (smash/drop/clear), shoulder level = drive, shoulder low = underhand (net/lob) |
+| Wrist snap | Pose Landmarker | Rapid wrist velocity change in 3-frame window = smash |
+| Shuttle entry angle | Trajectory | Steep descent → opponent hit overhead; flat → drive; rising from low → net/lob |
+| Shuttle exit angle | Trajectory | Steep downward = smash; shallow downward = drop; flat = drive; upward arch = clear/lob; short arc low over net = net |
+| Shuttle speed | Trajectory | Exit speed in m/s from position delta between consecutive frames |
+| Court zone | Calibration | Front/mid/rear court position of contact point |
+
+**Classification strategy:** Rule-based heuristic leveraging all features above. Priority-ordered decision tree:
+
+```
+Smash:    racket overhead + elbow extended + high shuttle exit speed (> 25 m/s) + steep downward exit
+Clear:    racket overhead + elbow extended + high shuttle exit speed + upward exit + rear court contact
+Drop:     racket overhead + moderate speed (8-15 m/s) + shallow downward exit + rear/mid court contact
+Drive:    racket mid-height + flat exit angle + moderate-high speed
+Net:      contact in front court zone + short low arc + low exit speed (< 8 m/s)
+Lob:      contact in front/mid court + upward exit + low speed
+```
+
+**Output:** Each shot in `RallyData` gets a `{ type: ShotType, confidence: number, contactFrame: number }`. Confidence is estimated as the proportion of matching rules.
+
+**Future ML upgrade path:** The rule-based classifier serves as v1. A lightweight neural net (few KB) trained on the feature vectors could replace it in v2 for higher accuracy without retraining YOLO. The feature extraction pipeline stays the same — only the classification step changes.
+
 ### UI Components
 
 **`CalibrationOverlay.tsx`:** Full-screen overlay with camera preview. User taps 4 corners of the court in order. Visual feedback shows numbered markers. "Save" button stores calibration.
 
-**`RallyReplay.tsx`:** Animated 2D court canvas. Player circles in team colors. Shuttle dot with gradient trail. Play/pause/speed controls. Rally selector dropdown or prev/next buttons. Sidebar stats panel.
+**`RallyReplay.tsx`:** Animated 2D court canvas. Player circles in team colors. Shuttle dot with gradient trail. Play/pause/speed controls. Rally selector dropdown or prev/next buttons. Sidebar stats panel with shot type indicators on the timeline.
 
 **`PlayerHeatmap.tsx`:** Court SVG with heatmap gradient overlay. Stats card alongside with distance, speed, zone percentages. Player selector to switch between players.
 
-**`MatchStats.tsx`:** Aggregate dashboard showing per-player summary stats, rally list with key metrics.
+**`MatchStats.tsx`:** Aggregate dashboard showing per-player summary stats, rally list with key metrics, shot type distribution pie chart per player.
 
 **`VideoExport.tsx`:** Progress bar during re-encoding. Download button or share sheet when complete.
 
@@ -186,7 +224,8 @@ IndexedDB collections:
 | `src/vision/analyzer.ts` | New. Offline analysis pipeline (web worker). |
 | `src/vision/analyzer.worker.ts` | New. Web Worker entry for frame processing. |
 | `src/vision/stats.ts` | New. Heatmap, distance, zone, shot count computation. |
-| `src/vision/types.ts` | New. Shared types: Detection, TrackedFrame, AnalysisResult, RallyData, CourtZone. |
+| `src/vision/swingClassifier.ts` | New. Shot type classification using Pose Landmarker + shuttle trajectory. |
+| `src/vision/types.ts` | New. Shared types: Detection, TrackedFrame, AnalysisResult, RallyData, CourtZone, ShotType. |
 | `src/hooks/useVideoRecorder.ts` | New. MediaRecorder wrapper hook. |
 | `src/hooks/useMatchAnalysis.ts` | New. Orchestrates analysis from video loading through stats generation. |
 | `src/components/CalibrationOverlay.tsx` | New. Court corner marking UI. |
@@ -286,7 +325,7 @@ Update `.docs/index.md` to add computer-vision.md entry under Media domain.
 
 ## Affected Components
 
-- `src/vision/` — new directory: detector, calibration, tracker, analyzer, stats, types
+- `src/vision/` — new directory: detector, calibration, tracker, analyzer, stats, swingClassifier, types
 - `src/hooks/useVideoRecorder.ts` — new
 - `src/hooks/useMatchAnalysis.ts` — new
 - `src/components/CalibrationOverlay.tsx` — new
