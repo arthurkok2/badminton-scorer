@@ -100,6 +100,7 @@ No controller logic changes — `join()`, `sendCommand()`, `leave()` all work id
 ```
 ┌──────────────────┐
 │  TeamA  ●  :  TeamB  │  team names + serving dot, compact bar, 0.8rem
+│  Serving: Player 1    │  serving player name in green
 │                  │
 │    21  :  18    │  scores centered, 3.5rem font, largest element
 │                  │

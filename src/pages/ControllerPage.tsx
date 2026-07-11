@@ -149,6 +149,9 @@ export function ControllerPage() {
     const wTeamAName = wMatch.teams.teamA.name;
     const wTeamBName = wMatch.teams.teamB.name;
     const wIsServingA = wMatch.servingTeamId === 'teamA';
+    const wServingTeam = wMatch.teams[wMatch.servingTeamId];
+    const wServingPlayer = wServingTeam.players.find((p) => p.id === wMatch.serverId);
+    const wServerName = wServingPlayer?.name ?? '';
 
     return (
       <main className="watch-controller">
@@ -159,6 +162,9 @@ export function ControllerPage() {
           {!wIsServingA && <span className="watch-serving-dot" aria-label="Serving" />}
           <span className="watch-team-name">{wTeamBName}</span>
         </div>
+        {wServerName && (
+          <div className="watch-server-name">Serving: {wServerName}</div>
+        )}
 
         <div className="watch-scores">
           <span className="watch-score">{wMatch.score.teamA}</span>

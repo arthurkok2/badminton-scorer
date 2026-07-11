@@ -276,6 +276,7 @@ describe('ControllerPage', () => {
 
       expect(screen.getAllByText('Team A')).toHaveLength(2);
       expect(screen.getAllByText('Team B')).toHaveLength(2);
+      expect(screen.getByText('Serving: Player 1')).toBeInTheDocument();
 
       expect(screen.getByRole('button', { name: /point\s+team a/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /point\s+team b/i })).toBeInTheDocument();

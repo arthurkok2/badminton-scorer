@@ -2597,6 +2597,13 @@ button {
   letter-spacing: 0.04em;
 }
 
+.watch-server-name {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #68d391;
+  margin-bottom: 0.5rem;
+}
+
 .watch-serving-dot {
   width: 8px;
   height: 8px;
