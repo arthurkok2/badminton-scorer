@@ -69,10 +69,12 @@ MediaRecorder API wrapper:
 
 TF.js YOLOv8-nano model:
 - Model: YOLOv8-nano (~6MB, ~3.2M parameters), converted to TF.js GraphModel format.
+- Input resolution: **1280×1280** (not 640). At 1080p, the shuttle is only ~8-18px depending on court distance. YOLOv8-nano's minimum detectable object is ~8×8px at 640 input — insufficient at 640, adequate at 1280 (~16-36px). Inference at 1280 is ~4× slower (~60-100ms/frame) but preserves shuttle detail at all court positions.
 - Classes: `player` (0), `shuttlecock` (1).
-- `loadModel(): Promise<GraphModel>` — loads from a CDN or bundled public/ URL.
+- `loadModel(): Promise<GraphModel>` — loads from bundled `public/model/yolo/` (offline-capable after PWA install).
 - `detect(model, frame: ImageData): Detection[]` — runs inference, returns bounding boxes with class, confidence, and center point.
 - Output: `{ class: 'player' | 'shuttlecock', bbox: [x, y, w, h], confidence: number, center: {x, y} }`
+- **Fallback:** When shuttle confidence drops below 0.3 (typically far-court), interpolate position from last known detections and predicted trajectory. Uses a simple Kalman filter on the shuttle's tracked path.
 
 ### Model Training Pipeline
 
@@ -89,7 +91,7 @@ The YOLOv8-nano model must be trained to detect two custom classes (`player`, `s
 **Training approach:**
 
 1. **Base model:** YOLOv8n (nano) pretrained on COCO. COCO provides a strong `person` class — good starting point for `player`.
-2. **Data preprocessing:** Convert all annotations to YOLO format (normalized center-x, center-y, width, height per bounding box). Resize images to 640×640.
+2. **Data preprocessing:** Convert all annotations to YOLO format (normalized center-x, center-y, width, height per bounding box). Resize images to 1280×1280.
 3. **Augmentation:** Mosaic augmentation (combine 4 frames), random horizontal flip (mirrors court perspective), brightness/contrast jitter (handles varying indoor lighting), motion blur (simulates fast shuttle movement at low frame rates).
 4. **Fine-tuning:** Train for 100-200 epochs with learning rate warmup + cosine decay. Freeze backbone for first 50 epochs, then unfreeze. Use SGD with momentum or AdamW.
 5. **Validation split:** 80/20 train/val split stratified by match (not frame — prevents same-match frames leaking across split).
@@ -286,7 +288,7 @@ Update `.docs/index.md` to add computer-vision.md entry under Media domain.
 
 - **Recording:** MediaRecorder at 1080p adds ~5-10% CPU overhead. No inference during recording.
 - **Model load:** YOLOv8-nano TF.js model ~6MB. Loaded once when analysis starts, not at app launch.
-- **Analysis processing:** Offline, frame-by-frame. ~2-5 FPS on modern phone CPU for YOLOv8-nano at 1080p. A 20-minute match at 30fps (~36,000 frames) takes ~3-5 hours to fully process. User is shown a progress bar and can cancel.
+- **Analysis processing:** Offline, frame-by-frame. At 1280×1280 input with WebGL backend, ~60-100ms/frame on a flagship phone (Snapdragon 8 Elite). With frame decimation (every 5th frame, 6 effective FPS from 30fps), a 20-minute match (~7,200 decimated frames) processes in **~10-15 minutes**. Frame extraction from WebM dominates — video plays at 1× through a hidden element with `ctx.drawImage`, adding ~20 minutes for a 20-min match. Total processing time: ~30-35 minutes. User is shown a progress bar and can cancel.
 - **Memory:** ~100-200MB during analysis (video in memory + model + tracking data). Video is read in chunks to avoid full decode.
 - **Storage:** ~500MB-1GB for a 20-minute 1080p WebM recording. Analysis results ~5-20MB JSON. Users can delete recordings after analysis.
 - **Battery:** Recording drains battery (camera + encode). Analysis drains battery (CPU-heavy). App warns if battery < 20%.
@@ -302,7 +304,7 @@ Update `.docs/index.md` to add computer-vision.md entry under Media domain.
 
 | Risk | Likelihood | Mitigation |
 |---|---|---|
-| YOLO model can't detect shuttle at 1080p court scale | Medium | Training data includes court-level shuttle images. If detection rate < 50%, fall back to motion-based interpolation between player-to-player trajectories. |
+| YOLO model can't detect shuttle at 1080p court scale | Low | 1280×1280 input resolution preserves shuttle detail (~16-36px at all court positions, above YOLO's ~8×8px minimum). Trajectory Kalman filtering fills occasional misses at far baseline. |
 | Analysis too slow on mid-range phones | High | Decimate frames (process every Nth frame). Offer "quick analysis" mode at lower resolution. Model runs on WebGL backend when available for GPU acceleration. |
 | Recording fills device storage | Medium | Show available storage before recording. Warn if < 2GB free. Delete recording after analysis (user choice). |
 | Camera permission denied | Low | Clear error messaging. Recording is optional — scoring still works. |
