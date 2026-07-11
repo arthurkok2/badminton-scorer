@@ -37,3 +37,5 @@ Master index of all specs across projects.
 | 2026-06-24 | BS | [2026-06-24-garmin-connect-iq-remote](2026/06/2026-06-24-garmin-connect-iq-remote.md) | Garmin Connect IQ Remote Controller | input | medium | medium |
 | 2026-06-28 | BS | [2026-06-28-server-picker-design](2026/06/2026-06-28-server-picker-design.md) | Physical Toss Server Picker | ui | low | low |
 | 2026-07-01 | BS | [2026-07-01-camera-handsfree-scoring](2026/07/2026-07-01-camera-handsfree-scoring.md) | Camera-Based Handsfree Scoring | input | medium | medium |
+| 2026-07-10 | BS | [2026-07-10-watch-controller-layout](2026/07/2026-07-10-watch-controller-layout.md) | Watch Controller Layout for Galaxy Watch 8 | ui | low | low |
+| 2026-07-11 | BS | [2026-07-11-computer-vision-court-tracking](2026/07/2026-07-11-computer-vision-court-tracking.md) | Computer Vision Court Tracking for Post-Match Analysis | feature | high | high |
