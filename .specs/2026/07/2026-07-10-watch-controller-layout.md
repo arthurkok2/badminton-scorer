@@ -99,17 +99,17 @@ No controller logic changes — `join()`, `sendCommand()`, `leave()` all work id
 
 ```
 ┌──────────────────────┐
-│  TeamA  ●  :  TeamB  │  team names + serving dot, compact bar
-│  Serving: Player 1   │  serving player name in green
+│  TeamA  ●  :  TeamB  │  team names + serving dot
+│   Serving: Player 1  │  serving player name in green
 │                      │
-│      21  :  18      │  scores centered, 3.5rem font
+│      21  :  18      │  scores centered
 │                      │
 │  ┌────────┬────────┐  │
-│  │ ● P1   │   P3   │  │  court: left half = Team A, right half = Team B
-│  │        │        │  │  tap either half to score for that team
-│  │   P2   │   P4   │  │  ● = green dot on serving player
-│  └────────┴────────┘  │
-│                      │
+│  │ ● P2   │   P1   │  │  ← Team A (tap anywhere here = point A)
+│  ├────────┼────────┤  │  ← horizontal net divider
+│  │   P3   │   P4   │  │  ← Team B (tap anywhere here = point B)
+│  └────────┴────────┘  │     players positioned left/right per courtPositions
+│                      │     ● = green dot on serving player
 │       [ Undo ]       │
 └──────────────────────┘
 ```

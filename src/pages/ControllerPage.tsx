@@ -5,6 +5,7 @@ import { AppModal } from '../components/AppModal';
 import type { AppMenuAction } from '../components/AppMenu';
 import { useControllerClient } from '../hooks/useControllerClient';
 import { useWatchLayout } from '../hooks/useWatchLayout';
+import type { MatchState, PlayerId } from '../domain/matchTypes';
 
 type ControllerSettingsAction = Extract<
   AppMenuAction,
@@ -152,8 +153,12 @@ export function ControllerPage() {
     const wServingTeam = wMatch.teams[wMatch.servingTeamId];
     const wServingPlayer = wServingTeam.players.find((p) => p.id === wMatch.serverId);
     const wServerName = wServingPlayer?.name ?? '';
-    const wTeamAPlayers = wMatch.teams.teamA.players;
-    const wTeamBPlayers = wMatch.teams.teamB.players;
+    const wTeamAPlayers = [...wMatch.teams.teamA.players].sort(
+      (a, b) => sortByCourt(wMatch, a.id, b.id)
+    );
+    const wTeamBPlayers = [...wMatch.teams.teamB.players].sort(
+      (a, b) => sortByCourt(wMatch, a.id, b.id)
+    );
 
     return (
       <main className="watch-controller">
@@ -185,7 +190,7 @@ export function ControllerPage() {
             aria-label={`Point ${wTeamAName}`}
           >
             {wTeamAPlayers.map((p) => (
-              <div key={p.id} className="watch-court-player">
+              <div key={p.id} className="watch-court-cell">
                 {p.id === wMatch.serverId && <span className="watch-court-server-dot" />}
                 <span className="watch-court-player-name">{p.name}</span>
               </div>
@@ -198,7 +203,7 @@ export function ControllerPage() {
             aria-label={`Point ${wTeamBName}`}
           >
             {wTeamBPlayers.map((p) => (
-              <div key={p.id} className="watch-court-player">
+              <div key={p.id} className="watch-court-cell">
                 {p.id === wMatch.serverId && <span className="watch-court-server-dot" />}
                 <span className="watch-court-player-name">{p.name}</span>
               </div>
@@ -288,6 +293,12 @@ export function ControllerPage() {
       {activeModalDialog}
     </main>
   );
+}
+
+function sortByCourt(match: MatchState, a: PlayerId, b: PlayerId): number {
+  const sideA = match.courtPositions[a] === 'left' ? 0 : 1;
+  const sideB = match.courtPositions[b] === 'left' ? 0 : 1;
+  return sideA - sideB;
 }
 
 function isControllerSettingsAction(action: AppMenuAction): action is ControllerSettingsAction {
