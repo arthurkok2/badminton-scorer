@@ -105,11 +105,11 @@ No controller logic changes — `join()`, `sendCommand()`, `leave()` all work id
 │      21  :  18      │  scores centered
 │                      │
 │  ┌────────┬────────┐  │
-│  │ ● P2   │   P1   │  │  ← Team A (tap anywhere here = point A)
-│  ├────────┼────────┤  │  ← horizontal net divider
-│  │   P3   │   P4   │  │  ← Team B (tap anywhere here = point B)
-│  └────────┴────────┘  │     players positioned left/right per courtPositions
-│                      │     ● = green dot on serving player
+│  │ ● P2   │   P3   │  │  ← vertical net divider
+│  │        │        │  │  ← left half = Team A, right half = Team B
+│  │   P1   │   P4   │  │  ← players stacked per courtPositions
+│  └────────┴────────┘  │     ● = green dot on serving player
+│                      │
 │       [ Undo ]       │
 └──────────────────────┘
 ```

@@ -2641,7 +2641,7 @@ button {
 
 .watch-court {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   width: 100%;
   flex: 1;
   min-height: 0;
@@ -2655,7 +2655,7 @@ button {
 .watch-court-half {
   flex: 1;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   padding: 0;
   border: 0;
   background: transparent;
@@ -2668,7 +2668,7 @@ button {
 }
 
 .watch-court-net {
-  height: 2px;
+  width: 2px;
   background: rgba(255, 255, 255, 0.15);
   flex-shrink: 0;
 }
@@ -2679,11 +2679,11 @@ button {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 8px 4px;
+  padding: 4px 8px;
 }
 
 .watch-court-cell:not(:last-child) {
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .watch-court-server-dot {
