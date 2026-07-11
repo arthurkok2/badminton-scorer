@@ -5,6 +5,7 @@ import { AppModal } from '../components/AppModal';
 import type { AppMenuAction } from '../components/AppMenu';
 import { useControllerClient } from '../hooks/useControllerClient';
 import { useWatchLayout } from '../hooks/useWatchLayout';
+import { useScreenWakeLock } from '../hooks/useScreenWakeLock';
 import type { MatchState, PlayerId } from '../domain/matchTypes';
 
 type ControllerSettingsAction = Extract<
@@ -30,6 +31,7 @@ export function ControllerPage() {
   const { status, matchDoc, error, commandError, lastCode, join, leave, sendCommand } =
     useControllerClient();
   const isWatch = useWatchLayout();
+  useScreenWakeLock(status === 'active');
   const codeInputRef = useRef<HTMLInputElement>(null);
   const [activeModal, setActiveModal] = useState<ControllerSettingsAction | undefined>(undefined);
   const joinDisabled = status === 'joining';
