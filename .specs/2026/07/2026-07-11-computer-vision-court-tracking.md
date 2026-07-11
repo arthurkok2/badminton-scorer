@@ -73,6 +73,44 @@ TF.js YOLOv8-nano model:
 - `detect(model, frame: ImageData): Detection[]` — runs inference, returns bounding boxes with class, confidence, and center point.
 - Output: `{ class: 'player' | 'shuttlecock', bbox: [x, y, w, h], confidence: number, center: {x, y} }`
 
+### Model Training Pipeline
+
+The YOLOv8-nano model must be trained to detect two custom classes (`player`, `shuttlecock`) before it can be used by the app. This is a one-time offline process, not part of the PWA runtime.
+
+**Training data:**
+
+| Source | Description | Classes |
+|---|---|---|
+| ShuttleSet | ~1,200 badminton match rally clips from professional tournaments. Includes player bounding boxes and shuttle position annotations. | `player`, `shuttlecock` |
+| TrackNet v3 | ~25,000 frames from broadcast badminton matches, annotated for shuttle tracking (heatmap-based, can be converted to bounding boxes). | `shuttlecock` |
+| Custom phone-footage | Self-recorded matches from a phone on a tripod, labeled manually or semi-automatically via a labeling tool. ~500-1,000 frames for fine-tuning on phone-camera perspective. | `player`, `shuttlecock` |
+
+**Training approach:**
+
+1. **Base model:** YOLOv8n (nano) pretrained on COCO. COCO provides a strong `person` class — good starting point for `player`.
+2. **Data preprocessing:** Convert all annotations to YOLO format (normalized center-x, center-y, width, height per bounding box). Resize images to 640×640.
+3. **Augmentation:** Mosaic augmentation (combine 4 frames), random horizontal flip (mirrors court perspective), brightness/contrast jitter (handles varying indoor lighting), motion blur (simulates fast shuttle movement at low frame rates).
+4. **Fine-tuning:** Train for 100-200 epochs with learning rate warmup + cosine decay. Freeze backbone for first 50 epochs, then unfreeze. Use SGD with momentum or AdamW.
+5. **Validation split:** 80/20 train/val split stratified by match (not frame — prevents same-match frames leaking across split).
+6. **Metrics target:** mAP@0.5 ≥ 0.85 for `player`, mAP@0.5 ≥ 0.60 for `shuttlecock` (shuttle is inherently harder due to small size and motion blur).
+
+**TF.js export:**
+
+```bash
+# After training with Ultralytics YOLOv8:
+yolo export model=best.pt format=tfjs
+```
+
+This produces: `model.json`, `group1-shard1ofN.bin`, `group1-shard2ofN.bin`, etc. Total size ~6-8MB when quantized to float16.
+
+**Hosting:**
+
+Model files are bundled in `public/model/yolo/` and served as static assets. At analysis time, `tf.loadGraphModel('/model/yolo/model.json')` loads them from the app's own origin (no CDN dependency, works offline after PWA install).
+
+**Iteration workflow:**
+
+Training is a separate repo/script (not in this codebase). The output is the final TF.js model files committed to `public/model/yolo/`. When the model improves, only those files are updated.
+
 ### Tracking (`src/vision/tracker.ts`)
 
 Simple frame-to-frame identity tracking:
