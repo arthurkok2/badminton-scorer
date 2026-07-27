@@ -27,9 +27,9 @@ function randomSpin(): { targetRotation: number; winner: TeamId } {
 
 export function SpinningShuttle({ playerNames, onComplete }: Props) {
   const [phase, setPhase] = useState<Phase>('idle');
-  const [currentRotation, setCurrentRotation] = useState(0);
   const [winner, setWinner] = useState<TeamId | null>(null);
   const [showResult, setShowResult] = useState(false);
+  const svgRef = useRef<SVGSVGElement>(null);
   const doneRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const teamAName = playerNames.A1;
@@ -40,12 +40,38 @@ export function SpinningShuttle({ playerNames, onComplete }: Props) {
     const { targetRotation, winner: w } = randomSpin();
     setWinner(w);
     setPhase('spinning');
-    requestAnimationFrame(() => {
+
+    const el = svgRef.current;
+    if (!el) return;
+
+    const animation = el.animate(
+      [
+        { transform: 'rotate(0deg)' },
+        { transform: `rotate(${targetRotation}deg)` },
+      ],
+      {
+        duration: 2500,
+        easing: 'cubic-bezier(0.2, 0.8, 0.3, 1)',
+        fill: 'forwards',
+      },
+    );
+
+    animation.onfinish = () => {
+      if (doneRef.current) return;
+      doneRef.current = true;
+      setPhase('settled');
+
       requestAnimationFrame(() => {
-        setCurrentRotation(targetRotation);
+        requestAnimationFrame(() => {
+          setShowResult(true);
+        });
       });
-    });
-  }, [phase]);
+
+      timerRef.current = setTimeout(() => {
+        if (w) onComplete(w);
+      }, 500);
+    };
+  }, [phase, onComplete]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -53,22 +79,6 @@ export function SpinningShuttle({ playerNames, onComplete }: Props) {
       handleClick();
     }
   }, [handleClick]);
-
-  const handleTransitionEnd = useCallback(() => {
-    if (doneRef.current) return;
-    doneRef.current = true;
-    setPhase('settled');
-
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setShowResult(true);
-      });
-    });
-
-    timerRef.current = setTimeout(() => {
-      if (winner) onComplete(winner);
-    }, 500);
-  }, [winner, onComplete]);
 
   useEffect(() => {
     return () => {
@@ -116,13 +126,12 @@ export function SpinningShuttle({ playerNames, onComplete }: Props) {
         </div>
 
         <svg
+          ref={svgRef}
           className={shuttleClasses}
-          style={{ transform: `rotate(${currentRotation}deg)` }}
           viewBox="0 0 60 80"
           xmlns="http://www.w3.org/2000/svg"
           onClick={handleClick}
           onKeyDown={handleKeyDown}
-          onTransitionEnd={handleTransitionEnd}
           role="button"
           aria-label="Tap to spin the shuttle"
           tabIndex={0}

@@ -2266,7 +2266,6 @@ button {
 }
 
 .spinning-shuttle-svg--spinning {
-  transition: transform 2.5s cubic-bezier(0.2, 0.8, 0.3, 1);
   cursor: default;
 }
 
@@ -2304,20 +2303,7 @@ button {
   background: rgba(243, 211, 107, 0.15);
 }
 
-.spinning-shuttle-result {
-  margin: 0;
-  font-size: 1.6rem;
-  font-weight: 900;
-  color: #f5f7fa;
-  opacity: 0;
-  transform: translateY(8px);
-  transition: opacity 0.35s ease-out, transform 0.35s ease-out;
-}
 
-.spinning-shuttle-result--visible {
-  opacity: 1;
-  transform: translateY(0);
-}
 
 /* Pose Camera */
 .pose-camera-controls {
