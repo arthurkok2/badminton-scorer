@@ -1,6 +1,6 @@
 ---
 title: UI — Components, Pages, Hooks, Styling, Preferences
-last-updated: 2026-05-24
+last-updated: 2026-07-27
 ---
 
 # UI Architecture
@@ -41,7 +41,8 @@ App
 │   ├── MatchHistory
 │   ├── AnimationsMenu
 │   ├── AnnouncementsMenu
-│   └── RemoteControlsMenu
+│   ├── RemoteControlsMenu
+│   └── SpinningShuttle (interactive shuttle spin to pick first server)
 └── Session components
     ├── SessionSetup (player search, global player picker, auth gate)
     ├── MatchSuggestion (team display, swap/change break buttons)
