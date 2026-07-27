@@ -73,7 +73,7 @@ import { useAuth } from './auth';
 import type { ActiveSession, GlobalPlayer, MatchSuggestion as MatchSuggestionData, TeamSplit } from './session/sessionTypes';
 import { detectAnimationEvent } from './animations/detectAnimationEvent';
 import { AnimationOverlay } from './components/AnimationOverlay';
-import { ServerPickerOverlay } from './components/ServerPickerOverlay';
+import { SpinningShuttle } from './components/SpinningShuttle';
 import type { AnimationEvent } from './animations/types';
 import type { AppMenuAction } from './components/AppMenu';
 
@@ -183,7 +183,7 @@ export default function App() {
   const toastIdRef = useRef(0);
   const match = matchView.match;
   const [activeAnimation, setActiveAnimation] = useState<AnimationEvent | null>(null);
-  const [showServerPicker, setShowServerPicker] = useState(false);
+  const [showSpinningShuttle, setShowSpinningShuttle] = useState(false);
   const prevMatchRef = useRef<MatchState>(matchView.match);
 
   const handleAnimationDismiss = useCallback(() => setActiveAnimation(null), []);
@@ -373,7 +373,7 @@ export default function App() {
       }),
     );
 
-    setShowServerPicker(true);
+    setShowSpinningShuttle(true);
   }, [matchView.match, dispatch]);
 
   const handleSetInitialServer = useCallback(
@@ -395,9 +395,10 @@ export default function App() {
     [updatePreferences],
   );
 
-  const handleServerPickerComplete = useCallback(
-    (teamId: TeamId, playerId: PlayerId) => {
-      setShowServerPicker(false);
+  const handleShuttleComplete = useCallback(
+    (teamId: TeamId) => {
+      setShowSpinningShuttle(false);
+      const playerId = teamId === 'teamA' ? 'A1' : 'B1';
       dispatch({ type: 'SET_INITIAL_SERVER', teamId, playerId });
     },
     [dispatch],
@@ -588,7 +589,7 @@ export default function App() {
     setCurrentSessionMatchStartedAt(startedAt);
     setSessionPhase('playing');
 
-    setShowServerPicker(true);
+    setShowSpinningShuttle(true);
   }, [dispatch]);
 
   const handleMatchEnded = useCallback((winnerTeam: 'teamA' | 'teamB') => {
@@ -1003,11 +1004,10 @@ export default function App() {
         ) : null}
       {toastViewport}
       <AnimationOverlay event={activeAnimation} onDismiss={handleAnimationDismiss} />
-      {showServerPicker && (
-        <ServerPickerOverlay
-          mode={match.mode}
+      {showSpinningShuttle && (
+        <SpinningShuttle
           playerNames={sessionPlayerNames ?? preferences.playerNames}
-          onComplete={handleServerPickerComplete}
+          onComplete={handleShuttleComplete}
         />
       )}
     </main>

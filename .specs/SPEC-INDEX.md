@@ -37,3 +37,4 @@ Master index of all specs across projects.
 | 2026-06-24 | BS | [2026-06-24-garmin-connect-iq-remote](2026/06/2026-06-24-garmin-connect-iq-remote.md) | Garmin Connect IQ Remote Controller | input | medium | medium |
 | 2026-06-28 | BS | [2026-06-28-server-picker-design](2026/06/2026-06-28-server-picker-design.md) | Physical Toss Server Picker | ui | low | low |
 | 2026-07-01 | BS | [2026-07-01-camera-handsfree-scoring](2026/07/2026-07-01-camera-handsfree-scoring.md) | Camera-Based Handsfree Scoring | input | medium | medium |
+| 2026-07-27 | BS | [2026-07-27-spinning-shuttle-server-picker](2026/07/2026-07-27-spinning-shuttle-server-picker.md) | Spinning Shuttle Server Picker | ui | low | medium |
