@@ -40,7 +40,11 @@ export function SpinningShuttle({ playerNames, onComplete }: Props) {
     const { targetRotation, winner: w } = randomSpin();
     setWinner(w);
     setPhase('spinning');
-    setCurrentRotation(targetRotation);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setCurrentRotation(targetRotation);
+      });
+    });
   }, [phase]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
