@@ -1,8 +1,8 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PlayerId, TeamId } from '../domain/matchTypes';
 
 interface Props {
-  readonly playerNames: Readonly<Record<PlayerId, string>>;
+  readonly playerNames: Record<PlayerId, string>;
   readonly onComplete: (teamId: TeamId) => void;
 }
 
@@ -31,6 +31,7 @@ export function SpinningShuttle({ playerNames, onComplete }: Props) {
   const [winner, setWinner] = useState<TeamId | null>(null);
   const [showResult, setShowResult] = useState(false);
   const doneRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const teamAName = playerNames.A1;
   const teamBName = playerNames.B1;
 
@@ -41,6 +42,13 @@ export function SpinningShuttle({ playerNames, onComplete }: Props) {
     setPhase('spinning');
     setCurrentRotation(targetRotation);
   }, [phase]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleClick();
+    }
+  }, [handleClick]);
 
   const handleTransitionEnd = useCallback(() => {
     if (doneRef.current) return;
@@ -53,10 +61,17 @@ export function SpinningShuttle({ playerNames, onComplete }: Props) {
       });
     });
 
-    setTimeout(() => {
+    timerRef.current = setTimeout(() => {
       if (winner) onComplete(winner);
     }, 500);
   }, [winner, onComplete]);
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(timerRef.current);
+      doneRef.current = true;
+    };
+  }, []);
 
   const shuttleClasses = [
     'spinning-shuttle-svg',
@@ -98,10 +113,11 @@ export function SpinningShuttle({ playerNames, onComplete }: Props) {
 
         <svg
           className={shuttleClasses}
-          style={currentRotation !== 0 ? { transform: `rotate(${currentRotation}deg)` } : undefined}
+          style={{ transform: `rotate(${currentRotation}deg)` }}
           viewBox="0 0 60 80"
           xmlns="http://www.w3.org/2000/svg"
           onClick={handleClick}
+          onKeyDown={handleKeyDown}
           onTransitionEnd={handleTransitionEnd}
           role="button"
           aria-label="Tap to spin the shuttle"
@@ -119,10 +135,6 @@ export function SpinningShuttle({ playerNames, onComplete }: Props) {
           <line x1="30" y1="33" x2="30" y2="72" stroke="#ddd" strokeWidth="1" />
           <line x1="30" y1="33" x2="15" y2="70" stroke="#ddd" strokeWidth="1" />
         </svg>
-
-        <p className={`spinning-shuttle-result ${showResult ? 'spinning-shuttle-result--visible' : ''}`}>
-          {showResult ? (winner === 'teamA' ? 'Team A serves first!' : 'Team B serves first!') : ' '}
-        </p>
       </div>
     </div>
   );
