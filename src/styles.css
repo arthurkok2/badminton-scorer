@@ -2218,8 +2218,8 @@ button {
   image-rendering: pixelated;
 }
 
-/* Server picker overlay */
-.server-picker-overlay {
+/* Spinning shuttle overlay */
+.spinning-shuttle-overlay {
   position: fixed;
   inset: 0;
   z-index: 10000;
@@ -2228,66 +2228,95 @@ button {
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.75);
-  animation: server-picker-fade-in 0.3s ease-out forwards;
+  animation: spinning-shuttle-fade-in 0.3s ease-out forwards;
 }
 
-@keyframes server-picker-fade-in {
+@keyframes spinning-shuttle-fade-in {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
 
-.server-picker-card {
+.spinning-shuttle-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
-  padding: 32px 24px;
+  gap: 32px;
+  padding: 40px 32px;
   border-radius: 16px;
   background: #141e24;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  position: relative;
+  width: 280px;
 }
 
-.server-picker-title {
+.spinning-shuttle-prompt {
   margin: 0;
-  font-size: 1.5rem;
-  font-weight: 900;
-  color: #f5f7fa;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #a0b4c4;
+  text-align: center;
 }
 
-.server-picker-buttons {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  width: 100%;
-}
-
-.server-picker-button {
-  min-height: 56px;
-  border: 0;
-  border-radius: 10px;
-  padding: 12px 16px;
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #f5f7fa;
+.spinning-shuttle-svg {
+  width: 72px;
+  height: 96px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
 }
 
-.server-picker-button:hover {
-  filter: brightness(1.1);
+.spinning-shuttle-svg--spinning {
+  transition: transform 2.5s cubic-bezier(0.2, 0.8, 0.3, 1);
+  cursor: default;
 }
 
-.server-picker-button:focus-visible {
-  outline: 3px solid #f3d36b;
-  outline-offset: 2px;
+.spinning-shuttle-svg--settled {
+  cursor: default;
 }
 
-.server-picker-button--teamA {
-  background: linear-gradient(135deg, #d14b55, #e87a52);
+.spinning-shuttle-labels {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 4px;
 }
 
-.server-picker-button--teamB {
-  background: linear-gradient(135deg, #4d82c4, #4ab8a6);
+.spinning-shuttle-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.spinning-shuttle-label--teamA {
+  color: #e0736a;
+  background: rgba(209, 75, 85, 0.15);
+}
+
+.spinning-shuttle-label--teamB {
+  color: #6aace0;
+  background: rgba(77, 130, 196, 0.15);
+}
+
+.spinning-shuttle-label--winner {
+  outline: 2px solid #f3d36b;
+  color: #f3d36b;
+  background: rgba(243, 211, 107, 0.15);
+}
+
+.spinning-shuttle-result {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: #f5f7fa;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.35s ease-out, transform 0.35s ease-out;
+}
+
+.spinning-shuttle-result--visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* Pose Camera */
