@@ -81,6 +81,7 @@ export function SpinningShuttle({ playerNames, onComplete }: Props) {
   }, [handleClick]);
 
   useEffect(() => {
+    doneRef.current = false;
     return () => {
       clearTimeout(timerRef.current);
       doneRef.current = true;
