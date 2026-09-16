@@ -13,3 +13,4 @@ memory/
 .superpowers/
 GarminRemote/developer_key
 GarminRemote/bin/
+.vscode/
