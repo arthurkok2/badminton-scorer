@@ -1,6 +1,6 @@
 ---
 title: Game Engine — Scoring Engine & Game Types
-last-updated: 2026-05-23
+last-updated: 2026-09-15
 ---
 
 # Scoring Engine
@@ -54,10 +54,12 @@ The session scheduler layer sits on top of the scoring engine, managing multi-ma
 ### Rotation Algorithm
 
 After each match, 4 players are selected for the next match:
-1. Players on break come on first
-2. Ties broken by fewest total games played, then random Fisher-Yates shuffle
-3. Remaining spots filled from on-court players, prioritizing longest consecutive streak (most consecutive sits out)
+1. Fewest total games played come on first, so court time never drifts by more than one game
+2. Whoever is level with the fourth-fewest competes for the remaining slots on variety: the foursome that has shared a court least this session wins, counting partnerships and head-to-heads alike
+3. Ties broken by a Fisher-Yates shuffle applied before selection
 4. Break counts by player count: 4→0, 5→1, 6→2, 7→3, 8→4
+
+Filling those slots by variety rather than by who sat out last is what keeps an even-sized roster mixing. Rotating strictly on break status sealed 8 players into two foursomes that never met (only 12 of 28 possible pairs ever shared a court) and 6 players into three fixed sit-out duos (3 of 15 possible foursomes). See [Session Matchup Diversity](../../.specs/2026/09/2026-09-15-session-matchup-diversity.md).
 
 ### Team Formation
 
@@ -70,7 +72,7 @@ A running pairing matrix tracks `togetherCount[player][player]` and `againstCoun
 
 ### Session State
 
-Tracked per player: total games played, consecutive streak, on-break status. Session state persists to `localStorage` with: player roster, full match history, running pairing matrix.
+Tracked per player: total games played. Session state persists to `localStorage` with: player roster, full match history, running pairing matrix. Sessions saved by older versions also carry `consecutiveStreak` and `onBreak` per player; those fields are ignored on load.
 
 ### Manual Override
 

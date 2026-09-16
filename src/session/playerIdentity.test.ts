@@ -49,8 +49,6 @@ describe('player identity helpers', () => {
       id: 'player_alice',
       displayName: 'Alice',
       gamesPlayed: 0,
-      consecutiveStreak: 0,
-      onBreak: true,
     });
   });
 });

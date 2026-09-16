@@ -30,8 +30,6 @@ export interface GlobalSessionPlayer {
   readonly id: string;
   readonly displayName: string;
   readonly gamesPlayed: number;
-  readonly consecutiveStreak: number;
-  readonly onBreak: boolean;
   readonly spriteId?: LittleFighterSpriteId;
 }
 

@@ -38,8 +38,6 @@ export function toSessionPlayer(player: GlobalPlayer): GlobalSessionPlayer {
     id: player.id,
     displayName: player.displayName,
     gamesPlayed: 0,
-    consecutiveStreak: 0,
-    onBreak: true,
     spriteId: player.spriteId,
   };
 }

@@ -33,7 +33,10 @@ export function createLegacySessionFromPlayerNames(playerNames: readonly string[
   );
 }
 
-export function selectNextPlayers(players: readonly GlobalSessionPlayer[]): {
+export function selectNextPlayers(
+  players: readonly GlobalSessionPlayer[],
+  matrix: PairingMatrix,
+): {
   readonly selected: readonly [GlobalSessionPlayer, GlobalSessionPlayer, GlobalSessionPlayer, GlobalSessionPlayer];
   readonly onBreak: readonly GlobalSessionPlayer[];
 } {
@@ -45,30 +48,63 @@ export function selectNextPlayers(players: readonly GlobalSessionPlayer[]): {
     };
   }
 
-  // Fisher-Yates shuffle so ties in gamesPlayed / consecutiveStreak resolve
+  // Fisher-Yates shuffle so ties in gamesPlayed and in shared-court history resolve
   // with uniform probability rather than by insertion order.
   const shuffled = [...players];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
-  const breakPlayers = shuffled
-    .filter(p => p.onBreak)
-    .sort((a, b) => a.gamesPlayed - b.gamesPlayed);
-  const onCourtPlayers = shuffled
-    .filter(p => !p.onBreak)
-    .sort((a, b) => a.consecutiveStreak - b.consecutiveStreak);
 
-  // Break players (fewest games first) take priority over on-court players.
-  // On-court players with highest streak sit out (they end up at the tail of prioritized).
-  const prioritized = [...breakPlayers, ...onCourtPlayers];
+  // Fewest games played always play, which keeps court time even. Whoever is level with the
+  // fourth-fewest competes for the remaining slots on variety instead: the foursome that has
+  // shared a court least wins. Rotating strictly by who sat out last (the previous rule) let
+  // an even-sized roster settle into fixed groups that only ever played each other.
+  const byGamesPlayed = [...shuffled].sort((a, b) => a.gamesPlayed - b.gamesPlayed);
+  const cutoff = byGamesPlayed[3].gamesPlayed;
+  const mustPlay = byGamesPlayed.filter(player => player.gamesPlayed < cutoff);
+  const contenders = byGamesPlayed.filter(player => player.gamesPlayed === cutoff);
 
-  const top4 = prioritized.slice(0, 4);
-  if (top4.length < 4) throw new Error('selectNextPlayers: not enough players after prioritization');
+  let selected: readonly GlobalSessionPlayer[] = [];
+  let lowestCost = Number.POSITIVE_INFINITY;
+  for (const combination of combinationsOf(contenders, 4 - mustPlay.length)) {
+    const four = [...mustPlay, ...combination];
+    const cost = sharedCourtCost(four, matrix);
+    if (cost < lowestCost) {
+      lowestCost = cost;
+      selected = four;
+    }
+  }
+  if (selected.length < 4) throw new Error('selectNextPlayers: not enough players after prioritization');
+
+  const selectedIds = new Set(selected.map(player => player.id));
   return {
-    selected: top4 as unknown as readonly [GlobalSessionPlayer, GlobalSessionPlayer, GlobalSessionPlayer, GlobalSessionPlayer],
-    onBreak: prioritized.slice(4),
+    selected: selected as unknown as readonly [GlobalSessionPlayer, GlobalSessionPlayer, GlobalSessionPlayer, GlobalSessionPlayer],
+    onBreak: byGamesPlayed.filter(player => !selectedIds.has(player.id)),
   };
+}
+
+function combinationsOf<T>(items: readonly T[], size: number): T[][] {
+  if (size === 0) return [[]];
+  if (items.length < size) return [];
+  const [head, ...rest] = items;
+  return [
+    ...combinationsOf(rest, size - 1).map(combination => [head, ...combination]),
+    ...combinationsOf(rest, size),
+  ];
+}
+
+// How often these four have already shared a court, counting partnerships and head-to-heads
+// alike, so the least familiar foursome scores lowest.
+function sharedCourtCost(four: readonly GlobalSessionPlayer[], matrix: PairingMatrix): number {
+  let cost = 0;
+  for (let i = 0; i < four.length; i++) {
+    for (let j = i + 1; j < four.length; j++) {
+      cost += getPairCount(matrix.together, four[i].id, four[j].id);
+      cost += getPairCount(matrix.against, four[i].id, four[j].id);
+    }
+  }
+  return cost;
 }
 
 function getPairCount(
@@ -113,7 +149,7 @@ export function rankSplitsForPlayers(
 }
 
 export function generateMatchSuggestion(session: ActiveSession): MatchSuggestion {
-  const { selected, onBreak } = selectNextPlayers(session.players);
+  const { selected, onBreak } = selectNextPlayers(session.players, session.pairingMatrix);
   const rankedSplits = rankSplitsForPlayers(selected, session.pairingMatrix);
   return { rankedSplits, onBreak };
 }
@@ -153,9 +189,7 @@ export function applyMatchResult(
   const playedIds = new Set([...split.teamA, ...split.teamB].map(player => player.id));
   const newMatrix = updatePairingMatrix(session.pairingMatrix, split);
   const newPlayers: GlobalSessionPlayer[] = session.players.map(player =>
-    playedIds.has(player.id)
-      ? { ...player, gamesPlayed: player.gamesPlayed + 1, consecutiveStreak: player.consecutiveStreak + 1, onBreak: false }
-      : { ...player, consecutiveStreak: 0, onBreak: true },
+    playedIds.has(player.id) ? { ...player, gamesPlayed: player.gamesPlayed + 1 } : player,
   );
   const matchRecord: MatchRecord = {
     id: crypto.randomUUID(),
