@@ -314,8 +314,6 @@ describe('App', () => {
         id: player.id,
         displayName: player.displayName,
         gamesPlayed: 0,
-        consecutiveStreak: 0,
-        onBreak: false,
       })),
       matches: [],
       pairingMatrix: { together: {}, against: {} },

@@ -27,8 +27,6 @@ function sessionPlayer(player: GlobalPlayer): GlobalSessionPlayer {
     id: player.id,
     displayName: player.displayName,
     gamesPlayed: 0,
-    consecutiveStreak: 0,
-    onBreak: true,
   };
 }
 

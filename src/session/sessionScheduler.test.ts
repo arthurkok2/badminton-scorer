@@ -1,5 +1,5 @@
 // src/session/sessionScheduler.test.ts
-import { createSession, selectNextPlayers, rankSplitsForPlayers, generateMatchSuggestion, applyMatchResult, archiveSession } from './sessionScheduler';
+import { createSession, createLegacySessionFromPlayerNames, selectNextPlayers, rankSplitsForPlayers, generateMatchSuggestion, applyMatchResult, archiveSession } from './sessionScheduler';
 import type { GlobalPlayer, GlobalSessionPlayer, PairingMatrix, TeamSplit } from './sessionTypes';
 
 function makeGlobalPlayer(id: string, displayName: string): GlobalPlayer {
@@ -34,8 +34,6 @@ function sessionPlayer(
     id: player.id,
     displayName: player.displayName,
     gamesPlayed: 0,
-    consecutiveStreak: 0,
-    onBreak: true,
     ...overrides,
   };
 }
@@ -50,13 +48,12 @@ function splitFor(
 }
 
 describe('createSession', () => {
-  it('creates a session with global session players set to onBreak', () => {
+  it('creates a session with global session players on zero games', () => {
     const session = createSession(globalPlayers);
 
     expect(session.players).toHaveLength(5);
     expect(session.players.map(p => p.id)).toEqual(['player-alice', 'player-bob', 'player-carol', 'player-dave', 'player-eve']);
     expect(session.players.map(p => p.displayName)).toEqual(['Alice', 'Bob', 'Carol', 'Dave', 'Eve']);
-    expect(session.players.every(p => p.onBreak)).toBe(true);
     expect(session.players.every(p => p.gamesPlayed === 0)).toBe(true);
     expect(session.matches).toHaveLength(0);
     expect(session.pairingMatrix).toEqual({ together: {}, against: {} });
@@ -66,63 +63,105 @@ describe('createSession', () => {
 describe('selectNextPlayers', () => {
   it('selects all players when there are exactly 4', () => {
     const players: GlobalSessionPlayer[] = [
-      sessionPlayer(alice, { gamesPlayed: 2, consecutiveStreak: 2, onBreak: false }),
-      sessionPlayer(bob, { gamesPlayed: 2, consecutiveStreak: 2, onBreak: false }),
-      sessionPlayer(carol, { gamesPlayed: 2, consecutiveStreak: 2, onBreak: false }),
-      sessionPlayer(dave, { gamesPlayed: 2, consecutiveStreak: 2, onBreak: false }),
+      sessionPlayer(alice, { gamesPlayed: 2 }),
+      sessionPlayer(bob, { gamesPlayed: 2 }),
+      sessionPlayer(carol, { gamesPlayed: 2 }),
+      sessionPlayer(dave, { gamesPlayed: 2 }),
     ];
 
-    const { selected, onBreak } = selectNextPlayers(players);
+    const { selected, onBreak } = selectNextPlayers(players, emptyMatrix);
 
     expect(selected).toHaveLength(4);
     expect(onBreak).toHaveLength(0);
     expect(selected.map(player => player.id)).toContain('player-alice');
   });
 
-  it('always brings players on break on first', () => {
+  it('always plays the players owed court time', () => {
     const players: GlobalSessionPlayer[] = [
-      sessionPlayer(alice, { gamesPlayed: 3, consecutiveStreak: 3, onBreak: false }),
-      sessionPlayer(bob, { gamesPlayed: 3, consecutiveStreak: 3, onBreak: false }),
-      sessionPlayer(carol, { gamesPlayed: 3, consecutiveStreak: 3, onBreak: false }),
-      sessionPlayer(dave, { gamesPlayed: 3, consecutiveStreak: 3, onBreak: false }),
-      sessionPlayer(eve, { gamesPlayed: 2, consecutiveStreak: 0, onBreak: true }),
+      sessionPlayer(alice, { gamesPlayed: 3 }),
+      sessionPlayer(bob, { gamesPlayed: 3 }),
+      sessionPlayer(carol, { gamesPlayed: 3 }),
+      sessionPlayer(dave, { gamesPlayed: 3 }),
+      sessionPlayer(eve, { gamesPlayed: 2 }),
     ];
 
-    const { selected, onBreak } = selectNextPlayers(players);
+    const { selected, onBreak } = selectNextPlayers(players, emptyMatrix);
 
     expect(selected.map(player => player.id)).toContain('player-eve');
     expect(onBreak.map(player => player.id)).not.toContain('player-eve');
   });
 
-  it('sits out the on-court player with the longest consecutive streak', () => {
+  it('sits out the player with the most games played', () => {
     const players: GlobalSessionPlayer[] = [
-      sessionPlayer(alice, { gamesPlayed: 4, consecutiveStreak: 4, onBreak: false }),
-      sessionPlayer(bob, { gamesPlayed: 3, consecutiveStreak: 1, onBreak: false }),
-      sessionPlayer(carol, { gamesPlayed: 3, consecutiveStreak: 1, onBreak: false }),
-      sessionPlayer(dave, { gamesPlayed: 3, consecutiveStreak: 1, onBreak: false }),
-      sessionPlayer(eve, { gamesPlayed: 2, consecutiveStreak: 0, onBreak: true }),
+      sessionPlayer(alice, { gamesPlayed: 5 }),
+      sessionPlayer(bob, { gamesPlayed: 3 }),
+      sessionPlayer(carol, { gamesPlayed: 3 }),
+      sessionPlayer(dave, { gamesPlayed: 3 }),
+      sessionPlayer(eve, { gamesPlayed: 3 }),
     ];
 
-    const { selected, onBreak } = selectNextPlayers(players);
+    const { selected, onBreak } = selectNextPlayers(players, emptyMatrix);
 
-    expect(selected.map(player => player.id)).toContain('player-eve');
-    expect(onBreak.map(player => player.id)).toContain('player-alice');
+    expect(onBreak.map(player => player.id)).toEqual(['player-alice']);
     expect(selected.map(player => player.id)).not.toContain('player-alice');
   });
 
-  it('prefers break player with fewer games when multiple on-break players exceed the 4-slot limit', () => {
+  it('picks the foursome that has shared a court least when games played are level', () => {
+    // Alice has been on court with everyone twice, so every foursome containing her costs 6
+    // while the one without her costs 0.
+    const aliceWithEveryone: PairingMatrix = {
+      together: {
+        'player-alice': { 'player-bob': 2, 'player-carol': 2, 'player-dave': 2, 'player-eve': 2 },
+        'player-bob': { 'player-alice': 2 },
+        'player-carol': { 'player-alice': 2 },
+        'player-dave': { 'player-alice': 2 },
+        'player-eve': { 'player-alice': 2 },
+      },
+      against: {},
+    };
     const players: GlobalSessionPlayer[] = [
-      sessionPlayer(alice, { gamesPlayed: 5, consecutiveStreak: 0, onBreak: true }),
-      sessionPlayer(bob, { gamesPlayed: 3, consecutiveStreak: 0, onBreak: true }),
-      sessionPlayer(carol, { gamesPlayed: 3, consecutiveStreak: 0, onBreak: true }),
-      sessionPlayer(dave, { gamesPlayed: 3, consecutiveStreak: 0, onBreak: true }),
-      sessionPlayer(eve, { gamesPlayed: 3, consecutiveStreak: 0, onBreak: true }),
+      sessionPlayer(alice, { gamesPlayed: 2 }),
+      sessionPlayer(bob, { gamesPlayed: 2 }),
+      sessionPlayer(carol, { gamesPlayed: 2 }),
+      sessionPlayer(dave, { gamesPlayed: 2 }),
+      sessionPlayer(eve, { gamesPlayed: 2 }),
     ];
 
-    const { onBreak } = selectNextPlayers(players);
+    for (let i = 0; i < 20; i++) {
+      const { selected, onBreak } = selectNextPlayers(players, aliceWithEveryone);
 
-    expect(onBreak.map(player => player.id)).toContain('player-alice');
-    expect(onBreak).toHaveLength(1);
+      expect(selected.map(player => player.id).sort()).toEqual([
+        'player-bob',
+        'player-carol',
+        'player-dave',
+        'player-eve',
+      ]);
+      expect(onBreak.map(player => player.id)).toEqual(['player-alice']);
+    }
+  });
+
+  it('keeps court time ahead of variety when a player is owed a game', () => {
+    const eveWithEveryone: PairingMatrix = {
+      together: {
+        'player-eve': { 'player-alice': 5, 'player-bob': 5, 'player-carol': 5, 'player-dave': 5 },
+        'player-alice': { 'player-eve': 5 },
+        'player-bob': { 'player-eve': 5 },
+        'player-carol': { 'player-eve': 5 },
+        'player-dave': { 'player-eve': 5 },
+      },
+      against: {},
+    };
+    const players: GlobalSessionPlayer[] = [
+      sessionPlayer(alice, { gamesPlayed: 2 }),
+      sessionPlayer(bob, { gamesPlayed: 2 }),
+      sessionPlayer(carol, { gamesPlayed: 2 }),
+      sessionPlayer(dave, { gamesPlayed: 2 }),
+      sessionPlayer(eve, { gamesPlayed: 1 }),
+    ];
+
+    const { selected } = selectNextPlayers(players, eveWithEveryone);
+
+    expect(selected.map(player => player.id)).toContain('player-eve');
   });
 });
 
@@ -183,7 +222,7 @@ describe('generateMatchSuggestion', () => {
 });
 
 describe('applyMatchResult', () => {
-  it('increments gamesPlayed and consecutiveStreak for players who played by id', () => {
+  it('increments gamesPlayed for players who played by id', () => {
     const session = createSession(globalPlayers);
     const split = splitFor(session.players[0], session.players[1], session.players[2], session.players[3]);
 
@@ -191,20 +230,17 @@ describe('applyMatchResult', () => {
 
     const aliceRecord = next.players.find(p => p.id === 'player-alice')!;
     expect(aliceRecord.gamesPlayed).toBe(1);
-    expect(aliceRecord.consecutiveStreak).toBe(1);
-    expect(aliceRecord.onBreak).toBe(false);
   });
 
-  it('resets consecutiveStreak and sets onBreak for the player who sat out', () => {
+  it('leaves the player who sat out untouched', () => {
     const session = createSession(globalPlayers);
     const split = splitFor(session.players[0], session.players[1], session.players[2], session.players[3]);
 
     const next = applyMatchResult(session, split, 'teamA');
 
     const eveRecord = next.players.find(p => p.id === 'player-eve')!;
-    expect(eveRecord.consecutiveStreak).toBe(0);
-    expect(eveRecord.onBreak).toBe(true);
     expect(eveRecord.gamesPlayed).toBe(0);
+    expect(eveRecord).toEqual(session.players.find(p => p.id === 'player-eve'));
   });
 
   it('appends a global-aware match record to history', () => {
@@ -280,7 +316,7 @@ describe('applyMatchResult', () => {
     const split = splitFor(session.players[0], session.players[1], session.players[2], session.players[3]);
 
     const after1 = applyMatchResult(session, split, 'teamA');
-    // Use the updated player records for the second match so streak/gamesPlayed are correct,
+    // Use the updated player records for the second match so gamesPlayed is correct,
     // but keep the same pairing (alice+bob vs carol+dave) to verify count accumulation.
     const split2 = splitFor(after1.players[0], after1.players[1], after1.players[2], after1.players[3]);
     const after2 = applyMatchResult(after1, split2, 'teamA');
@@ -378,18 +414,18 @@ describe('rankSplitsForPlayers tie-breaking', () => {
 });
 
 describe('selectNextPlayers tie-breaking', () => {
-  it('varies which player sits out when all players have equal gamesPlayed and are all on break', () => {
+  it('varies which player sits out when all players have equal gamesPlayed and no shared history', () => {
     const equalPlayers: GlobalSessionPlayer[] = [
-      sessionPlayer(alice, { gamesPlayed: 4, consecutiveStreak: 0, onBreak: true }),
-      sessionPlayer(bob, { gamesPlayed: 4, consecutiveStreak: 0, onBreak: true }),
-      sessionPlayer(carol, { gamesPlayed: 4, consecutiveStreak: 0, onBreak: true }),
-      sessionPlayer(dave, { gamesPlayed: 4, consecutiveStreak: 0, onBreak: true }),
-      sessionPlayer(eve, { gamesPlayed: 4, consecutiveStreak: 0, onBreak: true }),
+      sessionPlayer(alice, { gamesPlayed: 4 }),
+      sessionPlayer(bob, { gamesPlayed: 4 }),
+      sessionPlayer(carol, { gamesPlayed: 4 }),
+      sessionPlayer(dave, { gamesPlayed: 4 }),
+      sessionPlayer(eve, { gamesPlayed: 4 }),
     ];
 
     const sittingOut = new Set<string>();
     for (let i = 0; i < 100; i++) {
-      const { onBreak } = selectNextPlayers(equalPlayers);
+      const { onBreak } = selectNextPlayers(equalPlayers, emptyMatrix);
       for (const player of onBreak) sittingOut.add(player.id);
     }
 
@@ -427,5 +463,51 @@ describe('full-rotation cycle', () => {
       seenSplits.add(JSON.stringify([...top.teamA, ...top.teamB].map(player => player.id)));
     }
     expect(seenSplits.size).toBeGreaterThan(1);
+  });
+});
+
+describe('rotation diversity', () => {
+  function playSession(playerCount: number, matches: number) {
+    const roster = Array.from({ length: playerCount }, (_, i) => String.fromCharCode(65 + i));
+    let session = createLegacySessionFromPlayerNames(roster);
+    const foursomes = new Set<string>();
+    const sharedCourt = new Set<string>();
+
+    for (let match = 0; match < matches; match++) {
+      const [split] = generateMatchSuggestion(session).rankedSplits;
+      const four = [...split.teamA, ...split.teamB];
+      foursomes.add(four.map(player => player.displayName).sort().join(''));
+      for (let i = 0; i < four.length; i++) {
+        for (let j = i + 1; j < four.length; j++) {
+          sharedCourt.add([four[i].displayName, four[j].displayName].sort().join('-'));
+        }
+      }
+      session = applyMatchResult(session, split, 'teamA');
+    }
+
+    const gamesPlayed = session.players.map(player => player.gamesPlayed);
+    return { foursomes, sharedCourt, courtTimeSpread: Math.max(...gamesPlayed) - Math.min(...gamesPlayed) };
+  }
+
+  it('does not lock 8 players into two groups that only play each other', () => {
+    // Rotating by who sat out last alternated between exactly 2 foursomes forever,
+    // leaving 16 of the 28 possible pairs never sharing a court.
+    const { foursomes, sharedCourt } = playSession(8, 24);
+
+    expect(foursomes.size).toBeGreaterThanOrEqual(12);
+    expect(sharedCourt.size).toBe(28);
+  });
+
+  it('does not lock 6 players into fixed sit-out duos', () => {
+    // Rotating by who sat out last produced only 3 of the 15 possible foursomes.
+    const { foursomes } = playSession(6, 24);
+
+    expect(foursomes.size).toBeGreaterThanOrEqual(12);
+  });
+
+  it('keeps court time within one game for every roster size', () => {
+    for (const playerCount of [4, 5, 6, 7, 8]) {
+      expect(playSession(playerCount, 24).courtTimeSpread).toBeLessThanOrEqual(1);
+    }
   });
 });
