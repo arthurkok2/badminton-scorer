@@ -12,3 +12,4 @@ ui-debug.log
 memory/
 .superpowers/
 GarminRemote/developer_key
+GarminRemote/bin/
