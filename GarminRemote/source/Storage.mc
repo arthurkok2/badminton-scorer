@@ -1,4 +1,5 @@
 import Toybox.Application;
+import Toybox.Math;
 
 // Persists room code and a stable device identifier across app launches.
 module Storage {
@@ -26,22 +27,17 @@ module Storage {
         return id;
     }
 
-    // Generates a random UUID v4 string (xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx).
+    // Generates a pseudo-random UUID v4 string using Math.rand().
     function generateUuid() {
         var hex = "0123456789abcdef";
-        var parts = new [32];
-        for (var i = 0; i < 32; i++) {
-            parts[i] = hex.substring(Math.rand() % 16, (Math.rand() % 16) + 1);
-        }
-        // Insert hyphens and version/variant bits at standard positions
-        parts[12] = "4"; // version 4
-        parts[16] = hex.substring(8 + (Math.rand() % 4), 9 + (Math.rand() % 4)); // variant bits
         var s = "";
         for (var i = 0; i < 32; i++) {
             if (i == 8 || i == 12 || i == 16 || i == 20) {
                 s = s + "-";
             }
-            s = s + parts[i];
+            var r = Math.rand() % 16;
+            if (r < 0) { r = r + 16; }
+            s = s + hex.substring(r, r + 1);
         }
         return s;
     }
