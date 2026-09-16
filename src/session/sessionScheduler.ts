@@ -11,6 +11,10 @@ import type {
 } from './sessionTypes';
 import { createGlobalPlayer, createPairId, toSessionPlayer } from './playerIdentity';
 
+// Longest run of matches a player can be picked for while others are level on games played,
+// so court time is spread through the session rather than bunched into one long stint.
+const MAX_CONSECUTIVE_MATCHES = 4;
+
 export function createSession(players: readonly GlobalPlayer[]): ActiveSession {
   return {
     id: crypto.randomUUID(),
@@ -36,6 +40,7 @@ export function createLegacySessionFromPlayerNames(playerNames: readonly string[
 export function selectNextPlayers(
   players: readonly GlobalSessionPlayer[],
   matrix: PairingMatrix,
+  recentMatchPlayerIds: readonly (readonly string[])[] = [],
 ): {
   readonly selected: readonly [GlobalSessionPlayer, GlobalSessionPlayer, GlobalSessionPlayer, GlobalSessionPlayer];
   readonly onBreak: readonly GlobalSessionPlayer[];
@@ -65,9 +70,52 @@ export function selectNextPlayers(
   const mustPlay = byGamesPlayed.filter(player => player.gamesPlayed < cutoff);
   const contenders = byGamesPlayed.filter(player => player.gamesPlayed === cutoff);
 
+  // Whenever everyone is level on games played the variety score alone decides, and it has no
+  // reason to bring back whoever just sat out or to rest whoever has been on all night. Two
+  // filters keep the rotation humane before variety picks from what is left.
+  const playedLastMatch = (player: GlobalSessionPlayer) =>
+    recentMatchPlayerIds.length === 0 || recentMatchPlayerIds[0].includes(player.id);
+  const consecutiveMatches = (player: GlobalSessionPlayer) => {
+    let played = 0;
+    for (const ids of recentMatchPlayerIds) {
+      if (!ids.includes(player.id)) break;
+      played++;
+    }
+    return played;
+  };
+
+  const combinations = combinationsOf(contenders, 4 - mustPlay.length);
+  const selectedIdsOf = (combination: readonly GlobalSessionPlayer[]) =>
+    new Set([...mustPlay, ...combination].map(player => player.id));
+
+  // Nobody sits two matches running — but only where a single player sits out, meaning a
+  // 5-player roster. There the foursome is decided entirely by who sits, so every foursome
+  // comes up equally often whatever order they are picked in and bringing the last sitter
+  // straight back costs no variety. On bigger rosters it narrows which foursomes can follow,
+  // and on 8 the players who sat out are exactly the four open slots, so it would rebuild the
+  // fixed groups the variety score exists to break up.
+  const backOn =
+    players.length - 4 === 1
+      ? combinations.filter(combination => {
+          const ids = selectedIdsOf(combination);
+          return contenders.every(player => playedLastMatch(player) || ids.has(player.id));
+        })
+      : combinations;
+  const afterSitOuts = backOn.length > 0 ? backOn : combinations;
+
+  // Nobody plays more than MAX_CONSECUTIVE_MATCHES in a row. With 5 players this is what turns
+  // the rotation into a steady four-on, one-off cycle; larger rosters rarely reach the cap.
+  const rested = afterSitOuts.filter(combination => {
+    const ids = selectedIdsOf(combination);
+    return contenders.every(
+      player => consecutiveMatches(player) < MAX_CONSECUTIVE_MATCHES || !ids.has(player.id),
+    );
+  });
+  const candidates = rested.length > 0 ? rested : afterSitOuts;
+
   let selected: readonly GlobalSessionPlayer[] = [];
   let lowestCost = Number.POSITIVE_INFINITY;
-  for (const combination of combinationsOf(contenders, 4 - mustPlay.length)) {
+  for (const combination of candidates) {
     const four = [...mustPlay, ...combination];
     const cost = sharedCourtCost(four, matrix);
     if (cost < lowestCost) {
@@ -149,7 +197,11 @@ export function rankSplitsForPlayers(
 }
 
 export function generateMatchSuggestion(session: ActiveSession): MatchSuggestion {
-  const { selected, onBreak } = selectNextPlayers(session.players, session.pairingMatrix);
+  const recentMatchPlayerIds = session.matches
+    .slice(-MAX_CONSECUTIVE_MATCHES)
+    .reverse()
+    .map(match => [...match.teamAPlayerIds, ...match.teamBPlayerIds]);
+  const { selected, onBreak } = selectNextPlayers(session.players, session.pairingMatrix, recentMatchPlayerIds);
   const rankedSplits = rankSplitsForPlayers(selected, session.pairingMatrix);
   return { rankedSplits, onBreak };
 }

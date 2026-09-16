@@ -1,6 +1,6 @@
 ---
 title: Game Engine — Scoring Engine & Game Types
-last-updated: 2026-09-15
+last-updated: 2026-09-16
 ---
 
 # Scoring Engine
@@ -55,11 +55,16 @@ The session scheduler layer sits on top of the scoring engine, managing multi-ma
 
 After each match, 4 players are selected for the next match:
 1. Fewest total games played come on first, so court time never drifts by more than one game
-2. Whoever is level with the fourth-fewest competes for the remaining slots on variety: the foursome that has shared a court least this session wins, counting partnerships and head-to-heads alike
-3. Ties broken by a Fisher-Yates shuffle applied before selection
-4. Break counts by player count: 4→0, 5→1, 6→2, 7→3, 8→4
+2. Two rest filters then narrow the candidates: on a 5-player roster nobody sits out two matches running, and on any roster nobody plays more than four matches in a row
+3. Whoever is level with the fourth-fewest competes for what remains on variety: the foursome that has shared a court least this session wins, counting partnerships and head-to-heads alike
+4. Ties broken by a Fisher-Yates shuffle applied before selection
+5. Break counts by player count: 4→0, 5→1, 6→2, 7→3, 8→4
+
+The sit-out filter applies only where a single player sits out. On a 5-player roster the foursome is decided entirely by who sits, so every foursome comes up equally often whatever the order and requiring the last sitter back costs no variety. On larger rosters it narrows which foursomes can follow, and on 8 players the four who sat out are the four open slots, so it would rebuild the fixed groups outright. Rest state is read from recent `MatchRecord`s rather than stored per player.
 
 Filling those slots by variety rather than by who sat out last is what keeps an even-sized roster mixing. Rotating strictly on break status sealed 8 players into two foursomes that never met (only 12 of 28 possible pairs ever shared a court) and 6 players into three fixed sit-out duos (3 of 15 possible foursomes). See [Session Matchup Diversity](../../.specs/2026/09/2026-09-15-session-matchup-diversity.md).
+
+Variety alone, though, has no reason to bring back whoever just sat out, and everyone is level on games played every `n / gcd(n, 4)` matches — every 3 matches on 6 players, every 5 on 5. The rest filters cover those moments on 5-player rosters, where they cost nothing. On 6 a wait of two matches is left alone deliberately: court time evens out every 3 matches, and forcing the return would cost variety. See [Rotation Rest Patterns](../../.specs/2026/09/2026-09-16-rotation-rest-patterns.md).
 
 ### Team Formation
 

@@ -39,3 +39,4 @@ Master index of all specs across projects.
 | 2026-07-01 | BS | [2026-07-01-camera-handsfree-scoring](2026/07/2026-07-01-camera-handsfree-scoring.md) | Camera-Based Handsfree Scoring | input | medium | medium |
 | 2026-07-27 | BS | [2026-07-27-spinning-shuttle-server-picker](2026/07/2026-07-27-spinning-shuttle-server-picker.md) | Spinning Shuttle Server Picker | ui | low | medium |
 | 2026-09-15 | BS | [2026-09-15-session-matchup-diversity](2026/09/2026-09-15-session-matchup-diversity.md) | Session Matchup Diversity | scoring | low | medium |
+| 2026-09-16 | BS | [2026-09-16-rotation-rest-patterns](2026/09/2026-09-16-rotation-rest-patterns.md) | Rotation Rest Patterns | scoring | low | low |
