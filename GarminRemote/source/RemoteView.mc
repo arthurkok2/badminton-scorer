@@ -118,15 +118,16 @@ class RemoteDelegate extends WatchUi.BehaviorDelegate {
         _sourceId = Storage.getSourceId();
     }
 
-    // UP button — Team A point
+    // DOWN button — Team B point. Connect IQ raises onNextPage for DOWN,
+    // not UP, so these two handlers are the opposite way round to their names.
     function onNextPage() {
-        sendCommand("teamA");
+        sendCommand("teamB");
         return true;
     }
 
-    // DOWN button — Team B point
+    // UP button — Team A point (Connect IQ raises onPreviousPage for UP).
     function onPreviousPage() {
-        sendCommand("teamB");
+        sendCommand("teamA");
         return true;
     }
 
