@@ -434,6 +434,75 @@ describe('selectNextPlayers tie-breaking', () => {
   });
 });
 
+describe('selectNextPlayers rest handling', () => {
+  const frank = makeGlobalPlayer('player-frank', 'Frank');
+
+  it('brings back whoever sat out the last match when everyone is level on games', () => {
+    const level: GlobalSessionPlayer[] = [
+      sessionPlayer(alice, { gamesPlayed: 4 }),
+      sessionPlayer(bob, { gamesPlayed: 4 }),
+      sessionPlayer(carol, { gamesPlayed: 4 }),
+      sessionPlayer(dave, { gamesPlayed: 4 }),
+      sessionPlayer(eve, { gamesPlayed: 4 }),
+    ];
+    const lastMatch = [['player-alice', 'player-bob', 'player-carol', 'player-dave']];
+
+    for (let i = 0; i < 20; i++) {
+      const { selected } = selectNextPlayers(level, emptyMatrix, lastMatch);
+
+      expect(selected.map(player => player.id)).toContain('player-eve');
+    }
+  });
+
+  it('rests a player who has already played four matches in a row', () => {
+    const level: GlobalSessionPlayer[] = [
+      sessionPlayer(alice, { gamesPlayed: 4 }),
+      sessionPlayer(bob, { gamesPlayed: 4 }),
+      sessionPlayer(carol, { gamesPlayed: 4 }),
+      sessionPlayer(dave, { gamesPlayed: 4 }),
+      sessionPlayer(eve, { gamesPlayed: 4 }),
+      sessionPlayer(frank, { gamesPlayed: 4 }),
+    ];
+    // Most recent first. Alice is in all four; Eve and Frank sat out the last one.
+    const recent = [
+      ['player-alice', 'player-bob', 'player-carol', 'player-dave'],
+      ['player-alice', 'player-bob', 'player-carol', 'player-eve'],
+      ['player-alice', 'player-bob', 'player-dave', 'player-frank'],
+      ['player-alice', 'player-carol', 'player-eve', 'player-frank'],
+    ];
+
+    for (let i = 0; i < 20; i++) {
+      const { selected } = selectNextPlayers(level, emptyMatrix, recent);
+
+      expect(selected.map(player => player.id)).not.toContain('player-alice');
+    }
+  });
+
+  it('leaves who comes back on a 6-player roster to the variety score', () => {
+    // Two players sit out at a time here, so requiring their return would narrow which
+    // foursomes can follow. Only the player capped at four in a row is held out.
+    const level: GlobalSessionPlayer[] = [
+      sessionPlayer(alice, { gamesPlayed: 4 }),
+      sessionPlayer(bob, { gamesPlayed: 4 }),
+      sessionPlayer(carol, { gamesPlayed: 4 }),
+      sessionPlayer(dave, { gamesPlayed: 4 }),
+      sessionPlayer(eve, { gamesPlayed: 4 }),
+      sessionPlayer(frank, { gamesPlayed: 4 }),
+    ];
+    const lastMatch = [['player-alice', 'player-bob', 'player-carol', 'player-dave']];
+
+    const seen = new Set<string>();
+    for (let i = 0; i < 100; i++) {
+      const { onBreak } = selectNextPlayers(level, emptyMatrix, lastMatch);
+      for (const player of onBreak) seen.add(player.id);
+    }
+
+    // Eve and Frank sat out the last match; on this roster they are not guaranteed to return,
+    // so every player should turn up on the bench across repeated draws.
+    expect(seen.size).toBe(6);
+  });
+});
+
 describe('full-rotation cycle', () => {
   it('does not repeat the exact same team splits after one complete sit-out rotation', () => {
     const balanced: PairingMatrix = {
@@ -472,6 +541,7 @@ describe('rotation diversity', () => {
     let session = createLegacySessionFromPlayerNames(roster);
     const foursomes = new Set<string>();
     const sharedCourt = new Set<string>();
+    const attendance = new Map<string, boolean[]>(roster.map(name => [name, []]));
 
     for (let match = 0; match < matches; match++) {
       const [split] = generateMatchSuggestion(session).rankedSplits;
@@ -482,11 +552,32 @@ describe('rotation diversity', () => {
           sharedCourt.add([four[i].displayName, four[j].displayName].sort().join('-'));
         }
       }
+      const playing = new Set(four.map(player => player.displayName));
+      for (const [name, played] of attendance) played.push(playing.has(name));
       session = applyMatchResult(session, split, 'teamA');
     }
 
     const gamesPlayed = session.players.map(player => player.gamesPlayed);
-    return { foursomes, sharedCourt, courtTimeSpread: Math.max(...gamesPlayed) - Math.min(...gamesPlayed) };
+    const longestRunOf = (wanted: boolean) =>
+      Math.max(
+        ...[...attendance.values()].map(played => {
+          let longest = 0;
+          let run = 0;
+          for (const didPlay of played) {
+            run = didPlay === wanted ? run + 1 : 0;
+            longest = Math.max(longest, run);
+          }
+          return longest;
+        }),
+      );
+
+    return {
+      foursomes,
+      sharedCourt,
+      courtTimeSpread: Math.max(...gamesPlayed) - Math.min(...gamesPlayed),
+      longestWait: longestRunOf(false),
+      longestStint: longestRunOf(true),
+    };
   }
 
   it('does not lock 8 players into two groups that only play each other', () => {
@@ -509,5 +600,12 @@ describe('rotation diversity', () => {
     for (const playerCount of [4, 5, 6, 7, 8]) {
       expect(playSession(playerCount, 24).courtTimeSpread).toBeLessThanOrEqual(1);
     }
+  });
+
+  it('turns a 5-player roster into a four-on, one-off cycle', () => {
+    const { longestWait, longestStint } = playSession(5, 24);
+
+    expect(longestWait).toBe(1);
+    expect(longestStint).toBeLessThanOrEqual(4);
   });
 });
