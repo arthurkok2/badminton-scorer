@@ -101,15 +101,16 @@ class RoomCodeDelegate extends WatchUi.BehaviorDelegate {
         _view = view;
     }
 
-    // UP button — next character
+    // DOWN button — previous character. Connect IQ raises onNextPage for DOWN,
+    // not UP, so these two handlers are the opposite way round to their names.
     function onNextPage() {
-        _view.incrementChar();
+        _view.decrementChar();
         return true;
     }
 
-    // DOWN button — previous character
+    // UP button — next character (Connect IQ raises onPreviousPage for UP).
     function onPreviousPage() {
-        _view.decrementChar();
+        _view.incrementChar();
         return true;
     }
 

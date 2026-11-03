@@ -26,8 +26,8 @@ Watch button press
 |--------|--------|
 | UP (top-right) | Team A point |
 | DOWN (bottom-right) | Team B point |
-| Hold BACK (top-left) | Undo last point |
-| Short BACK | Return to room code entry |
+| BACK (top-left) | Undo last point |
+| START (middle-right) | Exit — shows an "End remote?" confirmation (resume / end) |
 
 ## Build and install
 

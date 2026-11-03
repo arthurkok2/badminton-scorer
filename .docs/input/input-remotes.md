@@ -102,7 +102,7 @@ Watch button press
 
 Because the Garmin SDK cannot perform Firebase authentication, the Firestore `commands` `allow create` rule does not require auth. Field validation (`hasOnly`, enum checks, no outcome fields on create) remains in place. See the security rationale in `.specs/2026/06/2026-06-24-garmin-connect-iq-remote.md`.
 
-Button mapping: UP → Team A point, DOWN → Team B point, hold BACK → Undo.
+Button mapping: UP → Team A point, DOWN → Team B point, BACK → Undo, START → exit confirmation.
 
 ### Connection Pattern
 
