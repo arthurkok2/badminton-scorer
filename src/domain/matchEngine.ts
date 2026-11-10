@@ -7,8 +7,18 @@ import type {
   Player,
   PlayerId,
   Score,
+  ScoringFormat,
   TeamId,
 } from './matchTypes';
+
+const SCORING_RULES: Record<ScoringFormat, { readonly target: number; readonly cap: number }> = {
+  '21-point': { target: 21, cap: 30 },
+  '15-point': { target: 15, cap: 21 },
+};
+
+export function scoringRulesFor(format: ScoringFormat): { readonly target: number; readonly cap: number } {
+  return SCORING_RULES[format];
+}
 
 const DOUBLES_TEAM_PLAYERS: Record<TeamId, PlayerId[]> = {
   teamA: ['A1', 'A2'],
@@ -45,6 +55,7 @@ export function createMatch(options: CreateMatchOptions): MatchState {
     options.mode === 'singles' ? positionSinglesForServingSide(initialCourtPositions, servingSide) : initialCourtPositions;
   const base: MatchState = {
     mode: options.mode,
+    scoringFormat: options.scoringFormat ?? '21-point',
     teams: {
       teamA: {
         id: 'teamA',
@@ -109,7 +120,7 @@ export function awardPointToServingTeam(match: MatchState): MatchState {
     courtPositions,
   });
 
-  return { ...next, winnerTeamId: getWinner(score) };
+  return { ...next, winnerTeamId: getWinner(score, match.scoringFormat) };
 }
 
 export function awardPointToReceivingTeam(match: MatchState): MatchState {
@@ -129,7 +140,7 @@ export function awardPointToReceivingTeam(match: MatchState): MatchState {
       match.mode === 'singles' ? positionSinglesForServingSide(match.courtPositions, servingSide) : { ...match.courtPositions },
   });
 
-  return { ...next, winnerTeamId: getWinner(score) };
+  return { ...next, winnerTeamId: getWinner(score, match.scoringFormat) };
 }
 
 export function awardPointToTeam(match: MatchState, teamId: TeamId): MatchState {
@@ -195,20 +206,22 @@ function positionSinglesForServingSide(
   };
 }
 
-function getWinner(score: Score): TeamId | undefined {
-  if (score.teamA === 30) {
+function getWinner(score: Score, scoringFormat: ScoringFormat): TeamId | undefined {
+  const { target, cap } = SCORING_RULES[scoringFormat];
+
+  if (score.teamA === cap) {
     return 'teamA';
   }
 
-  if (score.teamB === 30) {
+  if (score.teamB === cap) {
     return 'teamB';
   }
 
-  if (score.teamA >= 21 && score.teamA - score.teamB >= 2) {
+  if (score.teamA >= target && score.teamA - score.teamB >= 2) {
     return 'teamA';
   }
 
-  if (score.teamB >= 21 && score.teamB - score.teamA >= 2) {
+  if (score.teamB >= target && score.teamB - score.teamA >= 2) {
     return 'teamB';
   }
 

@@ -1,3 +1,4 @@
+import { scoringRulesFor } from '../domain/matchEngine';
 import type { MatchState, TeamId } from '../domain/matchTypes';
 import type { AnimationEvent, AnimationEventType } from './types';
 
@@ -9,6 +10,7 @@ export function detectAnimationEvent(prev: MatchState, next: MatchState): Animat
 
   const scorer: TeamId = next.score.teamA > prev.score.teamA ? 'teamA' : 'teamB';
   const opponent: TeamId = scorer === 'teamA' ? 'teamB' : 'teamA';
+  const { target, cap } = scoringRulesFor(next.scoringFormat);
 
   // Priority 1 & 2: match_won / shutout
   if (next.winnerTeamId) {
@@ -22,12 +24,12 @@ export function detectAnimationEvent(prev: MatchState, next: MatchState): Animat
   }
 
   // Priority 4: match_point
-  if (isMatchPoint(next.score, scorer, opponent)) {
+  if (isMatchPoint(next.score, scorer, opponent, target, cap)) {
     return { type: 'match_point', teamId: scorer };
   }
 
   // Priority 5: deuce
-  if (next.score.teamA === 20 && next.score.teamB === 20) {
+  if (next.score.teamA === target - 1 && next.score.teamB === target - 1) {
     return { type: 'deuce', teamId: scorer };
   }
 
@@ -67,10 +69,16 @@ function wasEverDownByFive(match: MatchState, scorer: TeamId, opponent: TeamId):
   return false;
 }
 
-function isMatchPoint(score: { teamA: number; teamB: number }, teamId: TeamId, opponent: TeamId): boolean {
+function isMatchPoint(
+  score: { teamA: number; teamB: number },
+  teamId: TeamId,
+  opponent: TeamId,
+  target: number,
+  cap: number,
+): boolean {
   const next = score[teamId] + 1;
-  if (next === 30) return true;
-  return next >= 21 && next - score[opponent] >= 2;
+  if (next === cap) return true;
+  return next >= target && next - score[opponent] >= 2;
 }
 
 function getConsecutiveStreak(match: MatchState): number {

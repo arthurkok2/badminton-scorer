@@ -9,8 +9,10 @@ function renderModal(overrides = {}) {
   const props = {
     match: createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' }),
     matchMode: 'doubles' as const,
+    scoringFormat: '21-point' as const,
     playerNames: { ...DEFAULT_PLAYER_NAMES },
     onMatchModeChange: vi.fn(),
+    onScoringFormatChange: vi.fn(),
     onSetInitialServer: vi.fn(),
     onPlayerNameChange: vi.fn(),
     ...overrides,
@@ -26,6 +28,30 @@ describe('MatchSettingsModal', () => {
     expect(screen.getByRole('group', { name: /match mode/i })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: /team a player 1 name/i })).toHaveValue('Player 1');
     expect(screen.getByRole('button', { name: /team b player 3 serves/i })).toBeInTheDocument();
+  });
+
+  it('renders the scoring format toggle with the current format selected', () => {
+    renderModal();
+
+    expect(screen.getByRole('group', { name: /scoring format/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '21-point' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: '15-point' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('calls the scoring format callback when 15-point is chosen', async () => {
+    const user = userEvent.setup();
+    const props = renderModal();
+
+    await user.click(screen.getByRole('button', { name: '15-point' }));
+
+    expect(props.onScoringFormatChange).toHaveBeenCalledWith('15-point');
+  });
+
+  it('disables the scoring format toggle when session context locks settings', () => {
+    renderModal({ settingsLocked: true });
+
+    expect(screen.getByRole('button', { name: '21-point' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '15-point' })).toBeDisabled();
   });
 
   it('calls match settings callbacks', async () => {

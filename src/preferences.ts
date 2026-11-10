@@ -1,4 +1,4 @@
-import type { MatchSnapshot, MatchState, PlayerId } from './domain/matchTypes';
+import type { MatchSnapshot, MatchState, PlayerId, ScoringFormat } from './domain/matchTypes';
 import type { AnnouncementMode } from './speech/announcer';
 
 export const DEFAULT_PLAYER_NAMES: Record<PlayerId, string> = {
@@ -12,6 +12,7 @@ export interface AppPreferences {
   autoAnnounce: boolean;
   announcementMode: AnnouncementMode;
   matchMode: 'singles' | 'doubles';
+  scoringFormat: ScoringFormat;
   displayMode: 'court' | 'little-fighters';
   remoteMapping: 'server-receiver-default';
   animationsEnabled: boolean;
@@ -25,6 +26,7 @@ export const DEFAULT_PREFERENCES: AppPreferences = {
   autoAnnounce: false,
   announcementMode: 'full',
   matchMode: 'doubles',
+  scoringFormat: '21-point',
   displayMode: 'court',
   remoteMapping: 'server-receiver-default',
   animationsEnabled: true,
@@ -58,6 +60,7 @@ function parsePreferences(value: unknown): AppPreferences {
     autoAnnounce: typeof value.autoAnnounce === 'boolean' ? value.autoAnnounce : DEFAULT_PREFERENCES.autoAnnounce,
     announcementMode: isAnnouncementMode(value.announcementMode) ? value.announcementMode : DEFAULT_PREFERENCES.announcementMode,
     matchMode: isMatchMode(value.matchMode) ? value.matchMode : DEFAULT_PREFERENCES.matchMode,
+    scoringFormat: isScoringFormat(value.scoringFormat) ? value.scoringFormat : DEFAULT_PREFERENCES.scoringFormat,
     displayMode: isDisplayMode(value.displayMode) ? value.displayMode : DEFAULT_PREFERENCES.displayMode,
     remoteMapping: value.remoteMapping === 'server-receiver-default'
       ? value.remoteMapping
@@ -122,18 +125,23 @@ function parseMatchState(value: unknown): MatchState | undefined {
   const normalizedHistory = Array.isArray(history)
     ? parseMatchHistory(history)
     : isMatchSnapshot(previous)
-      ? [previous]
+      ? [normalizeScoringFormat(previous)]
       : [];
 
   return {
     ...(rest as unknown as Omit<MatchState, 'history'>),
     mode: value.mode,
+    scoringFormat: isScoringFormat(value.scoringFormat) ? value.scoringFormat : '21-point',
     history: normalizedHistory,
   };
 }
 
 function parseMatchHistory(value: unknown[]): MatchSnapshot[] {
-  return value.every(isMatchSnapshot) ? value : [];
+  return value.every(isMatchSnapshot) ? value.map(normalizeScoringFormat) : [];
+}
+
+function normalizeScoringFormat(snapshot: MatchSnapshot): MatchSnapshot {
+  return isScoringFormat(snapshot.scoringFormat) ? snapshot : { ...snapshot, scoringFormat: '21-point' };
 }
 
 function isMatchSnapshot(value: unknown): value is MatchSnapshot {
@@ -146,6 +154,7 @@ function isMatchSnapshot(value: unknown): value is MatchSnapshot {
     isPlayerId(value.serverId) &&
     isPlayerId(value.receiverId) &&
     isCourtPositions(value.courtPositions) &&
+    (value.scoringFormat === undefined || isScoringFormat(value.scoringFormat)) &&
     (value.winnerTeamId === undefined || isTeamId(value.winnerTeamId))
   );
 }
@@ -200,6 +209,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isMatchMode(value: unknown): value is AppPreferences['matchMode'] {
   return value === 'singles' || value === 'doubles';
+}
+
+function isScoringFormat(value: unknown): value is ScoringFormat {
+  return value === '21-point' || value === '15-point';
 }
 
 function isDisplayMode(value: unknown): value is AppPreferences['displayMode'] {

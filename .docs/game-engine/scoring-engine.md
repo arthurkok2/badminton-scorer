@@ -1,6 +1,6 @@
 ---
 title: Game Engine — Scoring Engine & Game Types
-last-updated: 2026-09-16
+last-updated: 2026-11-09
 ---
 
 # Scoring Engine
@@ -31,11 +31,13 @@ The domain module exports pure functions that operate on immutable state:
 
 ## Scoring Engine
 
-The core engine implements standard badminton rally scoring:
-- Games to 21, win by 2, cap at 30
-- Doubles service rotation — server and receiver change based on score parity
-- Service changes after receiving team wins a rally
-- Game-over detection with winner identification
+The core engine implements badminton rally scoring with two selectable formats:
+- **21-point** (default) — games to 21, win by 2, cap at 30
+- **15-point** — games to 15, win by 2, cap at 21
+
+The format is stored on `MatchState.scoringFormat`, so saved matches, undo history, and remote sync keep the rules the game was played under. Target/cap live in one `SCORING_RULES` map; `getWinner()` and `scoringRulesFor()` read from it. Animation detection derives deuce at `target - 1` and match point from target/cap, and the Little Fighters health bar divides by the target.
+
+Doubles service rotation — server and receiver change based on score parity — and service changes after the receiving team wins a rally are the same for both formats. Game-over detection identifies the winner.
 
 ### Multi-Point Undo
 

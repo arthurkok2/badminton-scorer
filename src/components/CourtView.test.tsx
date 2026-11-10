@@ -186,6 +186,23 @@ describe('CourtView', () => {
     expect(screen.getByRole('button', { name: /enter fullscreen court view/i })).toBeInTheDocument();
   });
 
+  it('uses the 15-point target for little fighters health', () => {
+    const match: MatchState = {
+      ...createMatch({
+        mode: 'doubles',
+        scoringFormat: '15-point',
+        initialServingTeamId: 'teamA',
+        initialServingPlayerId: 'A1',
+      }),
+      score: { teamA: 0, teamB: 7 },
+    };
+
+    render(<CourtView match={match} displayMode="little-fighters" onPointTeam={vi.fn()} />);
+
+    expect(screen.getByRole('meter', { name: /team a health/i })).toHaveAttribute('aria-valuenow', '53');
+    expect(screen.getByRole('meter', { name: /team b health/i })).toHaveAttribute('aria-valuenow', '100');
+  });
+
   it('renders the little fighters mode with score, health, and serving markers', () => {
     const match: MatchState = {
       ...createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' }),
