@@ -88,6 +88,7 @@ A shared `CourtFullscreenButton` renders on both display modes. Uses the browser
 
 - `autoAnnounce` / `announcementMode` — speech toggle
 - `matchMode` — singles or doubles
+- `scoringFormat` — `21-point` (default) or `15-point`; changed from Match Settings and stored on the match state
 - `displayMode` — `court` or `little-fighters`
 - `animationsEnabled` — celebration effects toggle
 - `showSessionHistoryDuringLiveMatches` — session history visibility during play

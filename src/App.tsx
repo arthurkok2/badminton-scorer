@@ -3,7 +3,7 @@ import { Controls } from './components/Controls';
 import { CourtView } from './components/CourtView';
 import { PoseCamera } from './components/PoseCamera';
 import { createMatch } from './domain/matchEngine';
-import type { MatchMode, MatchState, PlayerId, TeamId } from './domain/matchTypes';
+import type { MatchMode, MatchState, PlayerId, ScoringFormat, TeamId } from './domain/matchTypes';
 import { LITTLE_FIGHTER_SPRITES, LITTLE_FIGHTER_SPRITES_BY_ID, type LittleFighterSpriteId } from './sprites/spriteCatalog';
 import { resolveLittleFighterSpriteIds } from './sprites/spriteSelection';
 import { SpritePickerModal } from './components/SpritePickerModal';
@@ -117,16 +117,23 @@ type MatchViewAction =
       readonly announcementMode: AppPreferences['announcementMode'];
       readonly announcementId: number;
     }
-  | { readonly type: 'RESET_MODE'; readonly mode: MatchMode; readonly playerNames: Record<PlayerId, string> };
+  | {
+      readonly type: 'RESET_MODE';
+      readonly mode: MatchMode;
+      readonly scoringFormat: ScoringFormat;
+      readonly playerNames: Record<PlayerId, string>;
+    };
 
 export default function App() {
   const [preferences, setPreferences] = useState<AppPreferences>(() => loadPreferences());
   const [matchView, setMatchView] = useState<MatchViewState>(() => {
     const saved = loadMatchState();
     const match =
-      saved !== undefined && saved.mode === preferences.matchMode
+      saved !== undefined &&
+      saved.mode === preferences.matchMode &&
+      saved.scoringFormat === preferences.scoringFormat
         ? saved
-        : createInitialMatch(preferences.matchMode, preferences.playerNames);
+        : createInitialMatch(preferences.matchMode, preferences.scoringFormat, preferences.playerNames);
     return { match };
   });
   const [appMode, setAppMode] = useState<AppMode>(() =>
@@ -352,7 +359,37 @@ export default function App() {
       setOneOffSpriteOverrides({});
       updatePreferences((current) => ({ ...current, matchMode: mode }));
       setMatchView((current) =>
-        applyMatchViewAction(current, { type: 'RESET_MODE', mode, playerNames: preferencesRef.current.playerNames }),
+        applyMatchViewAction(current, {
+          type: 'RESET_MODE',
+          mode,
+          scoringFormat: preferencesRef.current.scoringFormat,
+          playerNames: preferencesRef.current.playerNames,
+        }),
+      );
+    },
+    [matchView.match, updatePreferences],
+  );
+
+  const handleScoringFormatChange = useCallback(
+    (scoringFormat: ScoringFormat) => {
+      if (scoringFormat === preferencesRef.current.scoringFormat) {
+        return;
+      }
+
+      if (hasStarted(matchView.match) && !window.confirm('Start a new match and discard the current score?')) {
+        return;
+      }
+
+      clearMatchState();
+      setOneOffSpriteOverrides({});
+      updatePreferences((current) => ({ ...current, scoringFormat }));
+      setMatchView((current) =>
+        applyMatchViewAction(current, {
+          type: 'RESET_MODE',
+          mode: preferencesRef.current.matchMode,
+          scoringFormat,
+          playerNames: preferencesRef.current.playerNames,
+        }),
       );
     },
     [matchView.match, updatePreferences],
@@ -369,6 +406,7 @@ export default function App() {
       applyMatchViewAction(current, {
         type: 'RESET_MODE',
         mode: preferencesRef.current.matchMode,
+        scoringFormat: preferencesRef.current.scoringFormat,
         playerNames: preferencesRef.current.playerNames,
       }),
     );
@@ -389,7 +427,13 @@ export default function App() {
       updatePreferences((current) => ({ ...current, playerNames: nextPlayerNames }));
       setMatchView((current) => {
         if (hasStarted(current.match)) return current;
-        return { match: createInitialMatch(preferencesRef.current.matchMode, nextPlayerNames) };
+        return {
+          match: createInitialMatch(
+            preferencesRef.current.matchMode,
+            preferencesRef.current.scoringFormat,
+            nextPlayerNames,
+          ),
+        };
       });
     },
     [updatePreferences],
@@ -584,7 +628,15 @@ export default function App() {
     const startedAt = new Date().toISOString();
     clearMatchState();
     saveInProgressMatchState({ split, startedAt });
-    setMatchView({ match: createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1', playerNames }) });
+    setMatchView({
+      match: createMatch({
+        mode: 'doubles',
+        scoringFormat: preferencesRef.current.scoringFormat,
+        initialServingTeamId: 'teamA',
+        initialServingPlayerId: 'A1',
+        playerNames,
+      }),
+    });
     setCurrentPlayedSplit(split);
     setCurrentSessionMatchStartedAt(startedAt);
     setSessionPhase('playing');
@@ -648,6 +700,7 @@ export default function App() {
       applyMatchViewAction(current, {
         type: 'RESET_MODE',
         mode: preferencesRef.current.matchMode,
+        scoringFormat: preferencesRef.current.scoringFormat,
         playerNames: preferencesRef.current.playerNames,
       }),
     );
@@ -795,9 +848,11 @@ export default function App() {
         <MatchSettingsModal
           match={match}
           matchMode={preferences.matchMode}
+          scoringFormat={preferences.scoringFormat}
           playerNames={sessionPlayerNames ?? preferences.playerNames}
           settingsLocked={settingsLocked}
           onMatchModeChange={handleMatchModeChange}
+          onScoringFormatChange={handleScoringFormatChange}
           onSetInitialServer={handleSetInitialServer}
           onPlayerNameChange={appMode === 'session' ? () => undefined : handlePlayerNameChange}
         />
@@ -1014,8 +1069,12 @@ export default function App() {
   );
 }
 
-function createInitialMatch(mode: MatchMode, playerNames: Record<PlayerId, string>): MatchState {
-  return createMatch({ mode, initialServingTeamId: 'teamA', initialServingPlayerId: 'A1', playerNames });
+function createInitialMatch(
+  mode: MatchMode,
+  scoringFormat: ScoringFormat,
+  playerNames: Record<PlayerId, string>,
+): MatchState {
+  return createMatch({ mode, scoringFormat, initialServingTeamId: 'teamA', initialServingPlayerId: 'A1', playerNames });
 }
 
 function hasStarted(match: MatchState): boolean {
@@ -1041,7 +1100,7 @@ function getStoredSessionPlayerDisplayName(player: unknown): string | undefined 
 function applyMatchViewAction(current: MatchViewState, action: MatchViewAction): MatchViewState {
   if (action.type === 'RESET_MODE') {
     return {
-      match: createInitialMatch(action.mode, action.playerNames),
+      match: createInitialMatch(action.mode, action.scoringFormat, action.playerNames),
     };
   }
 

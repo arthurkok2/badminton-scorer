@@ -806,6 +806,21 @@ describe('App', () => {
     expect(screen.getByRole('button', { name: /undo last point/i })).toBeEnabled();
   });
 
+  it('ends a match at 15 points in the 15-point format', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await openMatchSettings(user);
+    await user.click(screen.getByRole('button', { name: '15-point' }));
+    await user.click(screen.getByRole('button', { name: /close match settings/i }));
+
+    for (let point = 0; point < 15; point += 1) {
+      await user.click(screen.getByRole('button', { name: /award point to team a, score \d+/i }));
+    }
+
+    expect(screen.getByRole('button', { name: /award point to team a, score 15/i })).toBeDisabled();
+  });
+
   // Remote input log
   it('prefixes keyboard events with [key] in the remote input log', async () => {
     const user = userEvent.setup();

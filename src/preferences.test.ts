@@ -56,12 +56,29 @@ describe('preferences', () => {
       autoAnnounce: true,
       announcementMode: 'full',
       matchMode: 'singles',
+      scoringFormat: '21-point',
       displayMode: 'court',
       remoteMapping: 'server-receiver-default',
       animationsEnabled: true,
       showSessionHistoryDuringLiveMatches: true,
       playerNames: DEFAULT_PLAYER_NAMES,
     });
+  });
+
+  it('defaults the scoring format to 21-point', () => {
+    expect(loadPreferences().scoringFormat).toBe('21-point');
+  });
+
+  it('saves and loads the 15-point scoring format', () => {
+    savePreferences({ ...DEFAULT_PREFERENCES, scoringFormat: '15-point' });
+
+    expect(loadPreferences().scoringFormat).toBe('15-point');
+  });
+
+  it('defaults an invalid stored scoring format to 21-point', () => {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ scoringFormat: '11-point' }));
+
+    expect(loadPreferences().scoringFormat).toBe('21-point');
   });
 
   it('saves and loads the selected announcement mode', () => {
@@ -122,6 +139,26 @@ describe('preferences', () => {
       score: { teamA: 1, teamB: 0 },
       history: [expect.objectContaining({ score: { teamA: 0, teamB: 0 } })],
     });
+  });
+
+  it('loads a saved 15-point match', () => {
+    const match = createMatch({
+      mode: 'doubles',
+      scoringFormat: '15-point',
+      initialServingTeamId: 'teamA',
+      initialServingPlayerId: 'A1',
+    });
+    window.localStorage.setItem(MATCH_STORAGE_KEY, JSON.stringify(match));
+
+    expect(loadMatchState()?.scoringFormat).toBe('15-point');
+  });
+
+  it('defaults legacy saved matches without a scoring format to 21-point', () => {
+    const match = createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
+    const { scoringFormat: _scoringFormat, ...legacy } = match;
+    window.localStorage.setItem(MATCH_STORAGE_KEY, JSON.stringify(legacy));
+
+    expect(loadMatchState()?.scoringFormat).toBe('21-point');
   });
 
   it('ignores saved match state with missing root snapshot fields', () => {

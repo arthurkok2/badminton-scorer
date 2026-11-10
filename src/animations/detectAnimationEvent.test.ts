@@ -15,6 +15,13 @@ const base = createMatch({
   initialServingPlayerId: 'A1',
 });
 
+const base15 = createMatch({
+  mode: 'doubles',
+  scoringFormat: '15-point',
+  initialServingTeamId: 'teamA',
+  initialServingPlayerId: 'A1',
+});
+
 describe('detectAnimationEvent', () => {
   it('returns null when scores are unchanged (no point scored)', () => {
     expect(detectAnimationEvent(base, base)).toBeNull();
@@ -83,6 +90,38 @@ describe('detectAnimationEvent', () => {
     const prev = scorePoints(scorePoints(base, 'teamA', 20), 'teamB', 19); // 20-19
     const next = awardPointToTeam(prev, 'teamB'); // 20-20
     expect(detectAnimationEvent(prev, next)?.type).toBe('deuce');
+  });
+
+  it('returns deuce at 14-14 in the 15-point format', () => {
+    const prev = scorePoints(scorePoints(base15, 'teamA', 14), 'teamB', 13); // 14-13
+    const next = awardPointToTeam(prev, 'teamB'); // 14-14
+    expect(detectAnimationEvent(prev, next)?.type).toBe('deuce');
+  });
+
+  it('returns match_point at 14-13 in the 15-point format', () => {
+    const prev = scorePoints(scorePoints(base15, 'teamA', 13), 'teamB', 13); // 13-13
+    const next = awardPointToTeam(prev, 'teamA'); // 14-13
+    expect(detectAnimationEvent(prev, next)?.type).toBe('match_point');
+    expect(detectAnimationEvent(prev, next)?.teamId).toBe('teamA');
+  });
+
+  it('returns match_won at 15-13 in the 15-point format', () => {
+    const prev = scorePoints(scorePoints(base15, 'teamA', 14), 'teamB', 13); // 14-13
+    const next = awardPointToTeam(prev, 'teamA'); // 15-13
+    expect(detectAnimationEvent(prev, next)?.type).toBe('match_won');
+  });
+
+  it('returns match_won when the 15-point format hits the 21 cap', () => {
+    const prev = {
+      ...base15,
+      score: { teamA: 20, teamB: 20 },
+      servingTeamId: 'teamA' as const,
+      serverId: 'A1' as const,
+      receiverId: 'B1' as const,
+      winnerTeamId: undefined,
+    };
+    const next = awardPointToTeam(prev, 'teamA'); // 21-20
+    expect(detectAnimationEvent(prev, next)?.type).toBe('match_won');
   });
 
   it('returns streak_3 after 3 consecutive points', () => {

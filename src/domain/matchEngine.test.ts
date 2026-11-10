@@ -246,6 +246,95 @@ describe('match engine', () => {
     expect(match.courtPositions.A1).toBe('right');
   });
 
+  it('defaults to the 21-point scoring format', () => {
+    const match = createMatch({ mode: 'doubles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
+
+    expect(match.scoringFormat).toBe('21-point');
+  });
+
+  it('keeps the 15-point scoring format through scoring and undo', () => {
+    const match = createMatch({
+      mode: 'doubles',
+      scoringFormat: '15-point',
+      initialServingTeamId: 'teamA',
+      initialServingPlayerId: 'A1',
+    });
+    const scored = awardPointToServingTeam(match);
+    const undone = undoLastPoint(scored);
+
+    expect(match.scoringFormat).toBe('15-point');
+    expect(scored.scoringFormat).toBe('15-point');
+    expect(scored.history[0].scoringFormat).toBe('15-point');
+    expect(undone.scoringFormat).toBe('15-point');
+  });
+
+  it('requires a two-point lead at 15 in the 15-point format', () => {
+    const match = createMatch({
+      mode: 'doubles',
+      scoringFormat: '15-point',
+      initialServingTeamId: 'teamA',
+      initialServingPlayerId: 'A1',
+    });
+    const fourteenAll = {
+      ...match,
+      score: { teamA: 14, teamB: 14 },
+      servingTeamId: 'teamA' as const,
+      serverId: 'A1' as const,
+      receiverId: 'B1' as const,
+    };
+
+    const fifteenFourteen = awardPointToServingTeam(fourteenAll);
+    expect(fifteenFourteen.score.teamA).toBe(15);
+    expect(fifteenFourteen.winnerTeamId).toBeUndefined();
+
+    const sixteenFourteen = awardPointToServingTeam(fifteenFourteen);
+    expect(sixteenFourteen.score.teamA).toBe(16);
+    expect(sixteenFourteen.winnerTeamId).toBe('teamA');
+  });
+
+  it('wins the 15-point format at 15 when ahead by two', () => {
+    const match = createMatch({
+      mode: 'doubles',
+      scoringFormat: '15-point',
+      initialServingTeamId: 'teamA',
+      initialServingPlayerId: 'A1',
+    });
+    const fourteenZero = {
+      ...match,
+      score: { teamA: 14, teamB: 0 },
+      servingTeamId: 'teamA' as const,
+      serverId: 'A1' as const,
+      receiverId: 'B1' as const,
+    };
+
+    const fifteen = awardPointToServingTeam(fourteenZero);
+
+    expect(fifteen.score.teamA).toBe(15);
+    expect(fifteen.winnerTeamId).toBe('teamA');
+  });
+
+  it('caps the 15-point format at 21', () => {
+    const match = createMatch({
+      mode: 'doubles',
+      scoringFormat: '15-point',
+      initialServingTeamId: 'teamA',
+      initialServingPlayerId: 'A1',
+    });
+    const twentyAll = {
+      ...match,
+      score: { teamA: 20, teamB: 20 },
+      servingTeamId: 'teamA' as const,
+      serverId: 'A1' as const,
+      receiverId: 'B1' as const,
+      winnerTeamId: undefined,
+    };
+
+    const capped = awardPointToServingTeam(twentyAll);
+
+    expect(capped.score.teamA).toBe(21);
+    expect(capped.winnerTeamId).toBe('teamA');
+  });
+
   it('updates singles service sides when rallies are won', () => {
     const match = createMatch({ mode: 'singles', initialServingTeamId: 'teamA', initialServingPlayerId: 'A1' });
     const serverWins = awardPointToServingTeam(match);

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { Maximize2, Minimize2 } from 'lucide-react';
+import { scoringRulesFor } from '../domain/matchEngine';
 import type { CourtSide, MatchState, Player, PlayerId, TeamId } from '../domain/matchTypes';
 import type { LittleFighterSpriteOption } from '../sprites/spriteCatalog';
 
@@ -590,7 +591,7 @@ function laneForCourtSide(teamId: TeamId | undefined, side: CourtSide): 'top' | 
 function getTeamHpPercent(match: MatchState, teamId: TeamId): number {
   const opposingTeamId = teamId === 'teamA' ? 'teamB' : 'teamA';
   const scoreAgainst = match.score[opposingTeamId];
-  return Math.max(0, 100 - (scoreAgainst / 21) * 100);
+  return Math.max(0, 100 - (scoreAgainst / scoringRulesFor(match.scoringFormat).target) * 100);
 }
 
 function getFighterLane(teamId: TeamId, side: CourtSide): 'top' | 'bottom' {

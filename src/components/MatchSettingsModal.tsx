@@ -1,11 +1,13 @@
-import type { MatchMode, MatchState, PlayerId, TeamId } from '../domain/matchTypes';
+import type { MatchMode, MatchState, PlayerId, ScoringFormat, TeamId } from '../domain/matchTypes';
 
 interface MatchSettingsModalProps {
   readonly match: MatchState;
   readonly matchMode: MatchMode;
+  readonly scoringFormat: ScoringFormat;
   readonly playerNames: Record<PlayerId, string>;
   readonly settingsLocked?: boolean;
   readonly onMatchModeChange: (mode: MatchMode) => void;
+  readonly onScoringFormatChange: (format: ScoringFormat) => void;
   readonly onSetInitialServer: (teamId: TeamId, playerId: PlayerId) => void;
   readonly onPlayerNameChange: (playerId: PlayerId, name: string) => void;
 }
@@ -13,9 +15,11 @@ interface MatchSettingsModalProps {
 export function MatchSettingsModal({
   match,
   matchMode,
+  scoringFormat,
   playerNames,
   settingsLocked = false,
   onMatchModeChange,
+  onScoringFormatChange,
   onSetInitialServer,
   onPlayerNameChange,
 }: MatchSettingsModalProps) {
@@ -42,6 +46,30 @@ export function MatchSettingsModal({
         >
           Singles
         </button>
+      </div>
+
+      <div className="settings-section">
+        <h3>Scoring format</h3>
+        <div className="mode-toggle" role="group" aria-label="Scoring format">
+          <button
+            type="button"
+            className={scoringFormat === '21-point' ? 'mode-option is-selected' : 'mode-option'}
+            aria-pressed={scoringFormat === '21-point'}
+            disabled={settingsLocked || scoringFormat === '21-point'}
+            onClick={() => onScoringFormatChange('21-point')}
+          >
+            21-point
+          </button>
+          <button
+            type="button"
+            className={scoringFormat === '15-point' ? 'mode-option is-selected' : 'mode-option'}
+            aria-pressed={scoringFormat === '15-point'}
+            disabled={settingsLocked || scoringFormat === '15-point'}
+            onClick={() => onScoringFormatChange('15-point')}
+          >
+            15-point
+          </button>
+        </div>
       </div>
 
       {settingsLocked ? (
